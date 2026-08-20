@@ -62,8 +62,15 @@
 </div>
 
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal-box">
+   <div class="modal-box">
     <div id="modalTitle"></div>
+    <select id="modalLang" onchange="changeModalLanguage()" style="margin-top:10px; padding:6px; border-radius:6px;">
+      <option value="ar">العربية</option>
+      <option value="en">English</option>
+      <option value="ur">اردو</option>
+      <option value="hi">हिंदी</option>
+      <option value="ml">മലയാളം</option>
+    </select>
     <div id="modalQr"></div>
     <button onclick="closeModal()">إغلاق</button>
   </div>
