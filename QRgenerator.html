@@ -156,7 +156,7 @@ function renderList() {
     div.className = "entry";
     div.innerHTML = `
       <div class="row">
-        <span class="name">${e.name} - ${e.phone}</span>
+                <span class="name">${e.name} - ${e.phone} - ${e.medicine}</span>
       </div>
       <div class="actions">
         <button onclick="openModal('${e.id}','welcome')">${e.openedWelcome ? "✓ " : ""}QR الترحيب</button>
