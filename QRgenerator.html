@@ -6,7 +6,7 @@
 <title>مولد رسائل الواتساب</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
   body { font-family: Tahoma, Arial, sans-serif; background:#f2f2f2; padding:30px 15px; }
   .wrap { max-width:480px; margin:0 auto; }
@@ -222,9 +222,12 @@ function renderModalQr() {
 
   document.getElementById("modalTitle").textContent = title;
   const link = `https://wa.me/${entry.phone}?text=${encodeURIComponent(text)}`;
-  const qrBox = document.getElementById("modalQr");
+   const qrBox = document.getElementById("modalQr");
   qrBox.innerHTML = "";
-  new QRCode(qrBox, { text: link, width: 220, height: 220 });
+  const qr = qrcode(0, "L");
+  qr.addData(link);
+  qr.make();
+  qrBox.innerHTML = qr.createImgTag(5);
 }
 
 function changeModalLanguage() {
