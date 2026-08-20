@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إعداد بيانات الصيدلية</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  body { font-family: Tahoma, Arial, sans-serif; background:#f2f2f2; padding:30px 15px; }
+  .wrap { max-width:480px; margin:0 auto; }
+  .back { text-decoration:none; color:#2b7de9; font-size:14px; }
+  h2 { color:#333; }
+  .choice { display:flex; gap:10px; margin:20px 0; }
+  .choice button { flex:1; padding:14px; border:none; border-radius:10px; background:#2b7de9; color:#fff; font-size:15px; cursor:pointer; }
+  .choice button.secondary { background:#666; }
+  .card { background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.1); margin-top:15px; display:none; }
+  .card.show { display:block; }
+  label { display:block; margin:12px 0 5px; font-size:14px; color:#333; }
+  input, textarea { width:100%; padding:10px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px; font-size:14px; font-family:inherit; }
+  textarea { min-height:80px; resize:vertical; }
+  .hint { font-size:12px; color:#999; margin-top:4px; }
+  .btn { margin-top:18px; width:100%; padding:12px; border:none; border-radius:8px; background:#2b7de9; color:#fff; font-size:15px; cursor:pointer; }
+  .msg { margin-top:10px; font-size:14px; padding:10px; border-radius:6px; display:none; }
+  .msg.error { background:#fdecea; color:#b3261e; display:block; }
+  .msg.ok { background:#e7f5ec; color:#1e7e34; display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">‹ رجوع</a>
+<h2>إعداد بيانات الصيدلية</h2>
+
+<div class="choice">
+  <button onclick="showMode('add')">إضافة صيدلية جديدة</button>
+  <button class="secondary" onclick="showMode('edit')">تعديل بيانات صيدلية</button>
+</div>
+
+<!-- شاشة إدخال الرقم والباسورد -->
+<div class="card" id="login-card">
+  <label>رقم الصيدلية (4 أرقام)</label>
+  <input type="text" id="pharmNumber" maxlength="4" inputmode="numeric" placeholder="مثال: 1234">
+
+  <div id="passwordBlock">
+    <label>الباسورد (حروف وأرقام، أكتر من 4 خانات)</label>
+    <input type="text" id="pharmPassword" placeholder="اختار باسورد وماتنساهوش">
+  </div>
+
+  <button class="btn" id="proceedBtn" onclick="proceed()">التالي</button>
+  <div class="msg" id="loginMsg"></div>
+</div>
+
+<!-- شاشة الرسائل -->
+<div class="card" id="templates-card">
+  <label>رسالة الترحيب</label>
+  <textarea id="welcomeMsg" placeholder="مثال:&#10;السلام عليكم&#10;مع حضرتك صيدلية النهدي - حي الروضة&#10;https://maps.google.com/?q=..."></textarea>
+  <div class="hint">دي الرسالة اللي هتتبعت زي ما هي، اكتبها بنفس الشكل اللي عايزة تتبعت بيه.</div>
+
+  <label>رسالة الأدوية - الجزء الأول (قبل اسم المريض)</label>
+  <textarea id="medPart1"></textarea>
+
+  <label>رسالة الأدوية - الجزء الثاني (بين اسم المريض واسم الدواء)</label>
+  <textarea id="medPart2"></textarea>
+
+  <label>رسالة الأدوية - الجزء الثالث (بعد اسم الدواء)</label>
+  <textarea id="medPart3"></textarea>
+  <div class="hint">الشكل النهائي: [جزء 1] + اسم المريض + [جزء 2] + اسم الدواء + [جزء 3]</div>
+
+  <button class="btn" id="saveBtn" onclick="saveTemplates()">حفظ</button>
+  <div class="msg" id="saveMsg"></div>
+</div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBDiUHVrUZgao7YcAILYlAr4409A6v1_Mw",
+  authDomain: "whatsapp-qr-codes.firebaseapp.com",
+  projectId: "whatsapp-qr-codes",
+  storageBucket: "whatsapp-qr-codes.firebasestorage.app",
+  messagingSenderId: "819509086046",
+  appId: "1:819509086046:web:a587462b73a07c574531cf"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const DEFAULT_PART1 = "أ/ ";
+const DEFAULT_PART2 = "\nكيف حال حضرتك\nموعد تكرار دواء ";
+const DEFAULT_PART3 = "\nهذا الاسبوع\nوهو متوفر لدينا بالفرع👆";
+
+let mode = "add"; // add | edit
+let currentNumber = null;
+
+function showMode(m) {
+  mode = m;
+  document.getElementById("login-card").classList.add("show");
+  document.getElementById("templates-card").classList.remove("show");
+  document.getElementById("loginMsg").className = "msg";
+  document.getElementById("pharmNumber").value = "";
+  document.getElementById("pharmPassword").value = "";
+  document.getElementById("passwordBlock").style.display = "block";
+  document.getElementById("proceedBtn").textContent = mode === "add" ? "التالي" : "دخول";
+}
+
+function showLoginError(text) {
+  const el = document.getElementById("loginMsg");
+  el.textContent = text;
+  el.className = "msg error";
+}
+
+async function proceed() {
+  const number = document.getElementById("pharmNumber").value.trim();
+  const password = document.getElementById("pharmPassword").value.trim();
+
+  if (!/^[0-9]{4}$/.test(number)) {
+    showLoginError("رقم الصيدلية لازم يكون 4 أرقام بالظبط.");
+    return;
+  }
+  if (!/^[A-Za-z0-9]{5,}$/.test(password)) {
+    showLoginError("الباسورد لازم يكون حروف وأرقام بس، وأكتر من 4 خانات.");
+    return;
+  }
+
+  const docRef = db.collection("pharmacies").doc(number);
+  const docSnap = await docRef.get();
+
+  if (mode === "add") {
+    if (docSnap.exists) {
+      showLoginError("الرقم ده مسجل بالفعل، جرب تعديل بيانات صيدلية بدل كده.");
+      return;
+    }
+    currentNumber = number;
+    document.getElementById("welcomeMsg").value = "";
+    document.getElementById("medPart1").value = DEFAULT_PART1;
+    document.getElementById("medPart2").value = DEFAULT_PART2;
+    document.getElementById("medPart3").value = DEFAULT_PART3;
+    // نحفظ الباسورد مؤقتًا في متغير عشان نستخدمه وقت الحفظ
+    window._pendingPassword = password;
+    document.getElementById("templates-card").classList.add("show");
+  } else {
+    if (!docSnap.exists) {
+      showLoginError("الرقم ده مش مسجل. استخدم إضافة صيدلية جديدة الأول.");
+      return;
+    }
+    const data = docSnap.data();
+    if (data.password !== password) {
+      showLoginError("الباسورد غلط.");
+      return;
+    }
+    currentNumber = number;
+    document.getElementById("welcomeMsg").value = data.welcomeMessage || "";
+    document.getElementById("medPart1").value = data.medPart1 || DEFAULT_PART1;
+    document.getElementById("medPart2").value = data.medPart2 || DEFAULT_PART2;
+    document.getElementById("medPart3").value = data.medPart3 || DEFAULT_PART3;
+    document.getElementById("templates-card").classList.add("show");
+  }
+}
+
+async function saveTemplates() {
+  const saveMsg = document.getElementById("saveMsg");
+  const payload = {
+    welcomeMessage: document.getElementById("welcomeMsg").value,
+    medPart1: document.getElementById("medPart1").value,
+    medPart2: document.getElementById("medPart2").value,
+    medPart3: document.getElementById("medPart3").value
+  };
+  if (mode === "add") {
+    payload.password = window._pendingPassword;
+  }
+
+  try {
+    await db.collection("pharmacies").doc(currentNumber).set(payload, { merge: true });
+    saveMsg.textContent = "تم الحفظ بنجاح.";
+    saveMsg.className = "msg ok";
+  } catch (e) {
+    saveMsg.textContent = "حصل خطأ، حاول تاني.";
+    saveMsg.className = "msg error";
+  }
+}
+</script>
+</body>
+</html>
