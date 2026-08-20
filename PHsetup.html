@@ -43,7 +43,7 @@
 
   <div id="passwordBlock">
     <label>الباسورد (حروف وأرقام، أكتر من 4 خانات)</label>
-    <input type="text" id="pharmPassword" placeholder="اختار باسورد وماتنساهوش">
+    <input type="text" id="pharmPassword" placeholder="اختار باسورد ولا تنساه">
   </div>
 
   <button class="btn" id="proceedBtn" onclick="proceed()">التالي</button>
@@ -158,12 +158,12 @@ async function proceed() {
     document.getElementById("templates-card").classList.add("show");
   } else {
     if (!docSnap.exists) {
-      showLoginError("الرقم ده مش مسجل. استخدم إضافة صيدلية جديدة الأول.");
+      showLoginError("هذا الرقم غير مسجل. استخدم إضافة صيدلية جديدة .");
       return;
     }
     const data = docSnap.data();
     if (data.password !== password) {
-      showLoginError("الباسورد غلط.");
+      showLoginError("الباسورد خطأ.");
       return;
     }
     currentNumber = number;
@@ -197,13 +197,13 @@ async function saveTemplates() {
 
   try {
     await db.collection("pharmacies").doc(currentNumber).set(payload, { merge: true });
-        saveMsg.textContent = "تم الحفظ بنجاح، هيتم تحويلك الآن...";
+        saveMsg.textContent = "تم الحفظ بنجاح، سيتم تحويلك الآن...";
     saveMsg.className = "msg ok";
     setTimeout(() => {
       window.location.href = "QRgenerator.html";
     }, 1200);
   } catch (e) {
-    saveMsg.textContent = "حصل خطأ، حاول تاني.";
+    saveMsg.textContent = "حدث خطأ، حاول تاني.";
     saveMsg.className = "msg error";
   }
 }
