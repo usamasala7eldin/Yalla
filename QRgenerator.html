@@ -67,9 +67,6 @@
     <select id="modalLang" onchange="changeModalLanguage()" style="margin-top:10px; padding:6px; border-radius:6px;">
       <option value="ar">العربية</option>
       <option value="en">English</option>
-      <option value="ur">اردو</option>
-      <option value="hi">हिंदी</option>
-      <option value="ml">മലയാളം</option>
     </select>
     <div id="modalQr"></div>
     <button onclick="closeModal()">إغلاق</button>
@@ -172,29 +169,23 @@ function renderList() {
 
 let currentModalEntryId = null;
 let currentModalType = null;
-const translationCache = {};
 
-async function translateText(text, targetLang) {
-  if (!text) return text;
-  const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ar|${targetLang}`);
-  const data = await res.json();
-  return data.responseData.translatedText || text;
+function joinSmart(a, b) {
+  a = a || "";
+  b = b || "";
+  if (!a) return b;
+  if (!b) return a;
+  if (/\s$/.test(a) || /^\s/.test(b)) return a + b;
+  return a + " " + b;
 }
 
-async function getTranslatedTemplates(lang) {
-  if (lang === "ar") return pharmacyData;
-  if (translationCache[lang]) return translationCache[lang];
-
-  const [welcomeMessage, medPart1, medPart2, medPart3] = await Promise.all([
-    translateText(pharmacyData.welcomeMessage || "", lang),
-    translateText(pharmacyData.medPart1 || "", lang),
-    translateText(pharmacyData.medPart2 || "", lang),
-    translateText(pharmacyData.medPart3 || "", lang)
-  ]);
-
-  const translated = { welcomeMessage, medPart1, medPart2, medPart3 };
-  translationCache[lang] = translated;
-  return translated;
+function buildMedText(part1, name, part2, medicine, part3) {
+  let text = part1 || "";
+  text = joinSmart(text, name);
+  text = joinSmart(text, part2);
+  text = joinSmart(text, medicine);
+  text = joinSmart(text, part3);
+  return text;
 }
 
 async function openModal(id, type) {
@@ -207,20 +198,25 @@ async function openModal(id, type) {
 
   document.getElementById("modalLang").value = "ar";
   document.getElementById("modalOverlay").classList.add("show");
-  await renderModalQr();
+  renderModalQr();
 }
 
-async function renderModalQr() {
+function renderModalQr() {
   const entry = entries.find(e => e.id == currentModalEntryId);
   const lang = document.getElementById("modalLang").value;
-  const templates = await getTranslatedTemplates(lang);
 
   let text, title;
   if (currentModalType === "welcome") {
-    text = templates.welcomeMessage || "";
+    text = lang === "en"
+      ? (pharmacyData.welcomeMessageEn || pharmacyData.welcomeMessage || "")
+      : (pharmacyData.welcomeMessage || "");
     title = "QR رسالة الترحيب - " + entry.name;
   } else {
-    text = (templates.medPart1 || "") + entry.name + (templates.medPart2 || "") + entry.medicine + (templates.medPart3 || "");
+    if (lang === "en" && pharmacyData.medPart1En) {
+      text = buildMedText(pharmacyData.medPart1En, entry.name, pharmacyData.medPart2En, entry.medicine, pharmacyData.medPart3En);
+    } else {
+      text = buildMedText(pharmacyData.medPart1, entry.name, pharmacyData.medPart2, entry.medicine, pharmacyData.medPart3);
+    }
     title = "QR رسالة الدواء - " + entry.name;
   }
 
