@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>أدواتي</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   body {
     font-family: Tahoma, Arial, sans-serif;
@@ -12,92 +11,42 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 20px;
+    padding: 60px 20px;
   }
-  .tools {
-    display: flex;
-    gap: 10px;
+  h1 {
     margin-bottom: 30px;
-    flex-wrap: wrap;
-    justify-content: center;
+    color: #333;
   }
-  .tools button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    background: #444;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-  }
-  .tools button.active {
-    background: #2b7de9;
-  }
-  .card {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    width: 100%;
-    max-width: 400px;
-    text-align: center;
-  }
-  input {
-    width: 100%;
-    padding: 10px;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    margin-bottom: 15px;
-    font-size: 14px;
-  }
-  .card button.generate {
-    padding: 10px 25px;
-    border: none;
-    border-radius: 6px;
-    background: #2b7de9;
-    color: white;
-    cursor: pointer;
-    font-size: 15px;
-  }
-  #qrcode {
-    margin-top: 20px;
+  .menu {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 300px;
+  }
+  .menu a {
+    text-decoration: none;
+    background: #2b7de9;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .menu a:hover {
+    background: #1a5fc4;
   }
 </style>
 </head>
 <body>
 
-<div class="tools">
-  <button class="active" onclick="showTool('qr')">QR Code</button>
-  <!-- هنا هتضيف زراير الأدوات الجديدة بعدين -->
+<h1>أدواتي</h1>
+
+<div class="menu">
+  <a href="qr.html">QR Code Generator</a>
+  <!-- هنا هتضيف زراير أدوات جديدة بعدين -->
 </div>
-
-<div class="card" id="qr-tool">
-  <input type="text" id="qrInput" placeholder="اكتب أو الصق أي حاجة هنا">
-  <br>
-  <button class="generate" onclick="generateQR()">حوّل لـ QR</button>
-  <div id="qrcode"></div>
-</div>
-
-<script>
-function generateQR() {
-  const text = document.getElementById("qrInput").value.trim();
-  const box = document.getElementById("qrcode");
-  box.innerHTML = "";
-  if (!text) return;
-  new QRCode(box, {
-    text: text,
-    width: 220,
-    height: 220
-  });
-}
-
-function showTool(name) {
-  // هنستخدمها لما نضيف أدوات جديدة ونبدّل بينهم
-}
-</script>
 
 </body>
 </html>
