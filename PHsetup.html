@@ -172,8 +172,11 @@ async function saveTemplates() {
 
   try {
     await db.collection("pharmacies").doc(currentNumber).set(payload, { merge: true });
-    saveMsg.textContent = "تم الحفظ بنجاح.";
+        saveMsg.textContent = "تم الحفظ بنجاح، هيتم تحويلك الآن...";
     saveMsg.className = "msg ok";
+    setTimeout(() => {
+      window.location.href = "generator.html";
+    }, 1200);
   } catch (e) {
     saveMsg.textContent = "حصل خطأ، حاول تاني.";
     saveMsg.className = "msg error";
