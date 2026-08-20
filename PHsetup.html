@@ -52,20 +52,26 @@
 
 <!-- شاشة الرسائل -->
 <div class="card" id="templates-card">
-  <label>رسالة الترحيب</label>
-  <textarea id="welcomeMsg" placeholder="السلام عليكم
-مع حضرتك صيدلية النهدي - محمد رشيد رضا -خلف بندة- طريق النصر
-https://maps.app.goo.gl/QyNpDgoDAXoUNRZ9A"></textarea>
-  <div class="hint">دي الرسالة اللي هتتبعت زي ما هي، اكتبها بنفس الشكل اللي عايزة تتبعت بيه.</div>
+   <label>رسالة الترحيب (عربي)</label>
+  <textarea id="welcomeMsg" placeholder="مثال:&#10;السلام عليكم&#10;مع حضرتك صيدلية النهدي - حي الروضة&#10;https://maps.google.com/?q=..."></textarea>
 
-  <label>رسالة الأدوية - الجزء الأول (قبل اسم المريض)</label>
+  <label>رسالة الترحيب (إنجليزي - اختياري)</label>
+  <textarea id="welcomeMsgEn" placeholder="اتركها فاضية لو مش هتستخدم إنجليزي"></textarea>
+  <div class="hint">دي الرسايل هتتبعت زي ما هي، اكتبها بنفس الشكل اللي عايز تتبعت بيه.</div>
+
+  <label>رسالة الأدوية (عربي) - الجزء الأول</label>
   <textarea id="medPart1"></textarea>
-
-  <label>رسالة الأدوية - الجزء الثاني (بين اسم المريض واسم الدواء)</label>
+  <label>رسالة الأدوية (عربي) - الجزء الثاني</label>
   <textarea id="medPart2"></textarea>
-
-  <label>رسالة الأدوية - الجزء الثالث (بعد اسم الدواء)</label>
+  <label>رسالة الأدوية (عربي) - الجزء الثالث</label>
   <textarea id="medPart3"></textarea>
+
+  <label>رسالة الأدوية (إنجليزي) - الجزء الأول (اختياري)</label>
+  <textarea id="medPart1En"></textarea>
+  <label>رسالة الأدوية (إنجليزي) - الجزء الثاني (اختياري)</label>
+  <textarea id="medPart2En"></textarea>
+  <label>رسالة الأدوية (إنجليزي) - الجزء الثالث (اختياري)</label>
+  <textarea id="medPart3En"></textarea>
   <div class="hint">الشكل النهائي: [جزء 1] + اسم المريض + [جزء 2] + اسم الدواء + [جزء 3]</div>
 
   <button class="btn" id="saveBtn" onclick="saveTemplates()">حفظ</button>
@@ -132,10 +138,14 @@ async function proceed() {
       return;
     }
     currentNumber = number;
-    document.getElementById("welcomeMsg").value = "";
+        document.getElementById("welcomeMsg").value = "";
+    document.getElementById("welcomeMsgEn").value = "";
     document.getElementById("medPart1").value = DEFAULT_PART1;
     document.getElementById("medPart2").value = DEFAULT_PART2;
     document.getElementById("medPart3").value = DEFAULT_PART3;
+    document.getElementById("medPart1En").value = "";
+    document.getElementById("medPart2En").value = "";
+    document.getElementById("medPart3En").value = "";
     // نحفظ الباسورد مؤقتًا في متغير عشان نستخدمه وقت الحفظ
     window._pendingPassword = password;
     document.getElementById("templates-card").classList.add("show");
@@ -150,21 +160,29 @@ async function proceed() {
       return;
     }
     currentNumber = number;
-    document.getElementById("welcomeMsg").value = data.welcomeMessage || "";
+       document.getElementById("welcomeMsg").value = data.welcomeMessage || "";
+    document.getElementById("welcomeMsgEn").value = data.welcomeMessageEn || "";
     document.getElementById("medPart1").value = data.medPart1 || DEFAULT_PART1;
     document.getElementById("medPart2").value = data.medPart2 || DEFAULT_PART2;
     document.getElementById("medPart3").value = data.medPart3 || DEFAULT_PART3;
+    document.getElementById("medPart1En").value = data.medPart1En || "";
+    document.getElementById("medPart2En").value = data.medPart2En || "";
+    document.getElementById("medPart3En").value = data.medPart3En || "";
     document.getElementById("templates-card").classList.add("show");
   }
 }
 
 async function saveTemplates() {
   const saveMsg = document.getElementById("saveMsg");
-  const payload = {
+    const payload = {
     welcomeMessage: document.getElementById("welcomeMsg").value,
+    welcomeMessageEn: document.getElementById("welcomeMsgEn").value,
     medPart1: document.getElementById("medPart1").value,
     medPart2: document.getElementById("medPart2").value,
-    medPart3: document.getElementById("medPart3").value
+    medPart3: document.getElementById("medPart3").value,
+    medPart1En: document.getElementById("medPart1En").value,
+    medPart2En: document.getElementById("medPart2En").value,
+    medPart3En: document.getElementById("medPart3En").value
   };
   if (mode === "add") {
     payload.password = window._pendingPassword;
