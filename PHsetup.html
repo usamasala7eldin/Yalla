@@ -55,8 +55,11 @@
    <label>رسالة الترحيب (عربي)</label>
   <textarea id="welcomeMsg" placeholder="مثال:&#10;السلام عليكم&#10;مع حضرتك صيدلية النهدي - حي الروضة&#10;https://maps.google.com/?q=..."></textarea>
 
-  <label>رسالة الترحيب (إنجليزي - اختياري)</label>
-  <textarea id="welcomeMsgEn" placeholder="اتركها فاضية لو مش هتستخدم إنجليزي"></textarea>
+    <label>رسالة الترحيب (إنجليزي - اختياري)</label>
+  <textarea id="welcomeMsgEn" placeholder="Example: Hello 
+This is Nahdi Pharmacy - Mohammad Rashid Rida [Street]
+- behind Panda - Al-Nasr Road. 
+https://maps.app.goo.gl/QyNpDgoDAXoUNRZ9A"></textarea>
   <div class="hint">دي الرسايل هتتبعت زي ما هي، اكتبها بنفس الشكل اللي عايز تتبعت بيه.</div>
 
   <label>رسالة الأدوية (عربي) - الجزء الأول</label>
@@ -95,6 +98,10 @@ const db = firebase.firestore();
 const DEFAULT_PART1 = "أ/ ";
 const DEFAULT_PART2 = "\nكيف حال حضرتك\nموعد تكرار دواء ";
 const DEFAULT_PART3 = "\nهذا الاسبوع\nوهو متوفر لدينا بالفرع👆";
+
+const DEFAULT_PART1_EN = "Mr/ ";
+const DEFAULT_PART2_EN = "\nHow are you?\nIt is time to refill the medication ";
+const DEFAULT_PART3_EN = "\nThis week,\nand it is available at our branch 👆";
 
 let mode = "add"; // add | edit
 let currentNumber = null;
@@ -143,9 +150,9 @@ async function proceed() {
     document.getElementById("medPart1").value = DEFAULT_PART1;
     document.getElementById("medPart2").value = DEFAULT_PART2;
     document.getElementById("medPart3").value = DEFAULT_PART3;
-    document.getElementById("medPart1En").value = "";
-    document.getElementById("medPart2En").value = "";
-    document.getElementById("medPart3En").value = "";
+       document.getElementById("medPart1En").value = DEFAULT_PART1_EN;
+    document.getElementById("medPart2En").value = DEFAULT_PART2_EN;
+    document.getElementById("medPart3En").value = DEFAULT_PART3_EN;
     // نحفظ الباسورد مؤقتًا في متغير عشان نستخدمه وقت الحفظ
     window._pendingPassword = password;
     document.getElementById("templates-card").classList.add("show");
@@ -165,9 +172,9 @@ async function proceed() {
     document.getElementById("medPart1").value = data.medPart1 || DEFAULT_PART1;
     document.getElementById("medPart2").value = data.medPart2 || DEFAULT_PART2;
     document.getElementById("medPart3").value = data.medPart3 || DEFAULT_PART3;
-    document.getElementById("medPart1En").value = data.medPart1En || "";
-    document.getElementById("medPart2En").value = data.medPart2En || "";
-    document.getElementById("medPart3En").value = data.medPart3En || "";
+       document.getElementById("medPart1En").value = data.medPart1En || DEFAULT_PART1_EN;
+    document.getElementById("medPart2En").value = data.medPart2En || DEFAULT_PART2_EN;
+    document.getElementById("medPart3En").value = data.medPart3En || DEFAULT_PART3_EN;
     document.getElementById("templates-card").classList.add("show");
   }
 }
