@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اختبار الطباعة</title>
+<style>
+  body { font-family: Tahoma, Arial, sans-serif; background:#f2f2f2; padding:30px 15px; }
+  .wrap { max-width:480px; margin:0 auto; }
+  .back { text-decoration:none; color:#2b7de9; font-size:14px; }
+  h2 { color:#333; }
+  .card { background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.1); margin-top:15px; }
+  #printArea {
+    width: 10cm;
+    height: 5cm;
+    border: 1px dashed #999;
+    box-sizing: border-box;
+    padding: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    display: block;
+    margin: 0 auto;
+  }
+  .btn { margin-top:15px; width:100%; padding:12px; border:none; border-radius:8px; background:#27ae60; color:#fff; font-size:15px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">‹ رجوع</a>
+<h2>اختبار الطباعة</h2>
+
+<div class="card">
+  <textarea id="printArea" placeholder="اكتب هنا أي حاجة عايز تطبعها"></textarea>
+  <button class="btn" onclick="printContent()">طباعة</button>
+</div>
+
+</div>
+
+<script>
+function printContent() {
+  const content = document.getElementById("printArea").value;
+
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(`
+    <html>
+    <head>
+    <style>
+      @page { size: 10cm 5cm; margin: 0; }
+      body { margin:0; width:10cm; height:5cm; padding:8px; box-sizing:border-box; font-family: Tahoma, Arial, sans-serif; font-size:14px; white-space:pre-wrap; }
+    </style>
+    </head>
+    <body>${content}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.onload = function() {
+    printWindow.print();
+    printWindow.onafterprint = function() { printWindow.close(); };
+  };
+}
+</script>
+</body>
+</html>
