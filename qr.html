@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Code Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  body {
+    font-family: Tahoma, Arial, sans-serif;
+    background: #f2f2f2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  .back {
+    align-self: flex-start;
+    margin-bottom: 20px;
+    text-decoration: none;
+    color: #2b7de9;
+    font-size: 14px;
+  }
+  .card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  input {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 14px;
+  }
+  .card button {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    background: #2b7de9;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  #qrcode {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="index.html">‹ رجوع</a>
+
+<div class="card">
+  <input type="text" id="qrInput" placeholder="اكتب أو الصق أي حاجة هنا">
+  <br>
+  <button onclick="generateQR()">حوّل لـ QR</button>
+  <div id="qrcode"></div>
+</div>
+
+<script>
+function generateQR() {
+  const text = document.getElementById("qrInput").value.trim();
+  const box = document.getElementById("qrcode");
+  box.innerHTML = "";
+  if (!text) return;
+  new QRCode(box, {
+    text: text,
+    width: 220,
+    height: 220
+  });
+}
+</script>
+
+</body>
+</html>
