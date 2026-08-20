@@ -128,17 +128,13 @@ function addPatient() {
     return;
   }
 
-  const welcomeText = pharmacyData.welcomeMessage || "";
-  const medText =
-    (pharmacyData.medPart1 || "") + name +
-    (pharmacyData.medPart2 || "") + medicine +
-    (pharmacyData.medPart3 || "");
-
   const entry = {
     id: Date.now(),
     name,
-    welcomeLink: buildWaLink(phone, welcomeText),
-    medLink: buildWaLink(phone, medText)
+    phone,
+    medicine,
+    openedWelcome: false,
+    openedMed: false
   };
   entries.push(entry);
   renderList();
@@ -156,28 +152,80 @@ function renderList() {
     div.className = "entry";
     div.innerHTML = `
       <div class="row">
-        <span class="name">${e.name}</span>
+        <span class="name">${e.name} - ${e.phone}</span>
       </div>
       <div class="actions">
-        <button onclick="openModal('${e.id}','welcome')">QR الترحيب</button>
-        <button class="second" onclick="openModal('${e.id}','med')">QR الدواء</button>
+        <button onclick="openModal('${e.id}','welcome')">${e.openedWelcome ? "✓ " : ""}QR الترحيب</button>
+        <button class="second" onclick="openModal('${e.id}','med')">${e.openedMed ? "✓ " : ""}QR الدواء</button>
       </div>
     `;
     container.appendChild(div);
   });
 }
 
-function openModal(id, type) {
+let currentModalEntryId = null;
+let currentModalType = null;
+const translationCache = {};
+
+async function translateText(text, targetLang) {
+  if (!text) return text;
+  const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ar|${targetLang}`);
+  const data = await res.json();
+  return data.responseData.translatedText || text;
+}
+
+async function getTranslatedTemplates(lang) {
+  if (lang === "ar") return pharmacyData;
+  if (translationCache[lang]) return translationCache[lang];
+
+  const [welcomeMessage, medPart1, medPart2, medPart3] = await Promise.all([
+    translateText(pharmacyData.welcomeMessage || "", lang),
+    translateText(pharmacyData.medPart1 || "", lang),
+    translateText(pharmacyData.medPart2 || "", lang),
+    translateText(pharmacyData.medPart3 || "", lang)
+  ]);
+
+  const translated = { welcomeMessage, medPart1, medPart2, medPart3 };
+  translationCache[lang] = translated;
+  return translated;
+}
+
+async function openModal(id, type) {
+  currentModalEntryId = id;
+  currentModalType = type;
+
   const entry = entries.find(e => e.id == id);
-  const link = type === "welcome" ? entry.welcomeLink : entry.medLink;
-  const title = type === "welcome" ? "QR رسالة الترحيب - " + entry.name : "QR رسالة الدواء - " + entry.name;
+  if (type === "welcome") entry.openedWelcome = true; else entry.openedMed = true;
+  renderList();
+
+  document.getElementById("modalLang").value = "ar";
+  document.getElementById("modalOverlay").classList.add("show");
+  await renderModalQr();
+}
+
+async function renderModalQr() {
+  const entry = entries.find(e => e.id == currentModalEntryId);
+  const lang = document.getElementById("modalLang").value;
+  const templates = await getTranslatedTemplates(lang);
+
+  let text, title;
+  if (currentModalType === "welcome") {
+    text = templates.welcomeMessage || "";
+    title = "QR رسالة الترحيب - " + entry.name;
+  } else {
+    text = (templates.medPart1 || "") + entry.name + (templates.medPart2 || "") + entry.medicine + (templates.medPart3 || "");
+    title = "QR رسالة الدواء - " + entry.name;
+  }
 
   document.getElementById("modalTitle").textContent = title;
+  const link = `https://wa.me/${entry.phone}?text=${encodeURIComponent(text)}`;
   const qrBox = document.getElementById("modalQr");
   qrBox.innerHTML = "";
   new QRCode(qrBox, { text: link, width: 220, height: 220 });
+}
 
-  document.getElementById("modalOverlay").classList.add("show");
+function changeModalLanguage() {
+  renderModalQr();
 }
 
 function closeModal() {
