@@ -121,11 +121,11 @@ function showMode(m) {
   const editBtn = document.getElementById("editModeBtn");
 
   if (mode === "add") {
-    passwordInput.placeholder = "اختار باسورد وماتنساهوش";
+    passwordInput.placeholder = "اختار باسورد ولا تنساه";
     addBtn.classList.remove("secondary");
     editBtn.classList.add("secondary");
   } else {
-    passwordInput.placeholder = "اكتب الباسورد اللي سجلت بيه";
+    passwordInput.placeholder = "اكتب الباسورد الذي سجلت به";
     editBtn.classList.remove("secondary");
     addBtn.classList.add("secondary");
   }
