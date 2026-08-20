@@ -32,8 +32,8 @@
 <h2>إعداد بيانات الصيدلية</h2>
 
 <div class="choice">
-  <button onclick="showMode('add')">إضافة صيدلية جديدة</button>
-  <button class="secondary" onclick="showMode('edit')">تعديل بيانات صيدلية</button>
+  <button id="addModeBtn" onclick="showMode('add')">إضافة صيدلية جديدة</button>
+  <button id="editModeBtn" class="secondary" onclick="showMode('edit')">تعديل بيانات صيدلية</button>
 </div>
 
 <!-- شاشة إدخال الرقم والباسورد -->
@@ -43,7 +43,7 @@
 
   <div id="passwordBlock">
     <label>الباسورد (حروف وأرقام، أكتر من 4 خانات)</label>
-    <input type="text" id="pharmPassword" placeholder="اختار باسورد ولا تنساه">
+        <input type="text" id="pharmPassword" placeholder="">
   </div>
 
   <button class="btn" id="proceedBtn" onclick="proceed()">التالي</button>
@@ -115,6 +115,20 @@ function showMode(m) {
   document.getElementById("pharmPassword").value = "";
   document.getElementById("passwordBlock").style.display = "block";
   document.getElementById("proceedBtn").textContent = mode === "add" ? "التالي" : "دخول";
+
+  const passwordInput = document.getElementById("pharmPassword");
+  const addBtn = document.getElementById("addModeBtn");
+  const editBtn = document.getElementById("editModeBtn");
+
+  if (mode === "add") {
+    passwordInput.placeholder = "اختار باسورد وماتنساهوش";
+    addBtn.classList.remove("secondary");
+    editBtn.classList.add("secondary");
+  } else {
+    passwordInput.placeholder = "اكتب الباسورد اللي سجلت بيه";
+    editBtn.classList.remove("secondary");
+    addBtn.classList.add("secondary");
+  }
 }
 
 function showLoginError(text) {
