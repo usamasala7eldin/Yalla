@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مولد رسائل الواتساب</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  body { font-family: Tahoma, Arial, sans-serif; background:#f2f2f2; padding:30px 15px; }
+  .wrap { max-width:480px; margin:0 auto; }
+  .back { text-decoration:none; color:#2b7de9; font-size:14px; }
+  h2 { color:#333; }
+  .card { background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.1); margin-top:15px; }
+  label { display:block; margin:12px 0 5px; font-size:14px; color:#333; }
+  input { width:100%; padding:10px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px; font-size:14px; }
+  .btn { margin-top:15px; width:100%; padding:12px; border:none; border-radius:8px; background:#2b7de9; color:#fff; font-size:15px; cursor:pointer; }
+  .msg { margin-top:10px; font-size:14px; padding:10px; border-radius:6px; display:none; }
+  .msg.error { background:#fdecea; color:#b3261e; display:block; }
+  .welcome-preview { background:#eef5ff; border:1px solid #cfe0fb; border-radius:8px; padding:12px; margin-top:10px; font-size:13px; white-space:pre-wrap; display:none; }
+  #patientSection, #listSection { display:none; }
+  .entry { background:#fff; border-radius:10px; padding:14px; margin-top:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  .entry .row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .entry .name { font-weight:bold; color:#333; }
+  .entry .actions { display:flex; gap:8px; }
+  .entry .actions button { padding:8px 12px; border:none; border-radius:6px; background:#2b7de9; color:#fff; font-size:13px; cursor:pointer; }
+  .entry .actions button.second { background:#27ae60; }
+
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); align-items:center; justify-content:center; z-index:99; }
+  .modal-overlay.show { display:flex; }
+  .modal-box { background:#fff; border-radius:14px; padding:25px; text-align:center; max-width:90%; }
+  .modal-box #modalQr { display:flex; justify-content:center; margin:15px 0; }
+  .modal-box button { margin-top:10px; padding:10px 20px; border:none; border-radius:8px; background:#666; color:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">‹ رجوع</a>
+<h2>مولد رسائل الواتساب</h2>
+<a href="QRsetup.html">إعداد بيانات الصيدلية</a>
+<div class="card">
+  <label>رقم الصيدلية</label>
+  <input type="text" id="pharmNumber" maxlength="4" inputmode="numeric" placeholder="مثال: 1234">
+  <button class="btn" onclick="loadPharmacy()">دخول</button>
+  <div class="msg" id="loginMsg"></div>
+  <div class="welcome-preview" id="welcomePreview"></div>
+</div>
+
+<div class="card" id="patientSection">
+  <label>رقم تليفون المريض (بالصيغة الدولية، مثال 9665xxxxxxxx)</label>
+  <input type="text" id="patientPhone" inputmode="numeric">
+  <label>اسم المريض</label>
+  <input type="text" id="patientName">
+  <label>اسم الدواء</label>
+  <input type="text" id="medicineName">
+  <button class="btn" onclick="addPatient()">إضافة</button>
+</div>
+
+<div id="listSection"></div>
+
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div id="modalTitle"></div>
+    <div id="modalQr"></div>
+    <button onclick="closeModal()">إغلاق</button>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBDiUHVrUZgao7YcAILYlAr4409A6v1_Mw",
+  authDomain: "whatsapp-qr-codes.firebaseapp.com",
+  projectId: "whatsapp-qr-codes",
+  storageBucket: "whatsapp-qr-codes.firebasestorage.app",
+  messagingSenderId: "819509086046",
+  appId: "1:819509086046:web:a587462b73a07c574531cf"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let pharmacyData = null;
+let entries = []; // في الذاكرة بس
+
+async function loadPharmacy() {
+  const number = document.getElementById("pharmNumber").value.trim();
+  const msg = document.getElementById("loginMsg");
+  const preview = document.getElementById("welcomePreview");
+  msg.className = "msg";
+  preview.style.display = "none";
+
+  if (!/^[0-9]{4}$/.test(number)) {
+    msg.textContent = "رقم الصيدلية لازم يكون 4 أرقام.";
+    msg.className = "msg error";
+    return;
+  }
+
+  const docSnap = await db.collection("pharmacies").doc(number).get();
+  if (!docSnap.exists) {
+    msg.textContent = "الرقم ده مش مسجل، اعمل إعداد للصيدلية الأول.";
+    msg.className = "msg error";
+    return;
+  }
+
+  pharmacyData = docSnap.data();
+  preview.textContent = pharmacyData.welcomeMessage
+    ? pharmacyData.welcomeMessage
+    : "(لسه مفيش رسالة ترحيب متسجلة لهذا الرقم)";
+  preview.style.display = "block";
+
+  document.getElementById("patientSection").style.display = "block";
+  document.getElementById("listSection").style.display = "block";
+}
+
+function buildWaLink(phone, text) {
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+}
+
+function addPatient() {
+  const phone = document.getElementById("patientPhone").value.trim();
+  const name = document.getElementById("patientName").value.trim();
+  const medicine = document.getElementById("medicineName").value.trim();
+
+  if (!phone || !name || !medicine) {
+    alert("اكتب التليفون والاسم واسم الدواء الأول.");
+    return;
+  }
+
+  const welcomeText = pharmacyData.welcomeMessage || "";
+  const medText =
+    (pharmacyData.medPart1 || "") + name +
+    (pharmacyData.medPart2 || "") + medicine +
+    (pharmacyData.medPart3 || "");
+
+  const entry = {
+    id: Date.now(),
+    name,
+    welcomeLink: buildWaLink(phone, welcomeText),
+    medLink: buildWaLink(phone, medText)
+  };
+  entries.push(entry);
+  renderList();
+
+  document.getElementById("patientPhone").value = "";
+  document.getElementById("patientName").value = "";
+  document.getElementById("medicineName").value = "";
+}
+
+function renderList() {
+  const container = document.getElementById("listSection");
+  container.innerHTML = "";
+  entries.forEach(e => {
+    const div = document.createElement("div");
+    div.className = "entry";
+    div.innerHTML = `
+      <div class="row">
+        <span class="name">${e.name}</span>
+      </div>
+      <div class="actions">
+        <button onclick="openModal('${e.id}','welcome')">QR الترحيب</button>
+        <button class="second" onclick="openModal('${e.id}','med')">QR الدواء</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function openModal(id, type) {
+  const entry = entries.find(e => e.id == id);
+  const link = type === "welcome" ? entry.welcomeLink : entry.medLink;
+  const title = type === "welcome" ? "QR رسالة الترحيب - " + entry.name : "QR رسالة الدواء - " + entry.name;
+
+  document.getElementById("modalTitle").textContent = title;
+  const qrBox = document.getElementById("modalQr");
+  qrBox.innerHTML = "";
+  new QRCode(qrBox, { text: link, width: 220, height: 220 });
+
+  document.getElementById("modalOverlay").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("show");
+}
+</script>
+</body>
+</html>
