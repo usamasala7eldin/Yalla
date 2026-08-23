@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>اختبار الطباعة</title>
+<title> اطبع على طابعة الجرعات</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
 <style>
@@ -41,6 +41,11 @@
 <div class="card">
   <textarea id="printArea" placeholder="اكتب هنا أي شيء تريد طباعته"></textarea>
 
+  <div style="margin-top:12px; font-size:14px;">
+    <label for="fontSize">حجم الخط: <span id="fontSizeLabel">13</span>px</label>
+    <input type="range" id="fontSize" min="8" max="40" value="13" style="width:100%;" oninput="updateFontSize()">
+  </div>
+
   <div class="options">
     <label><input type="radio" name="printType" value="text" checked> نص عادي</label>
     <label><input type="radio" name="printType" value="qr"> QR Code</label>
@@ -75,6 +80,12 @@ function buildBarcodeImg(text) {
   return `<img src="${dataUrl}" style="max-width:100%; max-height:3.2cm;">`;
 }
 
+  function updateFontSize() {
+  const size = document.getElementById("fontSize").value;
+  document.getElementById("fontSizeLabel").textContent = size;
+  document.getElementById("printArea").style.fontSize = size + "px";
+}
+
 function printContent() {
   const content = document.getElementById("printArea").value.trim();
   if (!content) {
@@ -82,7 +93,8 @@ function printContent() {
     return;
   }
 
-  const type = document.querySelector('input[name="printType"]:checked').value;
+   const type = document.querySelector('input[name="printType"]:checked').value;
+  const fontSize = document.getElementById("fontSize").value;
   let bodyHtml;
 
   if (type === "qr") {
@@ -90,7 +102,7 @@ function printContent() {
   } else if (type === "barcode") {
     bodyHtml = `<div style="display:flex; align-items:center; justify-content:center; height:100%;">${buildBarcodeImg(content)}</div>`;
   } else {
-    bodyHtml = `<div style="white-space:pre-wrap;">${escapeHtml(content)}</div>`;
+    bodyHtml = `<div style="white-space:pre-wrap; font-size:${fontSize}px;">${escapeHtml(content)}</div>`;
   }
 
   const printWindow = window.open("", "_blank");
