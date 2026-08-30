@@ -45,11 +45,14 @@
     <label for="fontSize">حجم الخط: <span id="fontSizeLabel">13</span>px</label>
     <input type="range" id="fontSize" min="8" max="100" value="13" style="width:100%;" oninput="updateFontSize()">
   </div>
-
   <div class="options">
-    <label><input type="radio" name="printType" value="text" checked> نص عادي</label>
-    <label><input type="radio" name="printType" value="qr"> QR Code</label>
-    <label><input type="radio" name="printType" value="barcode"> Barcode</label>
+    <label><input type="radio" name="printType" value="text" checked onchange="toggleCaption()"> نص عادي</label>
+    <label><input type="radio" name="printType" value="qr" onchange="toggleCaption()"> QR Code</label>
+    <label><input type="radio" name="printType" value="barcode" onchange="toggleCaption()"> Barcode</label>
+  </div>
+
+  <div id="captionBlock" style="display:none; margin-top:12px;">
+    <input type="text" id="captionText" placeholder="اكتب تسمية تظهر أسفل الكود (اختياري)" style="width:100%; padding:8px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px; font-size:14px;">
   </div>
 
   <button class="btn" onclick="printContent()">طباعة</button>
@@ -85,7 +88,10 @@ function buildBarcodeImg(text) {
   document.getElementById("fontSizeLabel").textContent = size;
   document.getElementById("printArea").style.fontSize = size + "px";
 }
-
+function toggleCaption() {
+  const type = document.querySelector('input[name="printType"]:checked').value;
+  document.getElementById("captionBlock").style.display = (type === "text") ? "none" : "block";
+}
 function printContent() {
   const content = document.getElementById("printArea").value.trim();
   if (!content) {
@@ -97,14 +103,18 @@ function printContent() {
   const fontSize = document.getElementById("fontSize").value;
   let bodyHtml;
 
+    const caption = document.getElementById("captionText").value.trim();
+  const captionHtml = caption ? `<div style="margin-top:4px; font-size:${fontSize}px;">${escapeHtml(caption)}</div>` : "";
+
   if (type === "qr") {
-    bodyHtml = `<div style="display:flex; align-items:center; justify-content:center; height:100%;">${buildQrImg(content)}</div>`;
+    bodyHtml = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">${buildQrImg(content)}${captionHtml}</div>`;
   } else if (type === "barcode") {
-    bodyHtml = `<div style="display:flex; align-items:center; justify-content:center; height:100%;">${buildBarcodeImg(content)}</div>`;
+    const barcodeImg = buildBarcodeImg(content);
+    if (!barcodeImg) return;
+    bodyHtml = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">${barcodeImg}${captionHtml}</div>`;
   } else {
     bodyHtml = `<div style="white-space:pre-wrap; font-size:${fontSize}px;">${escapeHtml(content)}</div>`;
   }
-
   const printWindow = window.open("", "_blank");
   printWindow.document.write(`
     <html>
