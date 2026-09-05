@@ -2,571 +2,2819 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>طباعة جرعات الأدوية</title>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: Tahoma, Arial, sans-serif; background:#f2f2f2; margin:0; }
+* {
+    box-sizing: border-box;
+}
 
-  .layout { display:flex; min-height:100vh; }
-   .main { flex:1; margin-right:22%; padding:20px 25px 240px 25px; }
-  .sidebar {
-    width:22%; position:fixed; right:0; top:0; bottom:0;
-    background:#fff; border-left:2px solid #ddd; padding:15px;
-    overflow-y:auto;
-  }
+:root {
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --primary-border: #bfdbfe;
 
-  .back { text-decoration:none; color:#2b7de9; font-size:14px; }
-  h2 { color:#333; margin-top:10px; }
+    --success: #16a34a;
+    --success-light: #f0fdf4;
 
-  .card { background:#fff; padding:16px 18px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:16px; }
-  .card h4 { margin:0 0 12px; color:#333; font-size:16px; }
+    --warning: #f59e0b;
+    --warning-light: #fffbeb;
 
-  input[type=text] { width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:14px; }
-  .productName { margin-top:8px; font-size:14px; color:#2b7de9; font-weight:bold; }
-  .smallBtn { margin-top:8px; padding:6px 12px; border:none; border-radius:6px; background:#2b7de9; color:#fff; font-size:13px; cursor:pointer; }
-  .defaultNote { margin-top:8px; background:#fff8e1; border:1px solid #ffe08a; padding:8px; border-radius:6px; font-size:13px; }
+    --danger: #ef4444;
+    --danger-light: #fef2f2;
 
-  .optionsGrid { display:flex; flex-wrap:wrap; gap:8px; }
-  .optionsGrid button { padding:10px 16px; border:1px solid #2b7de9; border-radius:20px; background:#fff; color:#2b7de9; font-size:14px; cursor:pointer; }
-  .optionsGrid button.selected { background:#2b7de9; color:#fff; }
-  .optionsGrid button.type-selected { background:#f39c12; border-color:#f39c12; color:#fff; }
-   .doseScroll {
-    display:flex; flex-wrap:nowrap; gap:8px;
-    overflow-x:auto; padding-bottom:6px;
-  }
-  .doseScroll button { flex:0 0 auto; }
+    --text: #172033;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --background: #f5f7fb;
+    --card: #ffffff;
 
-  #doseSection.hidden { display:none; }
-   #timingSection.hidden { display:none; }
+    --sidebar-width: 340px;
+}
 
-    .floatingBar {
-    position:fixed; bottom:0; left:0; right:22%; width:auto;
-    background:#eef5ff; border-top:3px solid #2b7de9;
-    padding:14px 25px; z-index:50;
-  }
-  .floatingBar textarea {
-    width:100%; min-height:60px; padding:10px; border:1px solid #cfe0fb;
-    border-radius:8px; font-size:14px; font-family:inherit; resize:vertical;
-  }
-  .floatingBar .row { display:flex; gap:10px; margin-top:10px; align-items:center; }
-  .floatingBar .row label { font-size:13px; display:flex; align-items:center; gap:5px; }
-  .floatingBar .row input[type=text] { flex:1; }
-  .floatingBar .actions { display:flex; gap:10px; margin-top:10px; }
-  .floatingBar button.add { flex:1; padding:12px; border:none; border-radius:8px; background:#27ae60; color:#fff; font-size:15px; cursor:pointer; }
-  .floatingBar button.saveDefault { padding:12px 16px; border:none; border-radius:8px; background:#f39c12; color:#fff; font-size:14px; cursor:pointer; white-space:nowrap; }
+html,
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+}
 
-  .sidebar h3 { margin-top:0; font-size:16px; }
-  .printAllBtn { width:100%; padding:12px; border:none; border-radius:8px; background:#2b7de9; color:#fff; font-size:15px; cursor:pointer; margin-bottom:15px; }
-  .labelPreview {
-    width:100%; aspect-ratio: 2 / 1; border:1px dashed #999; border-radius:8px;
-    padding:8px; margin-bottom:12px; font-size:12px; white-space:pre-wrap;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
-    position:relative;
-  }
-  .labelPreview button {
-    position:absolute; top:4px; left:4px; background:#e74c3c; color:#fff;
-    border:none; border-radius:5px; padding:3px 7px; font-size:11px; cursor:pointer;
-  }
+body {
+    font-family:
+        Tahoma,
+        Arial,
+        sans-serif;
+    background: var(--background);
+    color: var(--text);
+}
+
+/* =========================
+   APP LAYOUT
+========================= */
+
+.app {
+    min-height: 100vh;
+}
+
+.main {
+    margin-right: var(--sidebar-width);
+    padding: 28px 32px 270px;
+    max-width: 1500px;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.headerText {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.back {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.back:hover {
+    text-decoration: underline;
+}
+
+.pageTitle {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.pageSubtitle {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+/* =========================
+   CARDS
+========================= */
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.sectionHint {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+/* =========================
+   PRODUCT
+========================= */
+
+.productCard {
+    padding: 18px;
+}
+
+.productInputWrapper {
+    position: relative;
+}
+
+.productInputIcon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 18px;
+    pointer-events: none;
+}
+
+#productInput {
+    width: 100%;
+    height: 54px;
+    padding: 0 48px 0 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: .2s;
+    background: #fff;
+}
+
+#productInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-light);
+}
+
+.productResult {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+    min-height: 0;
+    font-size: 13px;
+}
+
+.productResult:empty {
+    display: none;
+}
+
+.productName {
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.defaultNote {
+    margin-top: 10px;
+    background: var(--warning-light);
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-size: 13px;
+    color: #92400e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.defaultNoteText {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.smallBtn {
+    border: none;
+    background: var(--warning);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* =========================
+   OPTION BUTTONS
+========================= */
+
+.optionsGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.optionBtn {
+    min-height: 43px;
+    padding: 8px 17px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all .15s ease;
+}
+
+.optionBtn:hover {
+    border-color: var(--primary-border);
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.optionBtn.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, .2);
+}
+
+.optionBtn.type-selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* =========================
+   DOSE SELECTOR
+========================= */
+
+#doseSection.hidden,
+#timingSection.hidden {
+    display: none;
+}
+
+.doseSelector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin: 10px 0 16px;
+}
+
+.doseAdjust {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--primary);
+    font-size: 25px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .15s;
+}
+
+.doseAdjust:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-border);
+}
+
+.doseAdjust:active {
+    transform: scale(.95);
+}
+
+.doseInputBox {
+    position: relative;
+    width: 150px;
+}
+
+#doseNumber {
+    width: 100%;
+    height: 52px;
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    outline: none;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    font-family: inherit;
+    background: white;
+    padding: 0 35px;
+}
+
+#doseNumber:focus {
+    box-shadow: 0 0 0 4px var(--primary-light);
+}
+
+.doseUnit {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.quickDose {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 7px;
+}
+
+.quickDose button {
+    min-width: 48px;
+    padding: 7px 11px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.quickDose button:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-border);
+    color: var(--primary);
+}
+
+.doseEmpty {
+    text-align: center;
+    color: var(--muted);
+    padding: 14px;
+    font-size: 13px;
+}
+
+/* =========================
+   TIMING / DURATION
+========================= */
+
+#timingOptions .optionBtn,
+#durationOptions .optionBtn {
+    min-height: 41px;
+}
+
+/* =========================
+   SIDEBAR / QUEUE
+========================= */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: #fff;
+    border-left: 1px solid var(--border);
+    padding: 22px;
+    overflow-y: auto;
+    z-index: 20;
+}
+
+.queueHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.queueTitle {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.queueCount {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.printAllBtn {
+    width: 100%;
+    height: 48px;
+    border: none;
+    border-radius: 11px;
+    background: var(--primary);
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: .15s;
+}
+
+.printAllBtn:hover {
+    background: #1d4ed8;
+}
+
+.emptyQueue {
+    text-align: center;
+    padding: 45px 15px;
+    color: var(--muted);
+}
+
+.emptyQueueIcon {
+    font-size: 35px;
+    margin-bottom: 12px;
+}
+
+.emptyQueueTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 5px;
+}
+
+.emptyQueueText {
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.labelPreview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+    padding: 13px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+}
+
+.labelPreviewContent {
+    max-width: 90%;
+    line-height: 1.6;
+}
+
+.labelPreviewQr {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 5px;
+}
+
+.removeBtn {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 7px;
+    background: var(--danger-light);
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.removeBtn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* =========================
+   BUILDER
+========================= */
+
+.builder {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: var(--sidebar-width);
+    background: rgba(255, 255, 255, .96);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 30px rgba(15, 23, 42, .08);
+    padding: 14px 32px 16px;
+    z-index: 15;
+}
+
+.builderInner {
+    max-width: 1500px;
+    margin: auto;
+}
+
+.builderTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.builderTitle {
+    font-size: 13px;
+    font-weight: 800;
+    color: #334155;
+}
+
+.builderStatus {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+#floatBox {
+    width: 100%;
+    min-height: 58px;
+    max-height: 110px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+    outline: none;
+    background: #f8fafc;
+}
+
+#floatBox:focus {
+    border-color: var(--primary);
+    background: white;
+}
+
+.builderOptions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.qrToggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.qrToggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+}
+
+#qrText {
+    flex: 1;
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 0 11px;
+    font-family: inherit;
+    outline: none;
+    font-size: 12px;
+}
+
+#qrText:focus {
+    border-color: var(--primary);
+}
+
+.builderActions {
+    display: flex;
+    gap: 9px;
+    margin-top: 9px;
+}
+
+.builderActions button {
+    height: 42px;
+    border: none;
+    border-radius: 9px;
+    font-family: inherit;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.addBtn {
+    flex: 1;
+    background: var(--success);
+    color: white;
+}
+
+.addBtn:hover {
+    background: #15803d;
+}
+
+.defaultBtn {
+    padding: 0 18px;
+    background: var(--warning);
+    color: white;
+}
+
+.clearBtn {
+    padding: 0 18px;
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.clearBtn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+
+    :root {
+        --sidebar-width: 0px;
+    }
+
+    .main {
+        margin-right: 0;
+        padding: 20px 16px 300px;
+    }
+
+    .sidebar {
+        position: relative;
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        max-height: 500px;
+    }
+
+    .builder {
+        right: 0;
+        padding: 12px 16px;
+    }
+
+    .pageTitle {
+        font-size: 23px;
+    }
+
+    .pageHeader {
+        margin-bottom: 18px;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .card {
+        padding: 17px;
+        border-radius: 13px;
+    }
+
+    .defaultNote {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .smallBtn {
+        width: 100%;
+    }
+
+    .builderOptions {
+        flex-wrap: wrap;
+    }
+
+    #qrText {
+        min-width: 180px;
+    }
+
+    .builderActions {
+        flex-wrap: wrap;
+    }
+
+    .addBtn {
+        flex-basis: 100%;
+    }
+
+    .defaultBtn,
+    .clearBtn {
+        flex: 1;
+    }
+}
+
+/* =========================
+   PRINT
+========================= */
+
+@media print {
+    body {
+        background: white;
+    }
+}
 </style>
 </head>
+
 <body>
 
-<div class="layout">
-  <div class="main">
-    <a class="back" href="index.html">‹ رجوع</a>
-    <h2>طباعة جرعات الأدوية</h2>
+<div class="app">
 
-    <div class="card">
-      <input type="text" id="productInput" placeholder="اضرب الباركود أو اكتب اسم الصنف يدويًا" autofocus>
-      <div class="productName" id="productNameDisplay"></div>
-      <div class="defaultNote" id="defaultNote" style="display:none;">
-        فيه جرعة افتراضية محفوظة لهذا الصنف.
-        <button class="smallBtn" onclick="useDefaultDose()">استخدم الجرعة الافتراضية</button>
-      </div>
-    </div>
+    <!-- =========================
+         MAIN
+    ========================== -->
 
-    <div class="card">
-      <h4>نوع الدواء</h4>
-      <div class="optionsGrid" id="typeOptions">
-        <button data-value="حبوب">حبوب</button>
-        <button data-value="شراب">شراب</button>
-        <button data-value="حقن">حقن</button>
-        <button data-value="دهان">دهان</button>
-      </div>
-    </div>
+    <main class="main">
 
-        <div class="card" id="doseSection">
-      <h4 id="doseLabel">الجرعة</h4>
-      <div class="doseScroll" id="doseOptions"></div>
-    </div>
+        <header class="pageHeader">
+            <div class="headerText">
+                <a class="back" href="index.html">‹ رجوع</a>
+                <h1 class="pageTitle">طباعة جرعات الأدوية</h1>
+                <p class="pageSubtitle">
+                    أنشئ تعليمات الجرعة بسرعة وأضفها لقائمة الطباعة
+                </p>
+            </div>
+        </header>
 
-    <div class="card">
-      <h4>عدد المرات</h4>
-      <div class="optionsGrid" id="frequencyOptions">
-        <button data-value="مرة يوميًا">مرة يوميًا</button>
-        <button data-value="مرتين يوميًا">مرتين يوميًا</button>
-        <button data-value="3 مرات يوميًا">3 مرات يوميًا</button>
-        <button data-value="4 مرات يوميًا">4 مرات يوميًا</button>
-        <button data-value="كل 24 ساعة">كل 24 ساعة</button>
-        <button data-value="كل 12 ساعة">كل 12 ساعة</button>
-        <button data-value="كل 8 ساعات">كل 8 ساعات</button>
-        <button data-value="كل 6 ساعات">كل 6 ساعات</button>
-        <button data-value="كل أسبوع">كل أسبوع</button>
-      </div>
-    </div>
 
-        <div class="card" id="timingSection">
-      <h4>التوقيت بالنسبة للأكل</h4>
-      <div class="optionsGrid" id="timingOptions">
-        <button data-value="بعد الأكل">بعد الأكل</button>
-        <button data-value="قبل الأكل">قبل الأكل</button>
-        <button data-value="قبل الأكل بنص ساعة">قبل الأكل بنص ساعة</button>
-        <button data-value="قبل الأكل بساعة أو بعد الأكل بساعتين">قبل الأكل بساعة أو بعد الأكل بساعتين</button>
-        <button data-value="على الريق">على الريق</button>
-        <button data-value="صباحًا">صباحًا</button>
-        <button data-value="مساءً">مساءً</button>
-        <button data-value="بعد الفطار">بعد الفطار</button>
-        <button data-value="بعد الغذاء">بعد الغذاء</button>
-        <button data-value="بعد العشاء">بعد العشاء</button>
-        <button data-value="قبل النوم">قبل النوم</button>
-      </div>
-    </div>
+        <!-- PRODUCT -->
 
-    <div class="card">
-      <h4>المدة</h4>
-      <div class="optionsGrid" id="durationOptions"></div>
-    </div>
-  </div>
+        <section class="card productCard">
 
-  <div class="sidebar">
-    <h3>اللزقات اللي هتتطبع (<span id="countDisplay">0</span>)</h3>
-    <button class="printAllBtn" onclick="printAll()">طباعة الكل</button>
-    <div id="listContainer"></div>
-  </div>
+            <div class="sectionHeader">
+                <h2 class="sectionTitle">الصنف</h2>
+                <span class="sectionHint">باركود أو اسم الصنف</span>
+            </div>
+
+            <div class="productInputWrapper">
+
+                <span class="productInputIcon">⌕</span>
+
+                <input
+                    type="text"
+                    id="productInput"
+                    placeholder="اضرب الباركود أو اكتب اسم الصنف يدويًا"
+                    autofocus
+                >
+
+            </div>
+
+            <div
+                class="productResult"
+                id="productNameDisplay">
+            </div>
+
+            <div
+                class="defaultNote"
+                id="defaultNote"
+                style="display:none;"
+            >
+
+                <div class="defaultNoteText">
+                    <span>★</span>
+                    <span>فيه جرعة افتراضية محفوظة لهذا الصنف</span>
+                </div>
+
+                <button
+                    class="smallBtn"
+                    onclick="useDefaultDose()"
+                >
+                    استخدام الجرعة الافتراضية
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- TYPE -->
+
+        <section class="card">
+
+            <div class="sectionHeader">
+                <h2 class="sectionTitle">نوع الدواء</h2>
+                <span class="sectionHint">اختار النوع أولًا</span>
+            </div>
+
+            <div
+                class="optionsGrid"
+                id="typeOptions"
+            >
+
+                <button
+                    class="optionBtn"
+                    data-value="حبوب"
+                >
+                    حبوب
+                </button>
+
+                <button
+                    class="optionBtn"
+                    data-value="شراب"
+                >
+                    شراب
+                </button>
+
+                <button
+                    class="optionBtn"
+                    data-value="حقن"
+                >
+                    حقن
+                </button>
+
+                <button
+                    class="optionBtn"
+                    data-value="دهان"
+                >
+                    دهان
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- DOSE -->
+
+        <section
+            class="card"
+            id="doseSection"
+        >
+
+            <div class="sectionHeader">
+                <h2
+                    class="sectionTitle"
+                    id="doseLabel"
+                >
+                    الجرعة
+                </h2>
+
+                <span class="sectionHint">
+                    اكتب الرقم أو استخدم + / −
+                </span>
+            </div>
+
+
+            <div class="doseSelector">
+
+                <button
+                    class="doseAdjust"
+                    type="button"
+                    onclick="changeDose(-1)"
+                >
+                    −
+                </button>
+
+                <div class="doseInputBox">
+
+                    <input
+                        type="number"
+                        id="doseNumber"
+                        min="0"
+                        step="1"
+                        placeholder="—"
+                    >
+
+                    <div
+                        class="doseUnit"
+                        id="doseUnit"
+                    >
+                        اختار نوع الدواء
+                    </div>
+
+                </div>
+
+                <button
+                    class="doseAdjust"
+                    type="button"
+                    onclick="changeDose(1)"
+                >
+                    +
+                </button>
+
+            </div>
+
+
+            <div
+                class="quickDose"
+                id="quickDose"
+            >
+
+                <div class="doseEmpty">
+                    اختار نوع الدواء لعرض الجرعات السريعة
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- FREQUENCY -->
+
+        <section class="card">
+
+            <div class="sectionHeader">
+                <h2 class="sectionTitle">عدد المرات</h2>
+                <span class="sectionHint">اختيار واحد</span>
+            </div>
+
+            <div
+                class="optionsGrid"
+                id="frequencyOptions"
+            >
+
+                <button class="optionBtn" data-value="مرة يوميًا">
+                    مرة يوميًا
+                </button>
+
+                <button class="optionBtn" data-value="مرتين يوميًا">
+                    مرتين يوميًا
+                </button>
+
+                <button class="optionBtn" data-value="3 مرات يوميًا">
+                    3 مرات يوميًا
+                </button>
+
+                <button class="optionBtn" data-value="4 مرات يوميًا">
+                    4 مرات يوميًا
+                </button>
+
+                <button class="optionBtn" data-value="كل 24 ساعة">
+                    كل 24 ساعة
+                </button>
+
+                <button class="optionBtn" data-value="كل 12 ساعة">
+                    كل 12 ساعة
+                </button>
+
+                <button class="optionBtn" data-value="كل 8 ساعات">
+                    كل 8 ساعات
+                </button>
+
+                <button class="optionBtn" data-value="كل 6 ساعات">
+                    كل 6 ساعات
+                </button>
+
+                <button class="optionBtn" data-value="كل أسبوع">
+                    كل أسبوع
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- TIMING -->
+
+        <section
+            class="card"
+            id="timingSection"
+        >
+
+            <div class="sectionHeader">
+                <h2 class="sectionTitle">
+                    التوقيت بالنسبة للأكل
+                </h2>
+
+                <span class="sectionHint">
+                    اختياري
+                </span>
+            </div>
+
+            <div
+                class="optionsGrid"
+                id="timingOptions"
+            >
+
+                <button class="optionBtn" data-value="بعد الأكل">
+                    بعد الأكل
+                </button>
+
+                <button class="optionBtn" data-value="قبل الأكل">
+                    قبل الأكل
+                </button>
+
+                <button class="optionBtn" data-value="قبل الأكل بنص ساعة">
+                    قبل الأكل بنص ساعة
+                </button>
+
+                <button class="optionBtn" data-value="قبل الأكل بساعة أو بعد الأكل بساعتين">
+                    قبل الأكل بساعة أو بعد الأكل بساعتين
+                </button>
+
+                <button class="optionBtn" data-value="على الريق">
+                    على الريق
+                </button>
+
+                <button class="optionBtn" data-value="صباحًا">
+                    صباحًا
+                </button>
+
+                <button class="optionBtn" data-value="مساءً">
+                    مساءً
+                </button>
+
+                <button class="optionBtn" data-value="بعد الفطار">
+                    بعد الفطار
+                </button>
+
+                <button class="optionBtn" data-value="بعد الغذاء">
+                    بعد الغذاء
+                </button>
+
+                <button class="optionBtn" data-value="بعد العشاء">
+                    بعد العشاء
+                </button>
+
+                <button class="optionBtn" data-value="قبل النوم">
+                    قبل النوم
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- DURATION -->
+
+        <section class="card">
+
+            <div class="sectionHeader">
+                <h2 class="sectionTitle">المدة</h2>
+                <span class="sectionHint">اختياري</span>
+            </div>
+
+            <div
+                class="optionsGrid"
+                id="durationOptions"
+            ></div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <aside class="sidebar">
+
+        <div class="queueHeader">
+
+            <h2 class="queueTitle">
+                قائمة الطباعة
+            </h2>
+
+            <span
+                class="queueCount"
+                id="countDisplay"
+            >
+                0
+            </span>
+
+        </div>
+
+        <button
+            class="printAllBtn"
+            onclick="printAll()"
+        >
+            🖨 طباعة الكل
+        </button>
+
+        <div id="listContainer">
+
+            <div class="emptyQueue">
+
+                <div class="emptyQueueIcon">
+                    🏷️
+                </div>
+
+                <div class="emptyQueueTitle">
+                    القائمة فارغة
+                </div>
+
+                <div class="emptyQueueText">
+                    أنشئ الجرعة من النموذج<br>
+                    واضغط «أضف للقائمة»
+                </div>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =========================
+         BUILDER
+    ========================== -->
+
+    <section class="builder">
+
+        <div class="builderInner">
+
+            <div class="builderTop">
+
+                <span class="builderTitle">
+                    معاينة نص اللزقة
+                </span>
+
+                <span
+                    class="builderStatus"
+                    id="builderStatus"
+                >
+                    جاهز لإضافة جرعة
+                </span>
+
+            </div>
+
+
+            <textarea
+                id="floatBox"
+                placeholder="اختار من فوق أو اكتب هنا مباشرة..."
+            ></textarea>
+
+
+            <div class="builderOptions">
+
+                <label class="qrToggle">
+
+                    <input
+                        type="checkbox"
+                        id="addQrCheckbox"
+                        onchange="toggleQrInput()"
+                    >
+
+                    أضف QR
+
+                </label>
+
+
+                <input
+                    type="text"
+                    id="qrText"
+                    placeholder="النص اللي هيتحول إلى QR"
+                    style="display:none;"
+                >
+
+            </div>
+
+
+            <div class="builderActions">
+
+                <button
+                    class="addBtn"
+                    onclick="addToList()"
+                >
+                    ＋ أضف للقائمة
+                </button>
+
+                <button
+                    class="defaultBtn"
+                    onclick="saveAsDefault()"
+                >
+                    ★ حفظ كجرعة افتراضية
+                </button>
+
+                <button
+                    class="clearBtn"
+                    onclick="clearAll()"
+                >
+                    مسح
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
 </div>
 
-<div class="floatingBar">
-  <textarea id="floatBox" placeholder="اختر من فوق أو اكتب هنا مباشرة..."></textarea>
-  <div class="row">
-    <label><input type="checkbox" id="addQrCheckbox" onchange="toggleQrInput()"> أضف QR</label>
-    <input type="text" id="qrText" placeholder="النص اللي هيتحول QR" style="display:none;">
-  </div>
-  <div class="actions">
-    <button class="add" onclick="addToList()">+ أضف للقائمة</button>
-    <button class="saveDefault" onclick="saveAsDefault()">احفظ كجرعة افتراضية</button>
-       <button class="saveDefault" style="background:#e74c3c;" onclick="clearAll()">امسح الكل</button>
-
-  </div>
-</div>
 
 <script>
+
+/* =========================================================
+   FIREBASE
+========================================================= */
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBDiUHVrUZgao7YcAILYlAr4409A6v1_Mw",
-  authDomain: "whatsapp-qr-codes.firebaseapp.com",
-  projectId: "whatsapp-qr-codes",
-  storageBucket: "whatsapp-qr-codes.firebasestorage.app",
-  messagingSenderId: "819509086046",
-  appId: "1:819509086046:web:a587462b73a07c574531cf"
+    apiKey: "AIzaSyBDiUHVrUZgao7YcAILYlAr4409A6v1_Mw",
+    authDomain: "whatsapp-qr-codes.firebaseapp.com",
+    projectId: "whatsapp-qr-codes",
+    storageBucket: "whatsapp-qr-codes.firebasestorage.app",
+    messagingSenderId: "819509086046",
+    appId: "1:819509086046:web:a587462b73a07c574531cf"
 };
+
 firebase.initializeApp(firebaseConfig);
+
 const db = firebase.firestore();
+
+
+/* =========================================================
+   STATE
+========================================================= */
 
 let currentBarcode = null;
 let currentType = null;
 let currentFrequency = null;
+
 let entries = [];
 
-let selection = { name: null, dose: null, frequency: null, timing: null, duration: null };
+let selection = {
+    name: null,
+    dose: null,
+    frequency: null,
+    timing: null,
+    duration: null
+};
+
+
+/* =========================================================
+   DOSE CONFIG
+========================================================= */
+
+const doseConfig = {
+
+    "حبوب": {
+        unit: "حبة",
+        step: 1,
+        min: 0,
+        quick: [0.5, 1, 2, 3, 4]
+    },
+
+    "شراب": {
+        unit: "مل",
+        step: 0.5,
+        min: 0,
+        quick: [2.5, 5, 7.5, 10, 15, 20]
+    },
+
+    "حقن": {
+        unit: "وحدة",
+        step: 1,
+        min: 0,
+        quick: [1, 2, 5, 10, 20, 40, 60]
+    }
+
+};
+
+
+/* =========================================================
+   RENDER BUILDER
+========================================================= */
 
 function renderFloatBox() {
-  const restParts = [
-    selection.dose,
-    selection.frequency,
-    selection.timing,
-    selection.duration ? "لمدة " + selection.duration : null
-  ].filter(Boolean).join(" - ");
 
-  document.getElementById("floatBox").value = selection.name
-    ? selection.name + "\n" + restParts
-    : restParts;
+    const restParts = [
+        selection.dose,
+        selection.frequency,
+        selection.timing,
+        selection.duration
+            ? "لمدة " + selection.duration
+            : null
+    ]
+    .filter(Boolean)
+    .join(" - ");
+
+
+    document.getElementById("floatBox").value =
+        selection.name
+            ? selection.name +
+              (restParts ? "\n" + restParts : "")
+            : restParts;
+
+
+    updateBuilderStatus();
 }
+
+
+function updateBuilderStatus() {
+
+    const status =
+        document.getElementById("builderStatus");
+
+    if (!selection.name && !selection.dose) {
+
+        status.textContent =
+            "جاهز لإضافة جرعة";
+
+        return;
+    }
+
+    if (selection.dose) {
+
+        status.textContent =
+            "الجرعة جاهزة — راجع النص ثم أضف للقائمة";
+
+        return;
+    }
+
+    status.textContent =
+        "أكمل بيانات الجرعة";
+}
+
+
+/* =========================================================
+   CLEAR
+========================================================= */
 
 function clearAll() {
-  selection = { name: null, dose: null, frequency: null, timing: null, duration: null };
-  currentType = null;
-  currentFrequency = null;
-  currentBarcode = null;
 
-  document.querySelectorAll("#typeOptions button, #frequencyOptions button, #timingOptions button, #durationOptions button, #doseOptions button")
-    .forEach(b => b.classList.remove("selected", "type-selected"));
+    selection = {
+        name: null,
+        dose: null,
+        frequency: null,
+        timing: null,
+        duration: null
+    };
 
-  document.getElementById("doseSection").classList.remove("hidden");
-  document.getElementById("timingSection").classList.remove("hidden");
-  document.getElementById("doseOptions").innerHTML = "";
-  document.getElementById("doseLabel").textContent = "الجرعة";
-  buildDurationOptions();
+    currentType = null;
+    currentFrequency = null;
+    currentBarcode = null;
 
-  document.getElementById("productInput").value = "";
-  document.getElementById("productNameDisplay").innerHTML = "";
-  document.getElementById("defaultNote").style.display = "none";
 
-  document.getElementById("addQrCheckbox").checked = false;
-  document.getElementById("qrText").value = "";
-  document.getElementById("qrText").style.display = "none";
+    document
+        .querySelectorAll(
+            "#typeOptions button, " +
+            "#frequencyOptions button, " +
+            "#timingOptions button, " +
+            "#durationOptions button"
+        )
+        .forEach(b => {
 
-  renderFloatBox();
+            b.classList.remove(
+                "selected",
+                "type-selected"
+            );
+
+        });
+
+
+    document
+        .getElementById("doseSection")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("timingSection")
+        .classList.remove("hidden");
+
+
+    document.getElementById(
+        "doseLabel"
+    ).textContent = "الجرعة";
+
+
+    document.getElementById(
+        "doseUnit"
+    ).textContent = "اختار نوع الدواء";
+
+
+    document.getElementById(
+        "doseNumber"
+    ).value = "";
+
+
+    document.getElementById(
+        "quickDose"
+    ).innerHTML =
+        '<div class="doseEmpty">' +
+        'اختار نوع الدواء لعرض الجرعات السريعة' +
+        '</div>';
+
+
+    buildDurationOptions();
+
+
+    document.getElementById(
+        "productInput"
+    ).value = "";
+
+
+    document.getElementById(
+        "productNameDisplay"
+    ).innerHTML = "";
+
+
+    document.getElementById(
+        "defaultNote"
+    ).style.display = "none";
+
+
+    document.getElementById(
+        "addQrCheckbox"
+    ).checked = false;
+
+
+    document.getElementById(
+        "qrText"
+    ).value = "";
+
+
+    document.getElementById(
+        "qrText"
+    ).style.display = "none";
+
+
+    renderFloatBox();
+
+
+    document.getElementById(
+        "productInput"
+    ).focus();
 }
 
-// ---------- نوع الدواء ----------
-document.querySelectorAll("#typeOptions button").forEach(btn => {
-  btn.onclick = () => {
-    const alreadySelected = btn.classList.contains("type-selected");
-    document.querySelectorAll("#typeOptions button").forEach(b => b.classList.remove("type-selected"));
 
-    if (alreadySelected) {
-      currentType = null;
-      selection.dose = null;
-      document.getElementById("doseSection").classList.remove("hidden");
-      document.getElementById("timingSection").classList.remove("hidden");
-      document.getElementById("doseOptions").innerHTML = "";
-      document.getElementById("doseLabel").textContent = "الجرعة";
-    } else {
-      currentType = btn.dataset.value;
-      btn.classList.add("type-selected");
+/* =========================================================
+   TYPE
+========================================================= */
 
-      if (currentType === "دهان") {
-        document.getElementById("doseSection").classList.add("hidden");
-        document.getElementById("timingSection").classList.add("hidden");
-        selection.dose = "دهان";
-      } else {
-        document.getElementById("doseSection").classList.remove("hidden");
-        document.getElementById("timingSection").classList.remove("hidden");
-        selection.dose = null;
-        buildDoseOptions();
-      }
-    }
-    renderFloatBox();
-  };
+document
+.querySelectorAll("#typeOptions button")
+.forEach(btn => {
+
+    btn.onclick = () => {
+
+        const alreadySelected =
+            btn.classList.contains(
+                "type-selected"
+            );
+
+
+        document
+        .querySelectorAll("#typeOptions button")
+        .forEach(b =>
+            b.classList.remove(
+                "type-selected"
+            )
+        );
+
+
+        if (alreadySelected) {
+
+            currentType = null;
+
+            selection.dose = null;
+
+            document
+                .getElementById("doseSection")
+                .classList.remove("hidden");
+
+            document
+                .getElementById("timingSection")
+                .classList.remove("hidden");
+
+            document.getElementById(
+                "doseNumber"
+            ).value = "";
+
+            document.getElementById(
+                "doseUnit"
+            ).textContent =
+                "اختار نوع الدواء";
+
+            document.getElementById(
+                "quickDose"
+            ).innerHTML =
+                '<div class="doseEmpty">' +
+                'اختار نوع الدواء لعرض الجرعات السريعة' +
+                '</div>';
+
+        } else {
+
+            currentType =
+                btn.dataset.value;
+
+            btn.classList.add(
+                "type-selected"
+            );
+
+
+            if (currentType === "دهان") {
+
+                document
+                    .getElementById("doseSection")
+                    .classList.add("hidden");
+
+                document
+                    .getElementById("timingSection")
+                    .classList.add("hidden");
+
+                selection.dose = "دهان";
+
+            } else {
+
+                document
+                    .getElementById("doseSection")
+                    .classList.remove("hidden");
+
+                document
+                    .getElementById("timingSection")
+                    .classList.remove("hidden");
+
+                selection.dose = null;
+
+                buildDoseOptions();
+            }
+
+        }
+
+
+        renderFloatBox();
+
+    };
+
 });
+
+
+/* =========================================================
+   DOSE UI
+========================================================= */
 
 function buildDoseOptions() {
-  const container = document.getElementById("doseOptions");
-  const label = document.getElementById("doseLabel");
-  container.innerHTML = "";
 
-  let values = [];
-  let unit = "";
+    const config =
+        doseConfig[currentType];
 
-  if (currentType === "حبوب") {
-    values = [1, 2, 3, 4];
-    unit = "حبة";
-  } else if (currentType === "شراب") {
-    for (let v = 0.5; v <= 20; v += 0.5) values.push(v % 1 === 0 ? v.toFixed(0) : v.toFixed(1));
-    unit = "مل";
-  } else if (currentType === "حقن") {
-    for (let v = 1; v <= 60; v++) values.push(v);
-    unit = "وحدة";
-  }
+    if (!config) return;
 
-  label.textContent = `الجرعة (${unit})`;
 
-  values.forEach(v => {
-    const btn = document.createElement("button");
-    btn.textContent = v;
-    btn.onclick = () => {
-      const alreadySelected = btn.classList.contains("selected");
-      document.querySelectorAll("#doseOptions button").forEach(b => b.classList.remove("selected"));
-      if (alreadySelected) {
+    document.getElementById(
+        "doseLabel"
+    ).textContent =
+        "الجرعة (" + config.unit + ")";
+
+
+    document.getElementById(
+        "doseUnit"
+    ).textContent =
+        config.unit;
+
+
+    const input =
+        document.getElementById(
+            "doseNumber"
+        );
+
+
+    input.step =
+        config.step;
+
+    input.min =
+        config.min;
+
+
+    input.value = "";
+
+
+    const quick =
+        document.getElementById(
+            "quickDose"
+        );
+
+    quick.innerHTML = "";
+
+
+    config.quick.forEach(value => {
+
+        const btn =
+            document.createElement(
+                "button"
+            );
+
+        btn.type = "button";
+
+        btn.textContent = value;
+
+        btn.onclick = () => {
+
+            input.value = value;
+
+            updateDoseFromInput();
+
+        };
+
+        quick.appendChild(btn);
+
+    });
+
+}
+
+
+/* =========================================================
+   DOSE INPUT
+========================================================= */
+
+document
+.getElementById("doseNumber")
+.addEventListener(
+    "input",
+    updateDoseFromInput
+);
+
+
+function updateDoseFromInput() {
+
+    if (!currentType ||
+        currentType === "دهان") {
+        return;
+    }
+
+
+    const value =
+        document.getElementById(
+            "doseNumber"
+        ).value;
+
+
+    if (
+        value === "" ||
+        Number(value) <= 0
+    ) {
+
         selection.dose = null;
-      } else {
-        btn.classList.add("selected");
-        selection.dose = v + " " + unit;
-      }
-      renderFloatBox();
-    };
-    container.appendChild(btn);
-  });
+
+    } else {
+
+        const config =
+            doseConfig[currentType];
+
+        selection.dose =
+            value + " " + config.unit;
+
+    }
+
+
+    renderFloatBox();
 }
 
-// ---------- عدد المرات ----------
-document.querySelectorAll("#frequencyOptions button").forEach(btn => {
-  btn.onclick = () => {
-    const alreadySelected = btn.classList.contains("selected");
-    document.querySelectorAll("#frequencyOptions button").forEach(b => b.classList.remove("selected"));
 
-    if (alreadySelected) {
-      currentFrequency = null;
-      selection.frequency = null;
-    } else {
-      currentFrequency = btn.dataset.value;
-      btn.classList.add("selected");
-      selection.frequency = currentFrequency;
+function changeDose(direction) {
+
+    if (!currentType ||
+        currentType === "دهان") {
+
+        return;
     }
-    buildDurationOptions();
-    renderFloatBox();
-  };
-});
 
-// ---------- التوقيت ----------
-document.querySelectorAll("#timingOptions button").forEach(btn => {
-  btn.onclick = () => {
-    const alreadySelected = btn.classList.contains("selected");
-    document.querySelectorAll("#timingOptions button").forEach(b => b.classList.remove("selected"));
 
-    if (alreadySelected) {
-      selection.timing = null;
+    const config =
+        doseConfig[currentType];
+
+
+    const input =
+        document.getElementById(
+            "doseNumber"
+        );
+
+
+    let value =
+        parseFloat(input.value);
+
+
+    if (isNaN(value)) {
+
+        value =
+            direction > 0
+                ? config.step
+                : 0;
+
     } else {
-      btn.classList.add("selected");
-      selection.timing = btn.dataset.value;
+
+        value +=
+            direction * config.step;
+
     }
-    renderFloatBox();
-  };
-});
 
-// ---------- المدة ----------
-function buildDurationOptions() {
-  const container = document.getElementById("durationOptions");
-  container.innerHTML = "";
-  let values = [];
 
-  if (currentFrequency === "كل أسبوع") {
-    values = ["أسبوع", "أسبوعين", "3 أسابيع", "شهر", "شهرين", "3 شهور"];
-  } else {
-    values = ["3 أيام", "4 أيام", "5 أيام", "أسبوع", "شهر", "شهرين", "3 شهور"];
-  }
+    if (value < config.min) {
 
-  values.forEach(v => {
-    const btn = document.createElement("button");
-    btn.textContent = v;
+        value =
+            config.min;
+
+    }
+
+
+    /*
+       Fix floating point values
+       مثل 0.30000000004
+    */
+
+    value =
+        Math.round(
+            value * 100
+        ) / 100;
+
+
+    input.value =
+        value === 0
+            ? ""
+            : value;
+
+
+    updateDoseFromInput();
+}
+
+
+/* =========================================================
+   FREQUENCY
+========================================================= */
+
+document
+.querySelectorAll("#frequencyOptions button")
+.forEach(btn => {
+
     btn.onclick = () => {
-      const alreadySelected = btn.classList.contains("selected");
-      document.querySelectorAll("#durationOptions button").forEach(b => b.classList.remove("selected"));
-      if (alreadySelected) {
-        selection.duration = null;
-      } else {
-        btn.classList.add("selected");
-        selection.duration = v;
-      }
-      renderFloatBox();
+
+        const alreadySelected =
+            btn.classList.contains(
+                "selected"
+            );
+
+
+        document
+        .querySelectorAll(
+            "#frequencyOptions button"
+        )
+        .forEach(b =>
+            b.classList.remove(
+                "selected"
+            )
+        );
+
+
+        if (alreadySelected) {
+
+            currentFrequency = null;
+
+            selection.frequency = null;
+
+        } else {
+
+            currentFrequency =
+                btn.dataset.value;
+
+            btn.classList.add(
+                "selected"
+            );
+
+            selection.frequency =
+                currentFrequency;
+        }
+
+
+        buildDurationOptions();
+
+        renderFloatBox();
+
     };
-    container.appendChild(btn);
-  });
+
+});
+
+
+/* =========================================================
+   TIMING
+========================================================= */
+
+document
+.querySelectorAll("#timingOptions button")
+.forEach(btn => {
+
+    btn.onclick = () => {
+
+        const alreadySelected =
+            btn.classList.contains(
+                "selected"
+            );
+
+
+        document
+        .querySelectorAll(
+            "#timingOptions button"
+        )
+        .forEach(b =>
+            b.classList.remove(
+                "selected"
+            )
+        );
+
+
+        if (alreadySelected) {
+
+            selection.timing = null;
+
+        } else {
+
+            btn.classList.add(
+                "selected"
+            );
+
+            selection.timing =
+                btn.dataset.value;
+
+        }
+
+
+        renderFloatBox();
+
+    };
+
+});
+
+
+/* =========================================================
+   DURATION
+========================================================= */
+
+function buildDurationOptions() {
+
+    const container =
+        document.getElementById(
+            "durationOptions"
+        );
+
+
+    container.innerHTML = "";
+
+
+    let values = [];
+
+
+    if (
+        currentFrequency ===
+        "كل أسبوع"
+    ) {
+
+        values = [
+            "أسبوع",
+            "أسبوعين",
+            "3 أسابيع",
+            "شهر",
+            "شهرين",
+            "3 شهور"
+        ];
+
+    } else {
+
+        values = [
+            "3 أيام",
+            "4 أيام",
+            "5 أيام",
+            "أسبوع",
+            "شهر",
+            "شهرين",
+            "3 شهور"
+        ];
+
+    }
+
+
+    values.forEach(v => {
+
+        const btn =
+            document.createElement(
+                "button"
+            );
+
+        btn.type = "button";
+
+        btn.className =
+            "optionBtn";
+
+        btn.textContent = v;
+
+
+        btn.onclick = () => {
+
+            const alreadySelected =
+                btn.classList.contains(
+                    "selected"
+                );
+
+
+            container
+                .querySelectorAll(
+                    "button"
+                )
+                .forEach(b =>
+                    b.classList.remove(
+                        "selected"
+                    )
+                );
+
+
+            if (alreadySelected) {
+
+                selection.duration =
+                    null;
+
+            } else {
+
+                btn.classList.add(
+                    "selected"
+                );
+
+                selection.duration =
+                    v;
+
+            }
+
+
+            renderFloatBox();
+
+        };
+
+
+        container.appendChild(btn);
+
+    });
+
 }
+
 buildDurationOptions();
 
-// ---------- البحث عن الصنف ----------
+
+/* =========================================================
+   GS1
+========================================================= */
+
 function parseGs1(raw) {
-  if (!raw.startsWith("01") || raw.length < 16) return null;
 
-  const gtin14 = raw.substring(2, 16);
-  let expiry = null;
-  const rest = raw.substring(16);
+    if (
+        !raw.startsWith("01") ||
+        raw.length < 16
+    ) {
+        return null;
+    }
 
-  if (rest.startsWith("17") && rest.length >= 8) {
-    const dateStr = rest.substring(2, 8);
-    const yy = parseInt(dateStr.substring(0, 2), 10);
-    const mm = parseInt(dateStr.substring(2, 4), 10);
-    let dd = parseInt(dateStr.substring(4, 6), 10);
-    const year = 2000 + yy;
-    if (dd === 0) dd = new Date(year, mm, 0).getDate();
-    expiry = new Date(year, mm - 1, dd);
-  }
 
-  return { gtin14, expiry };
+    const gtin14 =
+        raw.substring(2, 16);
+
+
+    let expiry = null;
+
+    const rest =
+        raw.substring(16);
+
+
+    if (
+        rest.startsWith("17") &&
+        rest.length >= 8
+    ) {
+
+        const dateStr =
+            rest.substring(2, 8);
+
+
+        const yy =
+            parseInt(
+                dateStr.substring(0, 2),
+                10
+            );
+
+
+        const mm =
+            parseInt(
+                dateStr.substring(2, 4),
+                10
+            );
+
+
+        let dd =
+            parseInt(
+                dateStr.substring(4, 6),
+                10
+            );
+
+
+        const year =
+            2000 + yy;
+
+
+        if (dd === 0) {
+
+            dd =
+                new Date(
+                    year,
+                    mm,
+                    0
+                ).getDate();
+
+        }
+
+
+        expiry =
+            new Date(
+                year,
+                mm - 1,
+                dd
+            );
+
+    }
+
+
+    return {
+        gtin14,
+        expiry
+    };
+
 }
+
+
+/* =========================================================
+   PRODUCT LOOKUP
+========================================================= */
 
 async function lookupProductByCode(code) {
-  let doc = await db.collection("products").doc(code).get();
-  if (doc.exists) return doc;
 
-  if (code.startsWith("0")) {
-    const trimmed = code.replace(/^0+/, "");
-    doc = await db.collection("products").doc(trimmed).get();
-    if (doc.exists) return doc;
-  }
-  return null;
+    let doc =
+        await db
+        .collection("products")
+        .doc(code)
+        .get();
+
+
+    if (doc.exists) {
+
+        return doc;
+
+    }
+
+
+    if (code.startsWith("0")) {
+
+        const trimmed =
+            code.replace(
+                /^0+/,
+                ""
+            );
+
+
+        doc =
+            await db
+            .collection("products")
+            .doc(trimmed)
+            .get();
+
+
+        if (doc.exists) {
+
+            return doc;
+
+        }
+
+    }
+
+
+    return null;
 }
 
-document.getElementById("productInput").addEventListener("change", async function() {
-  const raw = this.value.trim();
-  const nameDisplay = document.getElementById("productNameDisplay");
-  const defaultNote = document.getElementById("defaultNote");
-  defaultNote.style.display = "none";
 
-  if (!raw) return;
+/* =========================================================
+   PRODUCT INPUT
+========================================================= */
 
-  let searchCode = raw;
-  let expiryWarningHtml = "";
+document
+.getElementById("productInput")
+.addEventListener(
+    "change",
+    async function() {
 
-  if (/^01\d{14,}/.test(raw)) {
-    const parsed = parseGs1(raw);
-    if (parsed) {
-      searchCode = parsed.gtin14;
-      if (parsed.expiry) {
-        const today = new Date();
-        const oneMonthLater = new Date();
-        oneMonthLater.setMonth(today.getMonth() + 1);
-        const dateText = parsed.expiry.toLocaleDateString("ar-EG");
-        expiryWarningHtml = parsed.expiry <= oneMonthLater
-          ? `<div style="color:#e74c3c; font-weight:bold; margin-top:6px;">⚠ تنبيه: الصلاحية تنتهي قريبًا (${dateText})</div>`
-          : `<div style="color:#27ae60; margin-top:6px;">الصلاحية سليمة (${dateText})</div>`;
-      }
-    }
-  }
+        const raw =
+            this.value.trim();
 
-  let name = searchCode;
 
-  if (/^[0-9]{4,}$/.test(searchCode)) {
-    try {
-      const doc = await lookupProductByCode(searchCode);
-      if (doc && doc.exists) {
-        currentBarcode = doc.id;
-        const data = doc.data();
-        name = data.ar || data.en || currentBarcode;
-        nameDisplay.innerHTML = "الصنف: " + name + expiryWarningHtml;
+        const nameDisplay =
+            document.getElementById(
+                "productNameDisplay"
+            );
 
-        const defaultDoc = await db.collection("defaultDoses").doc(currentBarcode).get();
-        if (defaultDoc.exists) {
-          window._defaultDoseText = defaultDoc.data().text || "";
-          defaultNote.style.display = "block";
+
+        const defaultNote =
+            document.getElementById(
+                "defaultNote"
+            );
+
+
+        defaultNote.style.display =
+            "none";
+
+
+        if (!raw) return;
+
+
+        let searchCode = raw;
+
+        let expiryWarningHtml = "";
+
+
+        if (
+            /^01\d{14,}/.test(raw)
+        ) {
+
+            const parsed =
+                parseGs1(raw);
+
+
+            if (parsed) {
+
+                searchCode =
+                    parsed.gtin14;
+
+
+                if (parsed.expiry) {
+
+                    const today =
+                        new Date();
+
+
+                    const oneMonthLater =
+                        new Date();
+
+
+                    oneMonthLater.setMonth(
+                        today.getMonth() + 1
+                    );
+
+
+                    const dateText =
+                        parsed.expiry
+                        .toLocaleDateString(
+                            "ar-EG"
+                        );
+
+
+                    expiryWarningHtml =
+                        parsed.expiry <=
+                        oneMonthLater
+
+                            ? `
+                                <div style="
+                                    color:#dc2626;
+                                    font-weight:800;
+                                    margin-top:7px;
+                                ">
+                                    ⚠ تنبيه: الصلاحية تنتهي قريبًا
+                                    (${dateText})
+                                </div>
+                              `
+
+                            : `
+                                <div style="
+                                    color:#16a34a;
+                                    margin-top:7px;
+                                ">
+                                    ✓ الصلاحية سليمة
+                                    (${dateText})
+                                </div>
+                              `;
+
+                }
+
+            }
+
         }
-      } else {
-        currentBarcode = searchCode;
-        nameDisplay.innerHTML = "الصنف غير مسجل في القاعدة، اكتب الاسم يدويًا" + expiryWarningHtml;
-      }
-    } catch (e) {
-      nameDisplay.textContent = "حصل خطأ في البحث، حاول تاني";
-    }
-  } else {
-    currentBarcode = null;
-    name = raw;
-    nameDisplay.textContent = "الصنف: " + raw;
-  }
 
-  selection.name = name;
-  renderFloatBox();
-});
+
+        let name =
+            searchCode;
+
+
+        if (
+            /^[0-9]{4,}$/.test(
+                searchCode
+            )
+        ) {
+
+            try {
+
+                const doc =
+                    await lookupProductByCode(
+                        searchCode
+                    );
+
+
+                if (
+                    doc &&
+                    doc.exists
+                ) {
+
+                    currentBarcode =
+                        doc.id;
+
+
+                    const data =
+                        doc.data();
+
+
+                    name =
+                        data.ar ||
+                        data.en ||
+                        currentBarcode;
+
+
+                    nameDisplay.innerHTML =
+                        '<div class="productName">' +
+                        "الصنف: " +
+                        name +
+                        "</div>" +
+                        expiryWarningHtml;
+
+
+                    const defaultDoc =
+                        await db
+                        .collection(
+                            "defaultDoses"
+                        )
+                        .doc(
+                            currentBarcode
+                        )
+                        .get();
+
+
+                    if (
+                        defaultDoc.exists
+                    ) {
+
+                        window._defaultDoseText =
+                            defaultDoc
+                            .data()
+                            .text || "";
+
+
+                        defaultNote.style.display =
+                            "flex";
+
+                    }
+
+                } else {
+
+                    currentBarcode =
+                        searchCode;
+
+
+                    nameDisplay.innerHTML =
+                        '<div style="color:#b45309;font-weight:700;">' +
+                        "الصنف غير مسجل في القاعدة، اكتب الاسم يدويًا" +
+                        "</div>" +
+                        expiryWarningHtml;
+
+                }
+
+            } catch (e) {
+
+                nameDisplay.textContent =
+                    "حصل خطأ في البحث، حاول تاني";
+
+            }
+
+        } else {
+
+            currentBarcode = null;
+
+            name = raw;
+
+
+            nameDisplay.innerHTML =
+                '<div class="productName">' +
+                "الصنف: " +
+                raw +
+                "</div>";
+
+        }
+
+
+        selection.name =
+            name;
+
+
+        renderFloatBox();
+
+    }
+);
+
+
+/* =========================================================
+   DEFAULT DOSE
+========================================================= */
 
 function useDefaultDose() {
-  document.getElementById("floatBox").value = window._defaultDoseText || "";
+
+    document.getElementById(
+        "floatBox"
+    ).value =
+        window._defaultDoseText || "";
+
 }
+
 
 async function saveAsDefault() {
-  if (!currentBarcode) {
-    alert("لازم تدخل الصنف بالباركود الأول عشان تقدر تحفظ جرعة افتراضية.");
-    return;
-  }
-  const text = document.getElementById("floatBox").value.trim();
-  if (!text) {
-    alert("اكتب أو اختار الجرعة الأول.");
-    return;
-  }
-  await db.collection("defaultDoses").doc(currentBarcode).set({ text });
-  alert("تم حفظ الجرعة كافتراضية لهذا الصنف.");
+
+    if (!currentBarcode) {
+
+        alert(
+            "لازم تدخل الصنف بالباركود الأول عشان تقدر تحفظ جرعة افتراضية."
+        );
+
+        return;
+    }
+
+
+    const text =
+        document.getElementById(
+            "floatBox"
+        ).value.trim();
+
+
+    if (!text) {
+
+        alert(
+            "اكتب أو اختار الجرعة الأول."
+        );
+
+        return;
+    }
+
+
+    await db
+        .collection(
+            "defaultDoses"
+        )
+        .doc(
+            currentBarcode
+        )
+        .set({
+            text
+        });
+
+
+    alert(
+        "تم حفظ الجرعة كافتراضية لهذا الصنف."
+    );
+
 }
 
-// ---------- إضافة للقائمة ----------
+
+/* =========================================================
+   QR
+========================================================= */
+
 function toggleQrInput() {
-  document.getElementById("qrText").style.display = document.getElementById("addQrCheckbox").checked ? "block" : "none";
+
+    const checked =
+        document.getElementById(
+            "addQrCheckbox"
+        ).checked;
+
+
+    document.getElementById(
+        "qrText"
+    ).style.display =
+        checked
+            ? "block"
+            : "none";
+
 }
+
+
+/* =========================================================
+   ADD TO LIST
+========================================================= */
 
 function addToList() {
-  const text = document.getElementById("floatBox").value.trim();
-  if (!text) {
-    alert("اكتب أو اختار الجرعة الأول.");
-    return;
-  }
 
-  const addQr = document.getElementById("addQrCheckbox").checked;
-  const qrText = document.getElementById("qrText").value.trim();
+    const text =
+        document.getElementById(
+            "floatBox"
+        ).value.trim();
 
-  entries.push({
-    id: Date.now(),
-    text,
-    qr: addQr && qrText ? qrText : null
-  });
 
-  renderList();
-  clearAll();
+    if (!text) {
+
+        alert(
+            "اكتب أو اختار الجرعة الأول."
+        );
+
+        return;
+    }
+
+
+    const addQr =
+        document.getElementById(
+            "addQrCheckbox"
+        ).checked;
+
+
+    const qrText =
+        document.getElementById(
+            "qrText"
+        ).value.trim();
+
+
+    entries.push({
+
+        id: Date.now(),
+
+        text,
+
+        qr:
+            addQr && qrText
+                ? qrText
+                : null
+
+    });
+
+
+    renderList();
+
+    clearAll();
+
 }
+
+
+/* =========================================================
+   RENDER LIST
+========================================================= */
 
 function renderList() {
-  const container = document.getElementById("listContainer");
-  container.innerHTML = "";
-  entries.forEach(e => {
-    const div = document.createElement("div");
-    div.className = "labelPreview";
-    div.innerHTML = `<button onclick="removeEntry(${e.id})">حذف</button><div>${e.text}</div>${e.qr ? "<div style='font-size:10px;color:#999;'>(+ QR)</div>" : ""}`;
-    container.appendChild(div);
-  });
-  document.getElementById("countDisplay").textContent = entries.length;
+
+    const container =
+        document.getElementById(
+            "listContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (!entries.length) {
+
+        container.innerHTML = `
+
+            <div class="emptyQueue">
+
+                <div class="emptyQueueIcon">
+                    🏷️
+                </div>
+
+                <div class="emptyQueueTitle">
+                    القائمة فارغة
+                </div>
+
+                <div class="emptyQueueText">
+                    أنشئ الجرعة من النموذج<br>
+                    واضغط «أضف للقائمة»
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    entries.forEach(e => {
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+
+        div.className =
+            "labelPreview";
+
+
+        div.innerHTML = `
+
+            <button
+                class="removeBtn"
+                onclick="removeEntry(${e.id})"
+                title="حذف"
+            >
+                ×
+            </button>
+
+            <div class="labelPreviewContent">
+                ${escapeHtml(e.text)}
+            </div>
+
+            ${
+                e.qr
+                    ? `
+                        <div class="labelPreviewQr">
+                            ▦ + QR
+                        </div>
+                      `
+                    : ""
+            }
+
+        `;
+
+
+        container.appendChild(div);
+
+    });
+
+
+    document.getElementById(
+        "countDisplay"
+    ).textContent =
+        entries.length;
+
 }
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(text) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.textContent =
+        text;
+
+    return div.innerHTML;
+
+}
+
+
+/* =========================================================
+   REMOVE
+========================================================= */
 
 function removeEntry(id) {
-  entries = entries.filter(e => e.id !== id);
-  renderList();
+
+    entries =
+        entries.filter(
+            e => e.id !== id
+        );
+
+
+    renderList();
+
 }
 
-// ---------- الطباعة ----------
+
+/* =========================================================
+   QR IMAGE
+========================================================= */
+
 function buildQrImg(text) {
-  const qr = qrcode(0, "L");
-  qr.addData(text);
-  qr.make();
-  return qr.createImgTag(4);
+
+    const qr =
+        qrcode(
+            0,
+            "L"
+        );
+
+
+    qr.addData(text);
+
+    qr.make();
+
+
+    return qr.createImgTag(4);
+
 }
+
+
+/* =========================================================
+   PRINT
+========================================================= */
 
 function printAll() {
-  if (!entries.length) {
-    alert("مفيش عناصر في القائمة للطباعة.");
-    return;
-  }
 
-  const printWindow = window.open("", "_blank");
-  let pagesHtml = "";
+    if (!entries.length) {
 
-   const now = new Date();
-  const dateText = now.toLocaleDateString("ar-EG");
-  const timeText = now.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+        alert(
+            "مفيش عناصر في القائمة للطباعة."
+        );
 
-  entries.forEach((e, index) => {
-    const isLast = index === entries.length - 1;
-    const qrHtml = e.qr ? `<div style="margin-top:6px;">${buildQrImg(e.qr)}</div>` : "";
-    pagesHtml += `
-      <div style="width:10cm; height:5cm; box-sizing:border-box; padding:6px 10px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:13px; ${isLast ? "" : "page-break-after: always;"}">
-        <div style="white-space:pre-wrap;">${e.text}</div>
-        ${qrHtml}
-        <div style="font-size:10px; color:#666; margin-top:4px;">${dateText} - ${timeText}</div>
-      </div>
-    `;
-  });
+        return;
+    }
 
-  printWindow.document.write(`
-    <html>
-    <head>
-    <style>
-      @page { size: 10cm 5cm; margin: 0; }
-      body { margin:0; font-family: Tahoma, Arial, sans-serif; }
-    </style>
-    </head>
-    <body>${pagesHtml}</body>
-    </html>
-  `);
-  printWindow.document.close();
 
-  printWindow.onload = function() {
-    printWindow.focus();
-    printWindow.print();
-  };
-  printWindow.onafterprint = function() {
-    printWindow.close();
-  };
-  setTimeout(function() {
-    if (!printWindow.closed) printWindow.close();
-  }, 5000);
+    const printWindow =
+        window.open(
+            "",
+            "_blank"
+        );
+
+
+    let pagesHtml = "";
+
+
+    const now =
+        new Date();
+
+
+    const dateText =
+        now.toLocaleDateString(
+            "ar-EG"
+        );
+
+
+    const timeText =
+        now.toLocaleTimeString(
+            "ar-EG",
+            {
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+
+    entries.forEach(
+        (e, index) => {
+
+            const isLast =
+                index ===
+                entries.length - 1;
+
+
+            const qrHtml =
+                e.qr
+
+                    ? `
+                        <div style="
+                            margin-top:6px;
+                        ">
+                            ${buildQrImg(e.qr)}
+                        </div>
+                      `
+
+                    : "";
+
+
+            pagesHtml += `
+
+                <div style="
+                    width:10cm;
+                    height:5cm;
+                    box-sizing:border-box;
+                    padding:6px 10px;
+                    display:flex;
+                    flex-direction:column;
+                    align-items:center;
+                    justify-content:center;
+                    text-align:center;
+                    font-size:13px;
+                    ${
+                        isLast
+                            ? ""
+                            : "page-break-after: always;"
+                    }
+                ">
+
+                    <div style="
+                        white-space:pre-wrap;
+                    ">
+                        ${escapeHtml(e.text)}
+                    </div>
+
+                    ${qrHtml}
+
+                    <div style="
+                        font-size:10px;
+                        color:#666;
+                        margin-top:4px;
+                    ">
+                        ${dateText} - ${timeText}
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    printWindow.document.write(`
+
+        <html>
+
+        <head>
+
+            <meta charset="UTF-8">
+
+            <style>
+
+                @page {
+                    size: 10cm 5cm;
+                    margin: 0;
+                }
+
+                body {
+                    margin: 0;
+                    font-family:
+                        Tahoma,
+                        Arial,
+                        sans-serif;
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            ${pagesHtml}
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    printWindow.document.close();
+
+
+    printWindow.onload =
+        function() {
+
+            printWindow.focus();
+
+            printWindow.print();
+
+        };
+
+
+    printWindow.onafterprint =
+        function() {
+
+            printWindow.close();
+
+        };
+
+
+    setTimeout(
+        function() {
+
+            if (
+                !printWindow.closed
+            ) {
+                printWindow.close();
+            }
+
+        },
+        5000
+    );
+
 }
+
+
+/* =========================================================
+   INITIAL RENDER
+========================================================= */
+
+renderList();
+
 </script>
+
 </body>
 </html>
