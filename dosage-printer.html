@@ -1581,6 +1581,16 @@ function englishLabelText(text) {
         [/كل ١٢ ساعة|كل 12 ساعة/g, "every 12 hours"],
         [/كل ٨ ساعات|كل 8 ساعات/g, "every 8 hours"],
         [/كل ٦ ساعات|كل 6 ساعات/g, "every 6 hours"],
+        [/قبل الأكل بساعة أو بعد الأكل بساعتين/g, "1 hour before or 2 hours after meals"],
+        [/بعد الفطار/g, "after breakfast"],
+        [/بعد الغذاء/g, "after lunch"],
+        [/بعد العشاء/g, "after dinner"],
+        [/بعد الأكل/g, "after meals"],
+        [/قبل الأكل بنص ساعة/g, "30 minutes before meals"],
+        [/قبل الأكل/g, "before meals"],
+        [/على الريق/g, "on an empty stomach"],
+        [/صباحًا/g, "in the morning"],
+        [/مساءً/g, "in the evening"],
         [/لمدة /g, "for "],
         [/أيام/g, "days"],
         [/يوم/g, "day"],
@@ -3293,6 +3303,17 @@ function printAll() {
 /* =========================================================
    RESET FORM
 ========================================================= */
+
+function resetPage() {
+
+    if (!confirm("سيتم حذف كل اللزقات من قائمة الطباعة وبدء صفحة جديدة. هل تريد المتابعة؟")) {
+        return;
+    }
+
+    entries = [];
+    renderList();
+    clearAll();
+}
 
 function clearAll() {
 
