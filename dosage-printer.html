@@ -182,14 +182,16 @@ let entries = [];
 let selection = { name: null, dose: null, frequency: null, timing: null, duration: null };
 
 function renderFloatBox() {
-  const parts = [
-    selection.name,
+  const restParts = [
     selection.dose,
     selection.frequency,
     selection.timing,
     selection.duration ? "لمدة " + selection.duration : null
-  ];
-  document.getElementById("floatBox").value = parts.filter(Boolean).join(" - ");
+  ].filter(Boolean).join(" - ");
+
+  document.getElementById("floatBox").value = selection.name
+    ? selection.name + "\n" + restParts
+    : restParts;
 }
 
 function clearAll() {
@@ -525,6 +527,10 @@ function printAll() {
   const printWindow = window.open("", "_blank");
   let pagesHtml = "";
 
+   const now = new Date();
+  const dateText = now.toLocaleDateString("ar-EG");
+  const timeText = now.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+
   entries.forEach((e, index) => {
     const isLast = index === entries.length - 1;
     const qrHtml = e.qr ? `<div style="margin-top:6px;">${buildQrImg(e.qr)}</div>` : "";
@@ -532,6 +538,7 @@ function printAll() {
       <div style="width:10cm; height:5cm; box-sizing:border-box; padding:6px 10px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:13px; ${isLast ? "" : "page-break-after: always;"}">
         <div style="white-space:pre-wrap;">${e.text}</div>
         ${qrHtml}
+        <div style="font-size:10px; color:#666; margin-top:4px;">${dateText} - ${timeText}</div>
       </div>
     `;
   });
