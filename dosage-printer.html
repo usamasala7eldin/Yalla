@@ -179,7 +179,6 @@ let currentType = null;
 let currentFrequency = null;
 let entries = [];
 
-// الترتيب الثابت للجملة النهائية
 let selection = { name: null, dose: null, frequency: null, timing: null, duration: null };
 
 function renderFloatBox() {
@@ -199,7 +198,28 @@ function clearAll() {
   currentFrequency = null;
   currentBarcode = null;
 
-  document.querySelectorAll("#typeOptions button").forEach(btn => {
+  document.querySelectorAll("#typeOptions button, #frequencyOptions button, #timingOptions button, #durationOptions button, #doseOptions button")
+    .forEach(b => b.classList.remove("selected", "type-selected"));
+
+  document.getElementById("doseSection").classList.remove("hidden");
+  document.getElementById("timingSection").classList.remove("hidden");
+  document.getElementById("doseOptions").innerHTML = "";
+  document.getElementById("doseLabel").textContent = "الجرعة";
+  buildDurationOptions();
+
+  document.getElementById("productInput").value = "";
+  document.getElementById("productNameDisplay").innerHTML = "";
+  document.getElementById("defaultNote").style.display = "none";
+
+  document.getElementById("addQrCheckbox").checked = false;
+  document.getElementById("qrText").value = "";
+  document.getElementById("qrText").style.display = "none";
+
+  renderFloatBox();
+}
+
+// ---------- نوع الدواء ----------
+document.querySelectorAll("#typeOptions button").forEach(btn => {
   btn.onclick = () => {
     const alreadySelected = btn.classList.contains("type-selected");
     document.querySelectorAll("#typeOptions button").forEach(b => b.classList.remove("type-selected"));
@@ -230,28 +250,6 @@ function clearAll() {
   };
 });
 
-// ---------- نوع الدواء ----------
-document.querySelectorAll("#typeOptions button").forEach(btn => {
-  btn.onclick = () => {
-    currentType = btn.dataset.value;
-    document.querySelectorAll("#typeOptions button").forEach(b => b.classList.remove("type-selected"));
-    btn.classList.add("type-selected");
-
-    if (currentType === "دهان") {
-      document.getElementById("doseSection").classList.add("hidden");
-      document.getElementById("timingSection").classList.add("hidden");
-      selection.dose = "دهان";
-      renderFloatBox();
-    } else {
-      document.getElementById("doseSection").classList.remove("hidden");
-      document.getElementById("timingSection").classList.remove("hidden");
-      selection.dose = null;
-      buildDoseOptions();
-      renderFloatBox();
-    }
-  };
-});
-
 function buildDoseOptions() {
   const container = document.getElementById("doseOptions");
   const label = document.getElementById("doseLabel");
@@ -277,8 +275,6 @@ function buildDoseOptions() {
     const btn = document.createElement("button");
     btn.textContent = v;
     btn.onclick = () => {
-      document.querySelectorAll("#doseOptions button").forEach(b => b.classList.remove("selected"));
-          btn.onclick = () => {
       const alreadySelected = btn.classList.contains("selected");
       document.querySelectorAll("#doseOptions button").forEach(b => b.classList.remove("selected"));
       if (alreadySelected) {
@@ -343,7 +339,7 @@ function buildDurationOptions() {
   values.forEach(v => {
     const btn = document.createElement("button");
     btn.textContent = v;
-       btn.onclick = () => {
+    btn.onclick = () => {
       const alreadySelected = btn.classList.contains("selected");
       document.querySelectorAll("#durationOptions button").forEach(b => b.classList.remove("selected"));
       if (alreadySelected) {
