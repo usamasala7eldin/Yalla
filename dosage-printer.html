@@ -16,10 +16,12 @@
 
 :root {
     --primary: #2563eb;
+    --primary-dark: #1d4ed8;
     --primary-light: #eff6ff;
     --primary-border: #bfdbfe;
 
     --success: #16a34a;
+    --success-dark: #15803d;
     --success-light: #f0fdf4;
 
     --warning: #f59e0b;
@@ -31,64 +33,83 @@
     --text: #172033;
     --muted: #64748b;
     --border: #e2e8f0;
-    --background: #f5f7fb;
+    --background: #f4f7fb;
     --card: #ffffff;
 
-    --sidebar-width: 340px;
+    --sidebar-width: 350px;
 }
 
 html,
 body {
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 0;
-    min-height: 100%;
+    overflow: hidden;
 }
 
 body {
-    font-family:
-        Tahoma,
-        Arial,
-        sans-serif;
+    font-family: Tahoma, Arial, sans-serif;
     background: var(--background);
     color: var(--text);
 }
 
-/* =========================
-   APP LAYOUT
-========================= */
+button,
+input,
+textarea {
+    font-family: inherit;
+}
+
+/* =========================================================
+   APP
+========================================================= */
 
 .app {
-    min-height: 100vh;
+    width: 100%;
+    height: 100dvh;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+    overflow: hidden;
 }
+
+/* =========================================================
+   MAIN WORKSPACE
+========================================================= */
 
 .main {
-    margin-right: var(--sidebar-width);
-    padding: 28px 32px 270px;
-    max-width: 1500px;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    padding: 18px 24px;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 12px;
+    overflow: hidden;
 }
 
-/* =========================
+/* =========================================================
    HEADER
-========================= */
+========================================================= */
 
 .pageHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    min-height: 50px;
 }
 
 .headerText {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 3px;
 }
 
 .back {
+    width: fit-content;
     color: var(--primary);
     text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .back:hover {
@@ -97,55 +118,56 @@ body {
 
 .pageTitle {
     margin: 0;
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--text);
+    font-size: 23px;
+    line-height: 1.2;
+    font-weight: 900;
 }
 
 .pageSubtitle {
     margin: 0;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 11px;
 }
 
-/* =========================
+/* =========================================================
    CARDS
-========================= */
+========================================================= */
 
 .card {
+    min-width: 0;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
+    border-radius: 14px;
+    padding: 13px;
+    box-shadow: 0 3px 15px rgba(15, 23, 42, .035);
 }
 
 .sectionHeader {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 9px;
 }
 
 .sectionTitle {
     margin: 0;
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--text);
+    font-size: 13px;
+    font-weight: 900;
 }
 
 .sectionHint {
     color: var(--muted);
-    font-size: 12px;
+    font-size: 10px;
+    white-space: nowrap;
 }
 
-/* =========================
+/* =========================================================
    PRODUCT
-========================= */
+========================================================= */
 
 .productCard {
-    padding: 18px;
+    padding: 12px 14px;
 }
 
 .productInputWrapper {
@@ -154,39 +176,40 @@ body {
 
 .productInputIcon {
     position: absolute;
-    right: 15px;
+    right: 13px;
     top: 50%;
     transform: translateY(-50%);
+    width: 19px;
+    height: 19px;
     color: var(--muted);
-    font-size: 18px;
     pointer-events: none;
 }
 
 #productInput {
     width: 100%;
-    height: 54px;
-    padding: 0 48px 0 16px;
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    font-size: 15px;
-    font-family: inherit;
+    height: 44px;
+    padding: 0 42px 0 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
     outline: none;
-    transition: .2s;
     background: #fff;
+    color: var(--text);
+    font-size: 13px;
+    transition: .15s;
 }
 
 #productInput:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px var(--primary-light);
+    box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 .productResult {
-    margin-top: 12px;
-    padding: 12px 14px;
-    border-radius: 10px;
+    margin-top: 7px;
+    padding: 6px 9px;
+    border-radius: 8px;
     background: #f8fafc;
     min-height: 0;
-    font-size: 13px;
+    font-size: 11px;
 }
 
 .productResult:empty {
@@ -195,112 +218,141 @@ body {
 
 .productName {
     color: var(--primary);
-    font-weight: 800;
+    font-weight: 900;
 }
 
 .defaultNote {
-    margin-top: 10px;
+    margin-top: 7px;
+    padding: 7px 9px;
+    border-radius: 8px;
     background: var(--warning-light);
     border: 1px solid #fde68a;
-    border-radius: 10px;
-    padding: 11px 13px;
-    font-size: 13px;
     color: #92400e;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
+    font-size: 10px;
 }
 
 .defaultNoteText {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
 }
 
 .smallBtn {
     border: none;
+    border-radius: 7px;
+    padding: 6px 9px;
     background: var(--warning);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 8px;
+    color: #fff;
     cursor: pointer;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 800;
 }
 
-/* =========================
-   OPTION BUTTONS
-========================= */
+/* =========================================================
+   CONTROLS GRID
+========================================================= */
 
-.optionsGrid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
+.controlsGrid {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    overflow: hidden;
 }
 
-.optionBtn {
-    min-height: 43px;
-    padding: 8px 17px;
-    border-radius: 11px;
+.controlCard {
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* =========================================================
+   TYPE BUTTONS
+========================================================= */
+
+.typeGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.typeBtn {
+    min-width: 0;
+    height: 78px;
     border: 1px solid var(--border);
+    border-radius: 11px;
     background: #fff;
-    color: #334155;
+    color: #475569;
     cursor: pointer;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all .15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: .15s;
 }
 
-.optionBtn:hover {
+.typeBtn:hover {
     border-color: var(--primary-border);
     background: var(--primary-light);
     color: var(--primary);
 }
 
-.optionBtn.selected {
+.typeBtn.selected {
     background: var(--primary);
     border-color: var(--primary);
-    color: white;
-    box-shadow: 0 3px 8px rgba(37, 99, 235, .2);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, .18);
 }
 
-.optionBtn.type-selected {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
+.typeIcon {
+    width: 27px;
+    height: 27px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-/* =========================
-   DOSE SELECTOR
-========================= */
+.typeBtn span {
+    font-size: 11px;
+    font-weight: 800;
+}
+
+/* =========================================================
+   DOSE
+========================================================= */
 
 #doseSection.hidden,
-#timingSection.hidden {
+#timingSection.hidden,
+#dropLocationSection.hidden {
     display: none;
 }
 
 .doseSelector {
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 14px;
-    margin: 10px 0 16px;
+    justify-content: center;
+    gap: 12px;
+    margin: 5px 0 9px;
 }
 
 .doseAdjust {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 43px;
+    height: 43px;
     border: 1px solid var(--border);
+    border-radius: 10px;
     background: #fff;
     color: var(--primary);
-    font-size: 25px;
-    font-weight: 700;
     cursor: pointer;
-    transition: .15s;
+    font-size: 23px;
+    font-weight: 900;
+    line-height: 1;
 }
 
 .doseAdjust:hover {
@@ -313,438 +365,558 @@ body {
 }
 
 .doseInputBox {
-    position: relative;
-    width: 150px;
+    width: 125px;
+    text-align: center;
 }
 
 #doseNumber {
     width: 100%;
-    height: 52px;
+    height: 45px;
     border: 2px solid var(--primary);
-    border-radius: 12px;
+    border-radius: 10px;
+    background: #fff;
     outline: none;
     text-align: center;
-    font-size: 22px;
-    font-weight: 800;
     color: var(--text);
-    font-family: inherit;
-    background: white;
-    padding: 0 35px;
+    font-size: 20px;
+    font-weight: 900;
 }
 
 #doseNumber:focus {
-    box-shadow: 0 0 0 4px var(--primary-light);
+    box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 .doseUnit {
-    text-align: center;
-    margin-top: 5px;
-    font-size: 12px;
+    margin-top: 3px;
     color: var(--muted);
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .quickDose {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 7px;
+    gap: 6px;
 }
 
 .quickDose button {
-    min-width: 48px;
-    padding: 7px 11px;
-    border-radius: 9px;
+    min-width: 43px;
+    height: 30px;
+    padding: 0 9px;
     border: 1px solid var(--border);
+    border-radius: 8px;
     background: #f8fafc;
     color: #475569;
     cursor: pointer;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 800;
 }
 
-.quickDose button:hover {
+.quickDose button:hover,
+.quickDose button.active {
     background: var(--primary-light);
     border-color: var(--primary-border);
     color: var(--primary);
 }
 
 .doseEmpty {
-    text-align: center;
-    color: var(--muted);
-    padding: 14px;
-    font-size: 13px;
-}
-
-/* =========================
-   TIMING / DURATION
-========================= */
-
-#timingOptions .optionBtn,
-#durationOptions .optionBtn {
-    min-height: 41px;
-}
-
-/* =========================
-   SIDEBAR / QUEUE
-========================= */
-
-.sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: var(--sidebar-width);
-    background: #fff;
-    border-left: 1px solid var(--border);
-    padding: 22px;
-    overflow-y: auto;
-    z-index: 20;
-}
-
-.queueHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.queueTitle {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 800;
-}
-
-.queueCount {
-    min-width: 30px;
-    height: 30px;
-    padding: 0 8px;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--primary-light);
-    color: var(--primary);
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.printAllBtn {
     width: 100%;
-    height: 48px;
-    border: none;
-    border-radius: 11px;
-    background: var(--primary);
-    color: white;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 800;
-    cursor: pointer;
-    margin-bottom: 16px;
-    transition: .15s;
-}
-
-.printAllBtn:hover {
-    background: #1d4ed8;
-}
-
-.emptyQueue {
     text-align: center;
-    padding: 45px 15px;
     color: var(--muted);
+    font-size: 11px;
+    padding: 12px;
 }
 
-.emptyQueueIcon {
-    font-size: 35px;
-    margin-bottom: 12px;
+/* =========================================================
+   DROP LOCATION
+========================================================= */
+
+.dropLocationTitle {
+    margin: 9px 0 6px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
 }
 
-.emptyQueueTitle {
-    font-size: 14px;
-    font-weight: 700;
+.locationGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.locationBtn {
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
     color: #475569;
-    margin-bottom: 5px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 800;
 }
 
-.emptyQueueText {
-    font-size: 12px;
-    line-height: 1.7;
+.locationBtn:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-border);
 }
 
-.labelPreview {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 2 / 1;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    background: #fff;
-    padding: 13px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    white-space: pre-wrap;
+.locationBtn.selected {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+/* =========================================================
+   OPTION BUTTONS
+========================================================= */
+
+.optionsGrid {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 6px;
+    max-height: calc(100% - 30px);
     overflow: hidden;
 }
 
-.labelPreviewContent {
-    max-width: 90%;
-    line-height: 1.6;
-}
-
-.labelPreviewQr {
-    font-size: 10px;
-    color: #94a3b8;
-    margin-top: 5px;
-}
-
-.removeBtn {
-    position: absolute;
-    top: 7px;
-    left: 7px;
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: 7px;
-    background: var(--danger-light);
-    color: var(--danger);
+.optionBtn {
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: #475569;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 700;
+    transition: .15s;
 }
 
-.removeBtn:hover {
-    background: var(--danger);
-    color: white;
+.optionBtn:hover {
+    border-color: var(--primary-border);
+    background: var(--primary-light);
+    color: var(--primary);
 }
 
-/* =========================
+.optionBtn.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, .16);
+}
+
+/* =========================================================
+   TIMING + DURATION
+========================================================= */
+
+.timingDurationGrid {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1.35fr .65fr;
+    gap: 12px;
+}
+
+.subSection {
+    min-width: 0;
+    min-height: 0;
+}
+
+.subTitle {
+    margin: 0 0 7px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+/* =========================================================
    BUILDER
-========================= */
+========================================================= */
 
 .builder {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: var(--sidebar-width);
-    background: rgba(255, 255, 255, .96);
-    backdrop-filter: blur(12px);
-    border-top: 1px solid var(--border);
-    box-shadow: 0 -8px 30px rgba(15, 23, 42, .08);
-    padding: 14px 32px 16px;
-    z-index: 15;
-}
-
-.builderInner {
-    max-width: 1500px;
-    margin: auto;
+    min-width: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 11px 13px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, .05);
 }
 
 .builderTop {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    align-items: center;
+    margin-bottom: 6px;
 }
 
 .builderTitle {
-    font-size: 13px;
-    font-weight: 800;
-    color: #334155;
+    font-size: 11px;
+    font-weight: 900;
 }
 
 .builderStatus {
     color: var(--muted);
-    font-size: 11px;
+    font-size: 10px;
 }
 
 #floatBox {
     width: 100%;
-    min-height: 58px;
-    max-height: 110px;
-    resize: vertical;
+    height: 57px;
+    resize: none;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 11px 13px;
-    font-family: inherit;
-    font-size: 13px;
-    line-height: 1.6;
-    outline: none;
+    border-radius: 9px;
+    padding: 7px 9px;
     background: #f8fafc;
+    outline: none;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.55;
 }
 
 #floatBox:focus {
     border-color: var(--primary);
-    background: white;
+    background: #fff;
 }
 
-.builderOptions {
-    display: flex;
+.builderBottom {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 7px;
     align-items: center;
-    gap: 10px;
-    margin-top: 8px;
+    margin-top: 7px;
 }
 
 .qrToggle {
+    height: 34px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
+    gap: 5px;
     white-space: nowrap;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 800;
+    background: #fff;
 }
 
 .qrToggle input {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     accent-color: var(--primary);
 }
 
 #qrText {
-    flex: 1;
-    height: 38px;
+    width: 100%;
+    height: 34px;
+    padding: 0 9px;
     border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 0 11px;
-    font-family: inherit;
+    border-radius: 8px;
     outline: none;
-    font-size: 12px;
+    font-size: 10px;
 }
 
 #qrText:focus {
     border-color: var(--primary);
 }
 
-.builderActions {
-    display: flex;
-    gap: 9px;
-    margin-top: 9px;
-}
-
-.builderActions button {
-    height: 42px;
+.builderBtn {
+    height: 34px;
     border: none;
-    border-radius: 9px;
-    font-family: inherit;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 800;
+    padding: 0 13px;
+    font-size: 10px;
+    font-weight: 900;
+    white-space: nowrap;
 }
 
 .addBtn {
-    flex: 1;
     background: var(--success);
-    color: white;
+    color: #fff;
 }
 
 .addBtn:hover {
-    background: #15803d;
+    background: var(--success-dark);
 }
 
 .defaultBtn {
-    padding: 0 18px;
     background: var(--warning);
-    color: white;
+    color: #fff;
 }
 
 .clearBtn {
-    padding: 0 18px;
     background: var(--danger-light);
     color: var(--danger);
 }
 
 .clearBtn:hover {
     background: var(--danger);
-    color: white;
+    color: #fff;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* =========================================================
+   SIDEBAR
+========================================================= */
 
-@media (max-width: 900px) {
+.sidebar {
+    min-width: 0;
+    height: 100%;
+    background: #fff;
+    border-left: 1px solid var(--border);
+    padding: 16px;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 10px;
+    overflow: hidden;
+}
 
-    :root {
-        --sidebar-width: 0px;
-    }
+.queueHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.queueTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.queueCount {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 14px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.printAllBtn {
+    width: 100%;
+    height: 42px;
+    border: none;
+    border-radius: 9px;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.printAllBtn:hover {
+    background: var(--primary-dark);
+}
+
+#listContainer {
+    min-height: 0;
+    overflow-y: auto;
+    padding-left: 2px;
+    scrollbar-width: thin;
+}
+
+.emptyQueue {
+    padding: 45px 10px;
+    text-align: center;
+    color: var(--muted);
+}
+
+.emptyQueueIcon {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.emptyQueueIcon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.emptyQueueTitle {
+    margin-bottom: 4px;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.emptyQueueText {
+    font-size: 10px;
+    line-height: 1.7;
+}
+
+/* =========================================================
+   LABEL PREVIEW
+========================================================= */
+
+.labelPreview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    margin-bottom: 9px;
+    padding: 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.previewDate {
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 7px;
+    text-align: right;
+}
+
+.previewContent {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: pre-wrap;
+    overflow: hidden;
+}
+
+.previewText {
+    max-width: 90%;
+    color: #111827;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.previewQr {
+    position: absolute;
+    left: 7px;
+    bottom: 7px;
+    color: #64748b;
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.removeBtn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 2;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 6px;
+    background: var(--danger-light);
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.removeBtn:hover {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+#listContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+#listContainer::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+/* =========================================================
+   SMALL HEIGHT SCREENS
+========================================================= */
+
+@media (max-height: 720px) {
 
     .main {
-        margin-right: 0;
-        padding: 20px 16px 300px;
-    }
-
-    .sidebar {
-        position: relative;
-        width: 100%;
-        border-left: none;
-        border-top: 1px solid var(--border);
-        max-height: 500px;
-    }
-
-    .builder {
-        right: 0;
-        padding: 12px 16px;
-    }
-
-    .pageTitle {
-        font-size: 23px;
+        padding: 12px 18px;
+        gap: 8px;
     }
 
     .pageHeader {
-        margin-bottom: 18px;
+        min-height: 40px;
     }
-}
 
-@media (max-width: 600px) {
+    .pageTitle {
+        font-size: 20px;
+    }
+
+    .productCard {
+        padding: 9px 12px;
+    }
+
+    #productInput {
+        height: 38px;
+    }
 
     .card {
-        padding: 17px;
-        border-radius: 13px;
+        padding: 10px;
     }
 
-    .defaultNote {
-        align-items: flex-start;
-        flex-direction: column;
+    .typeBtn {
+        height: 63px;
     }
 
-    .smallBtn {
-        width: 100%;
+    .typeIcon {
+        width: 22px;
+        height: 22px;
     }
 
-    .builderOptions {
-        flex-wrap: wrap;
+    .doseSelector {
+        margin: 2px 0 6px;
     }
 
+    .doseAdjust,
+    #doseNumber {
+        height: 38px;
+    }
+
+    .quickDose button {
+        height: 26px;
+    }
+
+    #floatBox {
+        height: 48px;
+    }
+
+    .builderBottom,
+    .builderBtn,
+    .qrToggle,
     #qrText {
-        min-width: 180px;
-    }
-
-    .builderActions {
-        flex-wrap: wrap;
-    }
-
-    .addBtn {
-        flex-basis: 100%;
-    }
-
-    .defaultBtn,
-    .clearBtn {
-        flex: 1;
+        height: 30px;
     }
 }
 
-/* =========================
+/* =========================================================
    PRINT
-========================= */
+========================================================= */
 
 @media print {
+    html,
     body {
-        background: white;
+        overflow: visible;
+        background: #fff;
     }
 }
 </style>
@@ -754,12 +926,13 @@ body {
 
 <div class="app">
 
-    <!-- =========================
+    <!-- =====================================================
          MAIN
-    ========================== -->
+    ====================================================== -->
 
     <main class="main">
 
+        <!-- HEADER -->
         <header class="pageHeader">
             <div class="headerText">
                 <a class="back" href="index.html">‹ رجوع</a>
@@ -770,9 +943,7 @@ body {
             </div>
         </header>
 
-
         <!-- PRODUCT -->
-
         <section class="card productCard">
 
             <div class="sectionHeader">
@@ -782,37 +953,37 @@ body {
 
             <div class="productInputWrapper">
 
-                <span class="productInputIcon">⌕</span>
+                <svg class="productInputIcon"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-4-4"></path>
+                </svg>
 
                 <input
                     type="text"
                     id="productInput"
                     placeholder="اضرب الباركود أو اكتب اسم الصنف يدويًا"
+                    autocomplete="off"
                     autofocus
                 >
 
             </div>
 
-            <div
-                class="productResult"
-                id="productNameDisplay">
-            </div>
+            <div class="productResult" id="productNameDisplay"></div>
 
-            <div
-                class="defaultNote"
-                id="defaultNote"
-                style="display:none;"
-            >
+            <div class="defaultNote" id="defaultNote" style="display:none;">
 
                 <div class="defaultNoteText">
                     <span>★</span>
                     <span>فيه جرعة افتراضية محفوظة لهذا الصنف</span>
                 </div>
 
-                <button
-                    class="smallBtn"
-                    onclick="useDefaultDose()"
-                >
+                <button class="smallBtn" onclick="useDefaultDose()">
                     استخدام الجرعة الافتراضية
                 </button>
 
@@ -820,333 +991,249 @@ body {
 
         </section>
 
+        <!-- =================================================
+             CONTROLS
+        ================================================== -->
 
-        <!-- TYPE -->
+        <div class="controlsGrid">
 
-        <section class="card">
+            <!-- TYPE -->
+            <section class="card controlCard">
 
-            <div class="sectionHeader">
-                <h2 class="sectionTitle">نوع الدواء</h2>
-                <span class="sectionHint">اختار النوع أولًا</span>
-            </div>
+                <div class="sectionHeader">
+                    <h2 class="sectionTitle">نوع الدواء</h2>
+                    <span class="sectionHint">اختار النوع</span>
+                </div>
 
-            <div
-                class="optionsGrid"
-                id="typeOptions"
-            >
+                <div class="typeGrid" id="typeOptions">
 
-                <button
-                    class="optionBtn"
-                    data-value="حبوب"
-                >
-                    حبوب
-                </button>
+                    <button class="typeBtn" data-value="حبوب">
+                        <svg class="typeIcon" viewBox="0 0 24 24">
+                            <path d="M7 4h10a3 3 0 0 1 0 6H7a3 3 0 0 1 0-6Z"/>
+                            <path d="M7 10h10a3 3 0 0 1 0 6H7a3 3 0 0 1 0-6Z"/>
+                            <path d="M12 4v12"/>
+                        </svg>
+                        <span>حبوب</span>
+                    </button>
 
-                <button
-                    class="optionBtn"
-                    data-value="شراب"
-                >
-                    شراب
-                </button>
+                    <button class="typeBtn" data-value="شراب">
+                        <svg class="typeIcon" viewBox="0 0 24 24">
+                            <path d="M9 3h6"/>
+                            <path d="M10 3v4l-3 4v8a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-8l-3-4V3"/>
+                            <path d="M8 12h8"/>
+                        </svg>
+                        <span>شراب</span>
+                    </button>
 
-                <button
-                    class="optionBtn"
-                    data-value="حقن"
-                >
-                    حقن
-                </button>
+                    <button class="typeBtn" data-value="حقن">
+                        <svg class="typeIcon" viewBox="0 0 24 24">
+                            <path d="m14 5 5 5"/>
+                            <path d="m13 6 5 5"/>
+                            <path d="M4 20 14 10"/>
+                            <path d="m3 21 3-1 10-10-2-2L4 18l-1 3Z"/>
+                            <path d="m16 3 5 5"/>
+                        </svg>
+                        <span>حقن</span>
+                    </button>
 
-                <button
-                    class="optionBtn"
-                    data-value="دهان"
-                >
-                    دهان
-                </button>
+                    <button class="typeBtn" data-value="دهان">
+                        <svg class="typeIcon" viewBox="0 0 24 24">
+                            <path d="M8 3h8v5H8z"/>
+                            <path d="M10 8v3"/>
+                            <path d="M14 8v3"/>
+                            <path d="M7 11h10v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-8Z"/>
+                            <path d="M9 15h6"/>
+                        </svg>
+                        <span>دهان</span>
+                    </button>
 
-            </div>
+                    <button class="typeBtn" data-value="نقط">
+                        <svg class="typeIcon" viewBox="0 0 24 24">
+                            <path d="M12 3s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11Z"/>
+                        </svg>
+                        <span>نقط</span>
+                    </button>
 
-        </section>
+                </div>
 
+            </section>
 
-        <!-- DOSE -->
+            <!-- FREQUENCY -->
+            <section class="card controlCard">
 
-        <section
-            class="card"
-            id="doseSection"
-        >
+                <div class="sectionHeader">
+                    <h2 class="sectionTitle">عدد المرات</h2>
+                    <span class="sectionHint">اختيار واحد</span>
+                </div>
 
-            <div class="sectionHeader">
-                <h2
-                    class="sectionTitle"
-                    id="doseLabel"
-                >
-                    الجرعة
-                </h2>
+                <div class="optionsGrid" id="frequencyOptions"></div>
 
-                <span class="sectionHint">
-                    اكتب الرقم أو استخدم + / −
-                </span>
-            </div>
+            </section>
 
+            <!-- DOSE -->
+            <section class="card controlCard" id="doseSection">
 
-            <div class="doseSelector">
+                <div class="sectionHeader">
+                    <h2 class="sectionTitle" id="doseLabel">الجرعة</h2>
+                    <span class="sectionHint">اكتب أو استخدم + / −</span>
+                </div>
 
-                <button
-                    class="doseAdjust"
-                    type="button"
-                    onclick="changeDose(-1)"
-                >
-                    −
-                </button>
+                <div class="doseSelector">
 
-                <div class="doseInputBox">
+                    <button
+                        class="doseAdjust"
+                        type="button"
+                        onclick="changeDose(-1)">
+                        −
+                    </button>
 
-                    <input
-                        type="number"
-                        id="doseNumber"
-                        min="0"
-                        step="1"
-                        placeholder="—"
-                    >
+                    <div class="doseInputBox">
 
-                    <div
-                        class="doseUnit"
-                        id="doseUnit"
-                    >
-                        اختار نوع الدواء
+                        <input
+                            type="number"
+                            id="doseNumber"
+                            min="1"
+                            step="1"
+                            value="1"
+                            inputmode="decimal"
+                        >
+
+                        <div class="doseUnit" id="doseUnit">
+                            حبة
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="doseAdjust"
+                        type="button"
+                        onclick="changeDose(1)">
+                        +
+                    </button>
+
+                </div>
+
+                <div class="quickDose" id="quickDose"></div>
+
+                <!-- DROP LOCATION -->
+                <div id="dropLocationSection" class="hidden">
+
+                    <div class="dropLocationTitle">
+                        مكان الاستخدام
+                    </div>
+
+                    <div class="locationGrid" id="dropLocationOptions">
+
+                        <button
+                            class="locationBtn"
+                            data-value="العين">
+                            العين
+                        </button>
+
+                        <button
+                            class="locationBtn"
+                            data-value="الأذن">
+                            الأذن
+                        </button>
+
+                        <button
+                            class="locationBtn"
+                            data-value="الأنف">
+                            الأنف
+                        </button>
+
                     </div>
 
                 </div>
 
-                <button
-                    class="doseAdjust"
-                    type="button"
-                    onclick="changeDose(1)"
-                >
-                    +
-                </button>
+            </section>
 
-            </div>
+            <!-- TIMING + DURATION -->
+            <section class="card controlCard">
 
+                <div class="timingDurationGrid">
 
-            <div
-                class="quickDose"
-                id="quickDose"
-            >
+                    <!-- TIMING -->
+                    <div class="subSection" id="timingSection">
 
-                <div class="doseEmpty">
-                    اختار نوع الدواء لعرض الجرعات السريعة
+                        <div class="sectionHeader">
+                            <h2 class="subTitle">التوقيت بالنسبة للأكل</h2>
+                            <span class="sectionHint">اختياري</span>
+                        </div>
+
+                        <div class="optionsGrid" id="timingOptions">
+
+                            <button class="optionBtn" data-value="بعد الأكل">
+                                بعد الأكل
+                            </button>
+
+                            <button class="optionBtn" data-value="قبل الأكل">
+                                قبل الأكل
+                            </button>
+
+                            <button class="optionBtn" data-value="قبل الأكل بنص ساعة">
+                                قبل الأكل بنص ساعة
+                            </button>
+
+                            <button class="optionBtn" data-value="قبل الأكل بساعة أو بعد الأكل بساعتين">
+                                قبل الأكل بساعة أو بعد الأكل بساعتين
+                            </button>
+
+                            <button class="optionBtn" data-value="على الريق">
+                                على الريق
+                            </button>
+
+                            <button class="optionBtn" data-value="صباحًا">
+                                صباحًا
+                            </button>
+
+                            <button class="optionBtn" data-value="مساءً">
+                                مساءً
+                            </button>
+
+                            <button class="optionBtn" data-value="بعد الفطار">
+                                بعد الفطار
+                            </button>
+
+                            <button class="optionBtn" data-value="بعد الغذاء">
+                                بعد الغذاء
+                            </button>
+
+                            <button class="optionBtn" data-value="بعد العشاء">
+                                بعد العشاء
+                            </button>
+
+                            <button class="optionBtn" data-value="قبل النوم">
+                                قبل النوم
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <!-- DURATION -->
+                    <div class="subSection">
+
+                        <div class="sectionHeader">
+                            <h2 class="subTitle">المدة</h2>
+                            <span class="sectionHint">اختياري</span>
+                        </div>
+
+                        <div
+                            class="optionsGrid"
+                            id="durationOptions">
+                        </div>
+
+                    </div>
+
                 </div>
 
-            </div>
-
-        </section>
-
-
-        <!-- FREQUENCY -->
-
-        <section class="card">
-
-            <div class="sectionHeader">
-                <h2 class="sectionTitle">عدد المرات</h2>
-                <span class="sectionHint">اختيار واحد</span>
-            </div>
-
-            <div
-                class="optionsGrid"
-                id="frequencyOptions"
-            >
-
-                <button class="optionBtn" data-value="مرة يوميًا">
-                    مرة يوميًا
-                </button>
-
-                <button class="optionBtn" data-value="مرتين يوميًا">
-                    مرتين يوميًا
-                </button>
-
-                <button class="optionBtn" data-value="3 مرات يوميًا">
-                    3 مرات يوميًا
-                </button>
-
-                <button class="optionBtn" data-value="4 مرات يوميًا">
-                    4 مرات يوميًا
-                </button>
-
-                <button class="optionBtn" data-value="كل 24 ساعة">
-                    كل 24 ساعة
-                </button>
-
-                <button class="optionBtn" data-value="كل 12 ساعة">
-                    كل 12 ساعة
-                </button>
-
-                <button class="optionBtn" data-value="كل 8 ساعات">
-                    كل 8 ساعات
-                </button>
-
-                <button class="optionBtn" data-value="كل 6 ساعات">
-                    كل 6 ساعات
-                </button>
-
-                <button class="optionBtn" data-value="كل أسبوع">
-                    كل أسبوع
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- TIMING -->
-
-        <section
-            class="card"
-            id="timingSection"
-        >
-
-            <div class="sectionHeader">
-                <h2 class="sectionTitle">
-                    التوقيت بالنسبة للأكل
-                </h2>
-
-                <span class="sectionHint">
-                    اختياري
-                </span>
-            </div>
-
-            <div
-                class="optionsGrid"
-                id="timingOptions"
-            >
-
-                <button class="optionBtn" data-value="بعد الأكل">
-                    بعد الأكل
-                </button>
-
-                <button class="optionBtn" data-value="قبل الأكل">
-                    قبل الأكل
-                </button>
-
-                <button class="optionBtn" data-value="قبل الأكل بنص ساعة">
-                    قبل الأكل بنص ساعة
-                </button>
-
-                <button class="optionBtn" data-value="قبل الأكل بساعة أو بعد الأكل بساعتين">
-                    قبل الأكل بساعة أو بعد الأكل بساعتين
-                </button>
-
-                <button class="optionBtn" data-value="على الريق">
-                    على الريق
-                </button>
-
-                <button class="optionBtn" data-value="صباحًا">
-                    صباحًا
-                </button>
-
-                <button class="optionBtn" data-value="مساءً">
-                    مساءً
-                </button>
-
-                <button class="optionBtn" data-value="بعد الفطار">
-                    بعد الفطار
-                </button>
-
-                <button class="optionBtn" data-value="بعد الغذاء">
-                    بعد الغذاء
-                </button>
-
-                <button class="optionBtn" data-value="بعد العشاء">
-                    بعد العشاء
-                </button>
-
-                <button class="optionBtn" data-value="قبل النوم">
-                    قبل النوم
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- DURATION -->
-
-        <section class="card">
-
-            <div class="sectionHeader">
-                <h2 class="sectionTitle">المدة</h2>
-                <span class="sectionHint">اختياري</span>
-            </div>
-
-            <div
-                class="optionsGrid"
-                id="durationOptions"
-            ></div>
-
-        </section>
-
-    </main>
-
-
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
-
-    <aside class="sidebar">
-
-        <div class="queueHeader">
-
-            <h2 class="queueTitle">
-                قائمة الطباعة
-            </h2>
-
-            <span
-                class="queueCount"
-                id="countDisplay"
-            >
-                0
-            </span>
+            </section>
 
         </div>
 
-        <button
-            class="printAllBtn"
-            onclick="printAll()"
-        >
-            🖨 طباعة الكل
-        </button>
-
-        <div id="listContainer">
-
-            <div class="emptyQueue">
-
-                <div class="emptyQueueIcon">
-                    🏷️
-                </div>
-
-                <div class="emptyQueueTitle">
-                    القائمة فارغة
-                </div>
-
-                <div class="emptyQueueText">
-                    أنشئ الجرعة من النموذج<br>
-                    واضغط «أضف للقائمة»
-                </div>
-
-            </div>
-
-        </div>
-
-    </aside>
-
-
-    <!-- =========================
-         BUILDER
-    ========================== -->
-
-    <section class="builder">
-
-        <div class="builderInner">
+        <!-- BUILDER -->
+        <section class="builder">
 
             <div class="builderTop">
 
@@ -1156,21 +1243,18 @@ body {
 
                 <span
                     class="builderStatus"
-                    id="builderStatus"
-                >
-                    جاهز لإضافة جرعة
+                    id="builderStatus">
+                    جاهز
                 </span>
 
             </div>
 
-
             <textarea
                 id="floatBox"
-                placeholder="اختار من فوق أو اكتب هنا مباشرة..."
+                placeholder="اختار البيانات من فوق أو اكتب النص هنا مباشرة..."
             ></textarea>
 
-
-            <div class="builderOptions">
+            <div class="builderBottom">
 
                 <label class="qrToggle">
 
@@ -1184,7 +1268,6 @@ body {
 
                 </label>
 
-
                 <input
                     type="text"
                     id="qrText"
@@ -1192,37 +1275,59 @@ body {
                     style="display:none;"
                 >
 
-            </div>
-
-
-            <div class="builderActions">
-
                 <button
-                    class="addBtn"
-                    onclick="addToList()"
-                >
+                    class="builderBtn addBtn"
+                    onclick="addToList()">
                     ＋ أضف للقائمة
                 </button>
 
                 <button
-                    class="defaultBtn"
-                    onclick="saveAsDefault()"
-                >
-                    ★ حفظ كجرعة افتراضية
+                    class="builderBtn defaultBtn"
+                    onclick="saveAsDefault()">
+                    ★ حفظ كافتراضية
                 </button>
 
                 <button
-                    class="clearBtn"
-                    onclick="clearAll()"
-                >
+                    class="builderBtn clearBtn"
+                    onclick="clearAll()">
                     مسح
                 </button>
 
             </div>
 
+        </section>
+
+    </main>
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="queueHeader">
+
+            <h2 class="queueTitle">
+                قائمة الطباعة
+            </h2>
+
+            <span
+                class="queueCount"
+                id="countDisplay">
+                0
+            </span>
+
         </div>
 
-    </section>
+        <button
+            class="printAllBtn"
+            onclick="printAll()">
+            🖨 طباعة الكل
+        </button>
+
+        <div id="listContainer"></div>
+
+    </aside>
 
 </div>
 
@@ -1252,18 +1357,21 @@ const db = firebase.firestore();
 ========================================================= */
 
 let currentBarcode = null;
-let currentType = null;
-let currentFrequency = null;
+let currentType = "حبوب";
+let currentFrequency = "3 مرات يوميًا";
 
 let entries = [];
 
 let selection = {
     name: null,
-    dose: null,
-    frequency: null,
+    dose: "1 حبة",
+    frequency: "3 مرات يوميًا",
     timing: null,
-    duration: null
+    duration: null,
+    dropLocation: null
 };
+
+let defaultDoseText = "";
 
 
 /* =========================================================
@@ -1275,117 +1383,324 @@ const doseConfig = {
     "حبوب": {
         unit: "حبة",
         step: 1,
-        min: 0,
+        min: 1,
         quick: [0.5, 1, 2, 3, 4]
     },
 
     "شراب": {
         unit: "مل",
         step: 0.5,
-        min: 0,
+        min: 0.5,
         quick: [2.5, 5, 7.5, 10, 15, 20]
     },
 
     "حقن": {
         unit: "وحدة",
         step: 1,
-        min: 0,
+        min: 1,
         quick: [1, 2, 5, 10, 20, 40, 60]
+    },
+
+    "نقط": {
+        unit: "نقطة",
+        step: 1,
+        min: 1,
+        quick: [1, 2, 3, 4]
     }
 
 };
 
 
 /* =========================================================
-   RENDER BUILDER
+   FREQUENCIES
+========================================================= */
+
+const normalFrequencies = [
+    "مرة يوميًا",
+    "مرتين يوميًا",
+    "3 مرات يوميًا",
+    "4 مرات يوميًا",
+    "كل 24 ساعة",
+    "كل 12 ساعة",
+    "كل 8 ساعات",
+    "كل 6 ساعات",
+    "كل أسبوع"
+];
+
+const dropFrequencies = [
+    "مرة",
+    "مرتين",
+    "3 مرات",
+    "4 مرات",
+    "كل ساعتين",
+    "قبل النوم"
+];
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(text) {
+
+    const div = document.createElement("div");
+
+    div.textContent = text;
+
+    return div.innerHTML;
+}
+
+
+/* =========================================================
+   DROP DOSE WORDING
+========================================================= */
+
+function formatDropDose(number, location) {
+
+    if (!location) {
+        return null;
+    }
+
+    const n = Number(number);
+
+    if (n === 1) {
+        return `1 نقطة في ${location}`;
+    }
+
+    if (n === 2) {
+        return `نقطتين في ${location}`;
+    }
+
+    if (n === 3) {
+        return `3 نقاط في ${location}`;
+    }
+
+    if (n === 4) {
+        return `4 نقاط في ${location}`;
+    }
+
+    return `${n} نقاط في ${location}`;
+}
+
+
+/* =========================================================
+   FORMAT DOSE
+========================================================= */
+
+function getCurrentDoseText() {
+
+    if (currentType === "دهان") {
+        return "دهان";
+    }
+
+    if (currentType === "نقط") {
+
+        const value = document.getElementById("doseNumber").value;
+
+        if (!value || Number(value) <= 0) {
+            return null;
+        }
+
+        return formatDropDose(
+            value,
+            selection.dropLocation
+        );
+    }
+
+    const value = document.getElementById("doseNumber").value;
+
+    if (!value || Number(value) <= 0) {
+        return null;
+    }
+
+    const config = doseConfig[currentType];
+
+    return `${value} ${config.unit}`;
+}
+
+
+/* =========================================================
+   RENDER TEXT
 ========================================================= */
 
 function renderFloatBox() {
 
-    const restParts = [
+    const parts = [
         selection.dose,
         selection.frequency,
         selection.timing,
         selection.duration
             ? "لمدة " + selection.duration
             : null
-    ]
-    .filter(Boolean)
-    .join(" - ");
+    ].filter(Boolean);
 
-
-    document.getElementById("floatBox").value =
+    const text =
         selection.name
             ? selection.name +
-              (restParts ? "\n" + restParts : "")
-            : restParts;
+              (parts.length ? "\n" + parts.join(" - ") : "")
+            : parts.join(" - ");
 
+    document.getElementById("floatBox").value = text;
 
     updateBuilderStatus();
 }
 
+
+/* =========================================================
+   STATUS
+========================================================= */
 
 function updateBuilderStatus() {
 
     const status =
         document.getElementById("builderStatus");
 
-    if (!selection.name && !selection.dose) {
+    if (!selection.name) {
 
         status.textContent =
-            "جاهز لإضافة جرعة";
+            "أدخل الصنف أولًا";
 
         return;
     }
 
-    if (selection.dose) {
+    if (!selection.dose) {
 
         status.textContent =
-            "الجرعة جاهزة — راجع النص ثم أضف للقائمة";
+            "أكمل بيانات الجرعة";
 
         return;
     }
 
     status.textContent =
-        "أكمل بيانات الجرعة";
+        "الجرعة جاهزة — راجع النص ثم أضف للقائمة";
 }
 
 
 /* =========================================================
-   CLEAR
+   TYPE
 ========================================================= */
 
-function clearAll() {
+function selectType(type) {
 
-    selection = {
-        name: null,
-        dose: null,
-        frequency: null,
-        timing: null,
-        duration: null
-    };
-
-    currentType = null;
-    currentFrequency = null;
-    currentBarcode = null;
-
+    currentType = type;
 
     document
-        .querySelectorAll(
-            "#typeOptions button, " +
-            "#frequencyOptions button, " +
-            "#timingOptions button, " +
-            "#durationOptions button"
-        )
-        .forEach(b => {
+        .querySelectorAll("#typeOptions .typeBtn")
+        .forEach(btn => {
 
-            b.classList.remove(
+            btn.classList.toggle(
                 "selected",
-                "type-selected"
+                btn.dataset.value === type
             );
 
         });
 
+    selection.timing = null;
+    selection.dropLocation = null;
+    selection.duration = null;
+
+    document
+        .querySelectorAll(
+            "#timingOptions .optionBtn"
+        )
+        .forEach(btn =>
+            btn.classList.remove("selected")
+        );
+
+    document
+        .querySelectorAll(
+            "#dropLocationOptions .locationBtn"
+        )
+        .forEach(btn =>
+            btn.classList.remove("selected")
+        );
+
+
+    /* =====================================================
+       OINTMENT
+    ===================================================== */
+
+    if (type === "دهان") {
+
+        document
+            .getElementById("doseSection")
+            .classList.add("hidden");
+
+        document
+            .getElementById("timingSection")
+            .classList.add("hidden");
+
+        document
+            .getElementById("dropLocationSection")
+            .classList.add("hidden");
+
+        selection.dose = "دهان";
+
+        selection.frequency = null;
+
+        currentFrequency = null;
+
+        renderFrequencyOptions();
+
+        buildDurationOptions();
+
+        renderFloatBox();
+
+        return;
+    }
+
+
+    /* =====================================================
+       DROPS
+    ===================================================== */
+
+    if (type === "نقط") {
+
+        document
+            .getElementById("doseSection")
+            .classList.remove("hidden");
+
+        document
+            .getElementById("timingSection")
+            .classList.add("hidden");
+
+        document
+            .getElementById("dropLocationSection")
+            .classList.remove("hidden");
+
+        document
+            .getElementById("doseLabel")
+            .textContent = "عدد النقط";
+
+        document
+            .getElementById("doseUnit")
+            .textContent = "نقطة";
+
+        document
+            .getElementById("doseNumber")
+            .value = 1;
+
+        selection.dose = null;
+
+        selection.frequency = "3 مرات";
+
+        currentFrequency = "3 مرات";
+
+        renderFrequencyOptions();
+
+        buildDoseOptions();
+
+        buildDurationOptions();
+
+        renderFloatBox();
+
+        return;
+    }
+
+
+    /* =====================================================
+       NORMAL TYPES
+    ===================================================== */
 
     document
         .getElementById("doseSection")
@@ -1395,176 +1710,65 @@ function clearAll() {
         .getElementById("timingSection")
         .classList.remove("hidden");
 
+    document
+        .getElementById("dropLocationSection")
+        .classList.add("hidden");
 
-    document.getElementById(
-        "doseLabel"
-    ).textContent = "الجرعة";
+    buildDoseOptions();
 
+    selection.dose =
+        getCurrentDoseText();
 
-    document.getElementById(
-        "doseUnit"
-    ).textContent = "اختار نوع الدواء";
+    if (type === "حبوب") {
 
+        document
+            .getElementById("doseNumber")
+            .value = 1;
 
-    document.getElementById(
-        "doseNumber"
-    ).value = "";
+        selection.dose = "1 حبة";
 
+        selection.frequency =
+            "3 مرات يوميًا";
 
-    document.getElementById(
-        "quickDose"
-    ).innerHTML =
-        '<div class="doseEmpty">' +
-        'اختار نوع الدواء لعرض الجرعات السريعة' +
-        '</div>';
+        currentFrequency =
+            "3 مرات يوميًا";
 
+    } else {
+
+        selection.dose = null;
+
+        selection.frequency = null;
+
+        currentFrequency = null;
+    }
+
+    renderFrequencyOptions();
 
     buildDurationOptions();
 
-
-    document.getElementById(
-        "productInput"
-    ).value = "";
-
-
-    document.getElementById(
-        "productNameDisplay"
-    ).innerHTML = "";
-
-
-    document.getElementById(
-        "defaultNote"
-    ).style.display = "none";
-
-
-    document.getElementById(
-        "addQrCheckbox"
-    ).checked = false;
-
-
-    document.getElementById(
-        "qrText"
-    ).value = "";
-
-
-    document.getElementById(
-        "qrText"
-    ).style.display = "none";
-
-
     renderFloatBox();
-
-
-    document.getElementById(
-        "productInput"
-    ).focus();
 }
 
 
 /* =========================================================
-   TYPE
+   TYPE EVENTS
 ========================================================= */
 
 document
-.querySelectorAll("#typeOptions button")
-.forEach(btn => {
+    .querySelectorAll("#typeOptions .typeBtn")
+    .forEach(btn => {
 
-    btn.onclick = () => {
+        btn.addEventListener("click", () => {
 
-        const alreadySelected =
-            btn.classList.contains(
-                "type-selected"
-            );
+            selectType(btn.dataset.value);
 
+        });
 
-        document
-        .querySelectorAll("#typeOptions button")
-        .forEach(b =>
-            b.classList.remove(
-                "type-selected"
-            )
-        );
-
-
-        if (alreadySelected) {
-
-            currentType = null;
-
-            selection.dose = null;
-
-            document
-                .getElementById("doseSection")
-                .classList.remove("hidden");
-
-            document
-                .getElementById("timingSection")
-                .classList.remove("hidden");
-
-            document.getElementById(
-                "doseNumber"
-            ).value = "";
-
-            document.getElementById(
-                "doseUnit"
-            ).textContent =
-                "اختار نوع الدواء";
-
-            document.getElementById(
-                "quickDose"
-            ).innerHTML =
-                '<div class="doseEmpty">' +
-                'اختار نوع الدواء لعرض الجرعات السريعة' +
-                '</div>';
-
-        } else {
-
-            currentType =
-                btn.dataset.value;
-
-            btn.classList.add(
-                "type-selected"
-            );
-
-
-            if (currentType === "دهان") {
-
-                document
-                    .getElementById("doseSection")
-                    .classList.add("hidden");
-
-                document
-                    .getElementById("timingSection")
-                    .classList.add("hidden");
-
-                selection.dose = "دهان";
-
-            } else {
-
-                document
-                    .getElementById("doseSection")
-                    .classList.remove("hidden");
-
-                document
-                    .getElementById("timingSection")
-                    .classList.remove("hidden");
-
-                selection.dose = null;
-
-                buildDoseOptions();
-            }
-
-        }
-
-
-        renderFloatBox();
-
-    };
-
-});
+    });
 
 
 /* =========================================================
-   DOSE UI
+   DOSE OPTIONS
 ========================================================= */
 
 function buildDoseOptions() {
@@ -1572,68 +1776,65 @@ function buildDoseOptions() {
     const config =
         doseConfig[currentType];
 
-    if (!config) return;
+    if (!config) {
+        return;
+    }
 
+    document
+        .getElementById("doseLabel")
+        .textContent =
+        currentType === "نقط"
+            ? "عدد النقط"
+            : `الجرعة (${config.unit})`;
 
-    document.getElementById(
-        "doseLabel"
-    ).textContent =
-        "الجرعة (" + config.unit + ")";
-
-
-    document.getElementById(
-        "doseUnit"
-    ).textContent =
-        config.unit;
-
+    document
+        .getElementById("doseUnit")
+        .textContent =
+        currentType === "نقط"
+            ? "نقطة"
+            : config.unit;
 
     const input =
-        document.getElementById(
-            "doseNumber"
-        );
+        document.getElementById("doseNumber");
 
-
-    input.step =
-        config.step;
-
-    input.min =
-        config.min;
-
-
-    input.value = "";
-
+    input.step = config.step;
+    input.min = config.min;
 
     const quick =
-        document.getElementById(
-            "quickDose"
-        );
+        document.getElementById("quickDose");
 
     quick.innerHTML = "";
-
 
     config.quick.forEach(value => {
 
         const btn =
-            document.createElement(
-                "button"
-            );
+            document.createElement("button");
 
         btn.type = "button";
 
         btn.textContent = value;
 
-        btn.onclick = () => {
+        btn.addEventListener("click", () => {
 
             input.value = value;
 
+            document
+                .querySelectorAll(
+                    "#quickDose button"
+                )
+                .forEach(b =>
+                    b.classList.remove("active")
+                );
+
+            btn.classList.add("active");
+
             updateDoseFromInput();
 
-        };
+        });
 
         quick.appendChild(btn);
 
     });
-
 }
 
 
@@ -1642,170 +1843,182 @@ function buildDoseOptions() {
 ========================================================= */
 
 document
-.getElementById("doseNumber")
-.addEventListener(
-    "input",
-    updateDoseFromInput
-);
+    .getElementById("doseNumber")
+    .addEventListener(
+        "input",
+        updateDoseFromInput
+    );
 
 
 function updateDoseFromInput() {
 
-    if (!currentType ||
-        currentType === "دهان") {
+    if (
+        !currentType ||
+        currentType === "دهان"
+    ) {
         return;
     }
 
+    const dose =
+        getCurrentDoseText();
 
-    const value =
-        document.getElementById(
-            "doseNumber"
-        ).value;
-
-
-    if (
-        value === "" ||
-        Number(value) <= 0
-    ) {
-
-        selection.dose = null;
-
-    } else {
-
-        const config =
-            doseConfig[currentType];
-
-        selection.dose =
-            value + " " + config.unit;
-
-    }
-
+    selection.dose = dose;
 
     renderFloatBox();
 }
 
 
+/* =========================================================
+   +/- DOSE
+========================================================= */
+
 function changeDose(direction) {
 
-    if (!currentType ||
-        currentType === "دهان") {
-
+    if (
+        !currentType ||
+        currentType === "دهان"
+    ) {
         return;
     }
-
 
     const config =
         doseConfig[currentType];
 
-
     const input =
-        document.getElementById(
-            "doseNumber"
-        );
-
+        document.getElementById("doseNumber");
 
     let value =
         parseFloat(input.value);
-
 
     if (isNaN(value)) {
 
         value =
             direction > 0
-                ? config.step
-                : 0;
+                ? config.min
+                : config.min;
 
     } else {
 
         value +=
             direction * config.step;
-
     }
-
 
     if (value < config.min) {
-
-        value =
-            config.min;
-
+        value = config.min;
     }
 
-
-    /*
-       Fix floating point values
-       مثل 0.30000000004
-    */
-
     value =
-        Math.round(
-            value * 100
-        ) / 100;
+        Math.round(value * 100) / 100;
 
-
-    input.value =
-        value === 0
-            ? ""
-            : value;
-
+    input.value = value;
 
     updateDoseFromInput();
 }
 
 
 /* =========================================================
-   FREQUENCY
+   DROP LOCATIONS
 ========================================================= */
 
 document
-.querySelectorAll("#frequencyOptions button")
-.forEach(btn => {
+    .querySelectorAll(
+        "#dropLocationOptions .locationBtn"
+    )
+    .forEach(btn => {
 
-    btn.onclick = () => {
+        btn.addEventListener("click", () => {
 
-        const alreadySelected =
-            btn.classList.contains(
-                "selected"
-            );
+            document
+                .querySelectorAll(
+                    "#dropLocationOptions .locationBtn"
+                )
+                .forEach(b =>
+                    b.classList.remove("selected")
+                );
 
+            btn.classList.add("selected");
 
-        document
-        .querySelectorAll(
-            "#frequencyOptions button"
-        )
-        .forEach(b =>
-            b.classList.remove(
-                "selected"
-            )
-        );
-
-
-        if (alreadySelected) {
-
-            currentFrequency = null;
-
-            selection.frequency = null;
-
-        } else {
-
-            currentFrequency =
+            selection.dropLocation =
                 btn.dataset.value;
 
-            btn.classList.add(
-                "selected"
-            );
+            updateDoseFromInput();
 
-            selection.frequency =
-                currentFrequency;
+        });
+
+    });
+
+
+/* =========================================================
+   FREQUENCY
+========================================================= */
+
+function renderFrequencyOptions() {
+
+    const container =
+        document.getElementById(
+            "frequencyOptions"
+        );
+
+    container.innerHTML = "";
+
+    const values =
+        currentType === "نقط"
+            ? dropFrequencies
+            : normalFrequencies;
+
+    values.forEach(value => {
+
+        const btn =
+            document.createElement("button");
+
+        btn.type = "button";
+
+        btn.className = "optionBtn";
+
+        btn.dataset.value = value;
+
+        btn.textContent = value;
+
+        if (value === currentFrequency) {
+            btn.classList.add("selected");
         }
 
+        btn.addEventListener("click", () => {
 
-        buildDurationOptions();
+            const wasSelected =
+                btn.classList.contains("selected");
 
-        renderFloatBox();
+            container
+                .querySelectorAll("button")
+                .forEach(b =>
+                    b.classList.remove("selected")
+                );
 
-    };
+            if (wasSelected) {
 
-});
+                currentFrequency = null;
+
+                selection.frequency = null;
+
+            } else {
+
+                currentFrequency = value;
+
+                selection.frequency = value;
+
+                btn.classList.add("selected");
+            }
+
+            buildDurationOptions();
+
+            renderFloatBox();
+
+        });
+
+        container.appendChild(btn);
+
+    });
+}
 
 
 /* =========================================================
@@ -1813,49 +2026,41 @@ document
 ========================================================= */
 
 document
-.querySelectorAll("#timingOptions button")
-.forEach(btn => {
+    .querySelectorAll(
+        "#timingOptions .optionBtn"
+    )
+    .forEach(btn => {
 
-    btn.onclick = () => {
+        btn.addEventListener("click", () => {
 
-        const alreadySelected =
-            btn.classList.contains(
-                "selected"
-            );
+            const wasSelected =
+                btn.classList.contains("selected");
 
+            document
+                .querySelectorAll(
+                    "#timingOptions .optionBtn"
+                )
+                .forEach(b =>
+                    b.classList.remove("selected")
+                );
 
-        document
-        .querySelectorAll(
-            "#timingOptions button"
-        )
-        .forEach(b =>
-            b.classList.remove(
-                "selected"
-            )
-        );
+            if (wasSelected) {
 
+                selection.timing = null;
 
-        if (alreadySelected) {
+            } else {
 
-            selection.timing = null;
+                btn.classList.add("selected");
 
-        } else {
+                selection.timing =
+                    btn.dataset.value;
+            }
 
-            btn.classList.add(
-                "selected"
-            );
+            renderFloatBox();
 
-            selection.timing =
-                btn.dataset.value;
+        });
 
-        }
-
-
-        renderFloatBox();
-
-    };
-
-});
+    });
 
 
 /* =========================================================
@@ -1869,105 +2074,69 @@ function buildDurationOptions() {
             "durationOptions"
         );
 
-
     container.innerHTML = "";
 
+    const values =
+        currentFrequency === "كل أسبوع"
+            ? [
+                "أسبوع",
+                "أسبوعين",
+                "3 أسابيع",
+                "شهر",
+                "شهرين",
+                "3 شهور"
+            ]
+            : [
+                "3 أيام",
+                "4 أيام",
+                "5 أيام",
+                "أسبوع",
+                "شهر",
+                "شهرين",
+                "3 شهور"
+            ];
 
-    let values = [];
-
-
-    if (
-        currentFrequency ===
-        "كل أسبوع"
-    ) {
-
-        values = [
-            "أسبوع",
-            "أسبوعين",
-            "3 أسابيع",
-            "شهر",
-            "شهرين",
-            "3 شهور"
-        ];
-
-    } else {
-
-        values = [
-            "3 أيام",
-            "4 أيام",
-            "5 أيام",
-            "أسبوع",
-            "شهر",
-            "شهرين",
-            "3 شهور"
-        ];
-
-    }
-
-
-    values.forEach(v => {
+    values.forEach(value => {
 
         const btn =
-            document.createElement(
-                "button"
-            );
+            document.createElement("button");
 
         btn.type = "button";
 
-        btn.className =
-            "optionBtn";
+        btn.className = "optionBtn";
 
-        btn.textContent = v;
+        btn.textContent = value;
 
+        btn.addEventListener("click", () => {
 
-        btn.onclick = () => {
-
-            const alreadySelected =
-                btn.classList.contains(
-                    "selected"
-                );
-
+            const wasSelected =
+                btn.classList.contains("selected");
 
             container
-                .querySelectorAll(
-                    "button"
-                )
+                .querySelectorAll("button")
                 .forEach(b =>
-                    b.classList.remove(
-                        "selected"
-                    )
+                    b.classList.remove("selected")
                 );
 
+            if (wasSelected) {
 
-            if (alreadySelected) {
-
-                selection.duration =
-                    null;
+                selection.duration = null;
 
             } else {
 
-                btn.classList.add(
-                    "selected"
-                );
+                btn.classList.add("selected");
 
-                selection.duration =
-                    v;
-
+                selection.duration = value;
             }
-
 
             renderFloatBox();
 
-        };
-
+        });
 
         container.appendChild(btn);
 
     });
-
 }
-
-buildDurationOptions();
 
 
 /* =========================================================
@@ -1983,16 +2152,13 @@ function parseGs1(raw) {
         return null;
     }
 
-
     const gtin14 =
         raw.substring(2, 16);
-
 
     let expiry = null;
 
     const rest =
         raw.substring(16);
-
 
     if (
         rest.startsWith("17") &&
@@ -2002,13 +2168,11 @@ function parseGs1(raw) {
         const dateStr =
             rest.substring(2, 8);
 
-
         const yy =
             parseInt(
                 dateStr.substring(0, 2),
                 10
             );
-
 
         const mm =
             parseInt(
@@ -2016,17 +2180,14 @@ function parseGs1(raw) {
                 10
             );
 
-
         let dd =
             parseInt(
                 dateStr.substring(4, 6),
                 10
             );
 
-
         const year =
             2000 + yy;
-
 
         if (dd === 0) {
 
@@ -2036,9 +2197,7 @@ function parseGs1(raw) {
                     mm,
                     0
                 ).getDate();
-
         }
-
 
         expiry =
             new Date(
@@ -2046,15 +2205,12 @@ function parseGs1(raw) {
                 mm - 1,
                 dd
             );
-
     }
-
 
     return {
         gtin14,
         expiry
     };
-
 }
 
 
@@ -2066,42 +2222,29 @@ async function lookupProductByCode(code) {
 
     let doc =
         await db
-        .collection("products")
-        .doc(code)
-        .get();
-
+            .collection("products")
+            .doc(code)
+            .get();
 
     if (doc.exists) {
-
         return doc;
-
     }
-
 
     if (code.startsWith("0")) {
 
         const trimmed =
-            code.replace(
-                /^0+/,
-                ""
-            );
-
+            code.replace(/^0+/, "");
 
         doc =
             await db
-            .collection("products")
-            .doc(trimmed)
-            .get();
-
+                .collection("products")
+                .doc(trimmed)
+                .get();
 
         if (doc.exists) {
-
             return doc;
-
         }
-
     }
-
 
     return null;
 }
@@ -2111,224 +2254,224 @@ async function lookupProductByCode(code) {
    PRODUCT INPUT
 ========================================================= */
 
-document
-.getElementById("productInput")
-.addEventListener(
-    "change",
-    async function() {
+async function handleProductInput() {
 
-        const raw =
-            this.value.trim();
+    const input =
+        document.getElementById("productInput");
 
+    const raw =
+        input.value.trim();
 
-        const nameDisplay =
-            document.getElementById(
-                "productNameDisplay"
-            );
+    const nameDisplay =
+        document.getElementById(
+            "productNameDisplay"
+        );
 
+    const defaultNote =
+        document.getElementById(
+            "defaultNote"
+        );
 
-        const defaultNote =
-            document.getElementById(
-                "defaultNote"
-            );
+    defaultNote.style.display = "none";
 
+    defaultDoseText = "";
 
-        defaultNote.style.display =
-            "none";
+    if (!raw) {
+        return;
+    }
 
+    let searchCode = raw;
 
-        if (!raw) return;
-
-
-        let searchCode = raw;
-
-        let expiryWarningHtml = "";
+    let expiryWarningHtml = "";
 
 
-        if (
-            /^01\d{14,}/.test(raw)
-        ) {
+    /* GS1 */
 
-            const parsed =
-                parseGs1(raw);
+    if (/^01\d{14,}/.test(raw)) {
 
+        const parsed =
+            parseGs1(raw);
 
-            if (parsed) {
+        if (parsed) {
 
-                searchCode =
-                    parsed.gtin14;
+            searchCode =
+                parsed.gtin14;
 
+            if (parsed.expiry) {
 
-                if (parsed.expiry) {
+                const today =
+                    new Date();
 
-                    const today =
-                        new Date();
+                const oneMonthLater =
+                    new Date();
 
+                oneMonthLater.setMonth(
+                    today.getMonth() + 1
+                );
 
-                    const oneMonthLater =
-                        new Date();
-
-
-                    oneMonthLater.setMonth(
-                        today.getMonth() + 1
+                const dateText =
+                    parsed.expiry.toLocaleDateString(
+                        "ar-EG"
                     );
 
+                expiryWarningHtml =
+                    parsed.expiry <= oneMonthLater
 
-                    const dateText =
-                        parsed.expiry
-                        .toLocaleDateString(
-                            "ar-EG"
-                        );
+                        ? `
+                            <div style="
+                                color:#dc2626;
+                                font-weight:800;
+                                margin-top:5px;
+                            ">
+                                ⚠ الصلاحية تنتهي قريبًا
+                                (${escapeHtml(dateText)})
+                            </div>
+                          `
 
-
-                    expiryWarningHtml =
-                        parsed.expiry <=
-                        oneMonthLater
-
-                            ? `
-                                <div style="
-                                    color:#dc2626;
-                                    font-weight:800;
-                                    margin-top:7px;
-                                ">
-                                    ⚠ تنبيه: الصلاحية تنتهي قريبًا
-                                    (${dateText})
-                                </div>
-                              `
-
-                            : `
-                                <div style="
-                                    color:#16a34a;
-                                    margin-top:7px;
-                                ">
-                                    ✓ الصلاحية سليمة
-                                    (${dateText})
-                                </div>
-                              `;
-
-                }
-
+                        : `
+                            <div style="
+                                color:#16a34a;
+                                margin-top:5px;
+                            ">
+                                ✓ الصلاحية سليمة
+                                (${escapeHtml(dateText)})
+                            </div>
+                          `;
             }
-
         }
+    }
 
 
-        let name =
-            searchCode;
+    let name = searchCode;
 
 
-        if (
-            /^[0-9]{4,}$/.test(
-                searchCode
-            )
-        ) {
+    /* BARCODE */
 
-            try {
+    if (/^[0-9]{4,}$/.test(searchCode)) {
 
-                const doc =
-                    await lookupProductByCode(
-                        searchCode
-                    );
+        try {
 
+            const doc =
+                await lookupProductByCode(
+                    searchCode
+                );
 
-                if (
-                    doc &&
-                    doc.exists
-                ) {
+            if (doc && doc.exists) {
 
-                    currentBarcode =
-                        doc.id;
+                currentBarcode =
+                    doc.id;
 
+                const data =
+                    doc.data();
 
-                    const data =
-                        doc.data();
+                name =
+                    data.ar ||
+                    data.en ||
+                    currentBarcode;
 
-
-                    name =
-                        data.ar ||
-                        data.en ||
-                        currentBarcode;
-
-
-                    nameDisplay.innerHTML =
-                        '<div class="productName">' +
-                        "الصنف: " +
-                        name +
-                        "</div>" +
-                        expiryWarningHtml;
+                nameDisplay.innerHTML =
+                    `
+                    <div class="productName">
+                        الصنف: ${escapeHtml(name)}
+                    </div>
+                    ${expiryWarningHtml}
+                    `;
 
 
-                    const defaultDoc =
-                        await db
-                        .collection(
-                            "defaultDoses"
-                        )
-                        .doc(
-                            currentBarcode
-                        )
+                /* DEFAULT DOSE */
+
+                const defaultDoc =
+                    await db
+                        .collection("defaultDoses")
+                        .doc(currentBarcode)
                         .get();
 
+                if (defaultDoc.exists) {
 
-                    if (
-                        defaultDoc.exists
-                    ) {
+                    defaultDoseText =
+                        defaultDoc.data().text || "";
 
-                        window._defaultDoseText =
-                            defaultDoc
-                            .data()
-                            .text || "";
-
-
+                    if (defaultDoseText) {
                         defaultNote.style.display =
                             "flex";
-
                     }
-
-                } else {
-
-                    currentBarcode =
-                        searchCode;
-
-
-                    nameDisplay.innerHTML =
-                        '<div style="color:#b45309;font-weight:700;">' +
-                        "الصنف غير مسجل في القاعدة، اكتب الاسم يدويًا" +
-                        "</div>" +
-                        expiryWarningHtml;
-
                 }
 
-            } catch (e) {
+            } else {
 
-                nameDisplay.textContent =
-                    "حصل خطأ في البحث، حاول تاني";
+                currentBarcode =
+                    searchCode;
 
+                nameDisplay.innerHTML =
+                    `
+                    <div style="
+                        color:#b45309;
+                        font-weight:800;
+                    ">
+                        الصنف غير مسجل في القاعدة،
+                        اكتب الاسم يدويًا
+                    </div>
+
+                    ${expiryWarningHtml}
+                    `;
             }
 
-        } else {
+        } catch (error) {
 
-            currentBarcode = null;
+            console.error(error);
 
-            name = raw;
-
-
-            nameDisplay.innerHTML =
-                '<div class="productName">' +
-                "الصنف: " +
-                raw +
-                "</div>";
-
+            nameDisplay.textContent =
+                "حصل خطأ في البحث، حاول تاني";
         }
 
+    } else {
 
-        selection.name =
-            name;
+        /* MANUAL NAME */
 
+        currentBarcode = null;
 
-        renderFloatBox();
+        name = raw;
 
+        nameDisplay.innerHTML =
+            `
+            <div class="productName">
+                الصنف: ${escapeHtml(raw)}
+            </div>
+            `;
     }
-);
+
+    selection.name = name;
+
+    renderFloatBox();
+}
+
+
+/* =========================================================
+   PRODUCT EVENTS
+========================================================= */
+
+document
+    .getElementById("productInput")
+    .addEventListener(
+        "change",
+        handleProductInput
+    );
+
+document
+    .getElementById("productInput")
+    .addEventListener(
+        "keydown",
+        event => {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                handleProductInput();
+            }
+
+        }
+    );
 
 
 /* =========================================================
@@ -2337,11 +2480,15 @@ document
 
 function useDefaultDose() {
 
-    document.getElementById(
-        "floatBox"
-    ).value =
-        window._defaultDoseText || "";
+    if (!defaultDoseText) {
+        return;
+    }
 
+    document
+        .getElementById("floatBox")
+        .value = defaultDoseText;
+
+    updateBuilderStatus();
 }
 
 
@@ -2356,12 +2503,11 @@ async function saveAsDefault() {
         return;
     }
 
-
     const text =
-        document.getElementById(
-            "floatBox"
-        ).value.trim();
-
+        document
+            .getElementById("floatBox")
+            .value
+            .trim();
 
     if (!text) {
 
@@ -2372,23 +2518,29 @@ async function saveAsDefault() {
         return;
     }
 
+    try {
 
-    await db
-        .collection(
-            "defaultDoses"
-        )
-        .doc(
-            currentBarcode
-        )
-        .set({
-            text
-        });
+        await db
+            .collection("defaultDoses")
+            .doc(currentBarcode)
+            .set({
+                text
+            });
 
+        defaultDoseText = text;
 
-    alert(
-        "تم حفظ الجرعة كافتراضية لهذا الصنف."
-    );
+        alert(
+            "تم حفظ الجرعة كافتراضية لهذا الصنف."
+        );
 
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "حصل خطأ أثناء حفظ الجرعة الافتراضية."
+        );
+    }
 }
 
 
@@ -2399,18 +2551,14 @@ async function saveAsDefault() {
 function toggleQrInput() {
 
     const checked =
-        document.getElementById(
-            "addQrCheckbox"
-        ).checked;
+        document
+            .getElementById("addQrCheckbox")
+            .checked;
 
-
-    document.getElementById(
-        "qrText"
-    ).style.display =
-        checked
-            ? "block"
-            : "none";
-
+    document
+        .getElementById("qrText")
+        .style.display =
+        checked ? "block" : "none";
 }
 
 
@@ -2421,10 +2569,10 @@ function toggleQrInput() {
 function addToList() {
 
     const text =
-        document.getElementById(
-            "floatBox"
-        ).value.trim();
-
+        document
+            .getElementById("floatBox")
+            .value
+            .trim();
 
     if (!text) {
 
@@ -2435,22 +2583,22 @@ function addToList() {
         return;
     }
 
-
     const addQr =
-        document.getElementById(
-            "addQrCheckbox"
-        ).checked;
-
+        document
+            .getElementById("addQrCheckbox")
+            .checked;
 
     const qrText =
-        document.getElementById(
-            "qrText"
-        ).value.trim();
-
+        document
+            .getElementById("qrText")
+            .value
+            .trim();
 
     entries.push({
 
-        id: Date.now(),
+        id:
+            Date.now() +
+            Math.random(),
 
         text,
 
@@ -2461,16 +2609,14 @@ function addToList() {
 
     });
 
-
     renderList();
 
     clearAll();
-
 }
 
 
 /* =========================================================
-   RENDER LIST
+   RENDER QUEUE
 ========================================================= */
 
 function renderList() {
@@ -2480,18 +2626,31 @@ function renderList() {
             "listContainer"
         );
 
-
     container.innerHTML = "";
 
 
     if (!entries.length) {
 
         container.innerHTML = `
-
             <div class="emptyQueue">
 
                 <div class="emptyQueueIcon">
-                    🏷️
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+
+                        <path d="M5 4h14v16H5z"/>
+                        <path d="M8 8h8"/>
+                        <path d="M8 12h8"/>
+                        <path d="M8 16h5"/>
+
+                    </svg>
+
                 </div>
 
                 <div class="emptyQueueTitle">
@@ -2504,80 +2663,79 @@ function renderList() {
                 </div>
 
             </div>
-
         `;
 
+    } else {
+
+        entries.forEach(entry => {
+
+            const div =
+                document.createElement("div");
+
+            div.className =
+                "labelPreview";
+
+            const now =
+                new Date();
+
+            const dateText =
+                now.toLocaleDateString(
+                    "ar-EG"
+                );
+
+            const timeText =
+                now.toLocaleTimeString(
+                    "ar-EG",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                );
+
+            div.innerHTML = `
+
+                <button
+                    class="removeBtn"
+                    onclick="removeEntry(${entry.id})"
+                    title="حذف">
+                    ×
+                </button>
+
+                <div class="previewDate">
+                    ${escapeHtml(dateText)}
+                    &nbsp;&nbsp;
+                    ${escapeHtml(timeText)}
+                </div>
+
+                <div class="previewContent">
+
+                    <div class="previewText">
+                        ${escapeHtml(entry.text)}
+                    </div>
+
+                </div>
+
+                ${
+                    entry.qr
+                        ? `
+                            <div class="previewQr">
+                                ▦ QR
+                            </div>
+                          `
+                        : ""
+                }
+
+            `;
+
+            container.appendChild(div);
+
+        });
     }
 
-
-    entries.forEach(e => {
-
-        const div =
-            document.createElement(
-                "div"
-            );
-
-
-        div.className =
-            "labelPreview";
-
-
-        div.innerHTML = `
-
-            <button
-                class="removeBtn"
-                onclick="removeEntry(${e.id})"
-                title="حذف"
-            >
-                ×
-            </button>
-
-            <div class="labelPreviewContent">
-                ${escapeHtml(e.text)}
-            </div>
-
-            ${
-                e.qr
-                    ? `
-                        <div class="labelPreviewQr">
-                            ▦ + QR
-                        </div>
-                      `
-                    : ""
-            }
-
-        `;
-
-
-        container.appendChild(div);
-
-    });
-
-
-    document.getElementById(
-        "countDisplay"
-    ).textContent =
+    document
+        .getElementById("countDisplay")
+        .textContent =
         entries.length;
-
-}
-
-
-/* =========================================================
-   ESCAPE HTML
-========================================================= */
-
-function escapeHtml(text) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-    div.textContent =
-        text;
-
-    return div.innerHTML;
-
 }
 
 
@@ -2589,12 +2747,10 @@ function removeEntry(id) {
 
     entries =
         entries.filter(
-            e => e.id !== id
+            entry => entry.id !== id
         );
 
-
     renderList();
-
 }
 
 
@@ -2605,19 +2761,13 @@ function removeEntry(id) {
 function buildQrImg(text) {
 
     const qr =
-        qrcode(
-            0,
-            "L"
-        );
-
+        qrcode(0, "L");
 
     qr.addData(text);
 
     qr.make();
 
-
     return qr.createImgTag(4);
-
 }
 
 
@@ -2636,26 +2786,29 @@ function printAll() {
         return;
     }
 
-
     const printWindow =
         window.open(
             "",
             "_blank"
         );
 
+    if (!printWindow) {
 
-    let pagesHtml = "";
+        alert(
+            "المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع."
+        );
+
+        return;
+    }
 
 
     const now =
         new Date();
 
-
     const dateText =
         now.toLocaleDateString(
             "ar-EG"
         );
-
 
     const timeText =
         now.toLocaleTimeString(
@@ -2667,22 +2820,18 @@ function printAll() {
         );
 
 
+    let pagesHtml = "";
+
+
     entries.forEach(
-        (e, index) => {
-
-            const isLast =
-                index ===
-                entries.length - 1;
-
+        (entry, index) => {
 
             const qrHtml =
-                e.qr
+                entry.qr
 
                     ? `
-                        <div style="
-                            margin-top:6px;
-                        ">
-                            ${buildQrImg(e.qr)}
+                        <div class="printQr">
+                            ${buildQrImg(entry.qr)}
                         </div>
                       `
 
@@ -2691,51 +2840,59 @@ function printAll() {
 
             pagesHtml += `
 
-                <div style="
-                    width:10cm;
-                    height:5cm;
-                    box-sizing:border-box;
-                    padding:6px 10px;
-                    display:flex;
-                    flex-direction:column;
-                    align-items:center;
-                    justify-content:center;
-                    text-align:center;
-                    font-size:13px;
-                    ${
-                        isLast
-                            ? ""
-                            : "page-break-after: always;"
-                    }
-                ">
+                <div class="printLabel">
 
-                    <div style="
-                        white-space:pre-wrap;
-                    ">
-                        ${escapeHtml(e.text)}
+                    <!-- DATE / TIME AT TOP -->
+
+                    <div class="printDate">
+
+                        <span>
+                            ${escapeHtml(dateText)}
+                        </span>
+
+                        <span>
+                            ${escapeHtml(timeText)}
+                        </span>
+
                     </div>
+
+                    <div class="separator"></div>
+
+
+                    <!-- LABEL CONTENT -->
+
+                    <div class="printContent">
+
+                        ${escapeHtml(entry.text)}
+
+                    </div>
+
 
                     ${qrHtml}
 
-                    <div style="
-                        font-size:10px;
-                        color:#666;
-                        margin-top:4px;
-                    ">
-                        ${dateText} - ${timeText}
-                    </div>
-
                 </div>
 
-            `;
+                ${
+                    index <
+                    entries.length - 1
 
+                        ? `<div class="pageBreak"></div>`
+
+                        : ""
+                }
+
+            `;
         }
     );
 
 
     printWindow.document.write(`
 
-        <html>
+        <!DOCTYPE html>
+
+        <html
+            lang="ar"
+            dir="rtl">
 
         <head>
 
@@ -2748,12 +2905,140 @@ function printAll() {
                     margin: 0;
                 }
 
+                * {
+                    box-sizing: border-box;
+                }
+
+                html,
                 body {
                     margin: 0;
+                    padding: 0;
+                    width: 100%;
                     font-family:
                         Tahoma,
                         Arial,
                         sans-serif;
+                }
+
+                body {
+                    direction: rtl;
+                }
+
+                .printLabel {
+
+                    width: 10cm;
+                    height: 5cm;
+
+                    padding:
+                        5mm
+                        6mm
+                        4mm;
+
+                    display: flex;
+
+                    flex-direction:
+                        column;
+
+                    align-items:
+                        stretch;
+
+                    text-align:
+                        center;
+
+                    overflow: hidden;
+
+                    page-break-inside:
+                        avoid;
+                }
+
+                .printDate {
+
+                    height: 7mm;
+
+                    display: flex;
+
+                    justify-content:
+                        space-between;
+
+                    align-items:
+                        center;
+
+                    direction: rtl;
+
+                    color: #555;
+
+                    font-size: 8px;
+
+                    font-weight: 700;
+                }
+
+                .separator {
+
+                    width: 100%;
+
+                    height: 1px;
+
+                    background:
+                        #cbd5e1;
+                }
+
+                .printContent {
+
+                    flex: 1;
+
+                    display: flex;
+
+                    align-items:
+                        center;
+
+                    justify-content:
+                        center;
+
+                    white-space:
+                        pre-wrap;
+
+                    overflow: hidden;
+
+                    font-size:
+                        14px;
+
+                    font-weight:
+                        700;
+
+                    line-height:
+                        1.65;
+
+                    padding:
+                        2mm;
+                }
+
+                .printQr {
+
+                    height:
+                        15mm;
+
+                    display: flex;
+
+                    justify-content:
+                        center;
+
+                    align-items:
+                        center;
+                }
+
+                .printQr img {
+
+                    width:
+                        14mm !important;
+
+                    height:
+                        14mm !important;
+                }
+
+                .pageBreak {
+
+                    page-break-after:
+                        always;
                 }
 
             </style>
@@ -2775,42 +3060,249 @@ function printAll() {
 
 
     printWindow.onload =
-        function() {
+        function () {
 
             printWindow.focus();
 
             printWindow.print();
-
         };
 
 
     printWindow.onafterprint =
-        function() {
+        function () {
 
             printWindow.close();
-
         };
 
 
     setTimeout(
-        function() {
+        function () {
 
             if (
                 !printWindow.closed
             ) {
+
                 printWindow.close();
             }
 
         },
-        5000
+        10000
     );
-
 }
 
 
 /* =========================================================
-   INITIAL RENDER
+   RESET FORM
 ========================================================= */
+
+function clearAll() {
+
+    currentBarcode = null;
+
+    defaultDoseText = "";
+
+    currentType = "حبوب";
+
+    currentFrequency =
+        "3 مرات يوميًا";
+
+
+    selection = {
+
+        name: null,
+
+        dose: "1 حبة",
+
+        frequency:
+            "3 مرات يوميًا",
+
+        timing: null,
+
+        duration: null,
+
+        dropLocation: null
+
+    };
+
+
+    /* PRODUCT */
+
+    document
+        .getElementById("productInput")
+        .value = "";
+
+    document
+        .getElementById("productNameDisplay")
+        .innerHTML = "";
+
+    document
+        .getElementById("defaultNote")
+        .style.display = "none";
+
+
+    /* QR */
+
+    document
+        .getElementById("addQrCheckbox")
+        .checked = false;
+
+    document
+        .getElementById("qrText")
+        .value = "";
+
+    document
+        .getElementById("qrText")
+        .style.display = "none";
+
+
+    /* TYPE */
+
+    document
+        .querySelectorAll(
+            "#typeOptions .typeBtn"
+        )
+        .forEach(btn => {
+
+            btn.classList.toggle(
+                "selected",
+                btn.dataset.value ===
+                "حبوب"
+            );
+
+        });
+
+
+    /* DOSE */
+
+    document
+        .getElementById("doseSection")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("timingSection")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("dropLocationSection")
+        .classList.add("hidden");
+
+    document
+        .getElementById("doseNumber")
+        .value = 1;
+
+    document
+        .getElementById("doseLabel")
+        .textContent = "الجرعة (حبة)";
+
+    document
+        .getElementById("doseUnit")
+        .textContent = "حبة";
+
+
+    /* TIMING */
+
+    document
+        .querySelectorAll(
+            "#timingOptions .optionBtn"
+        )
+        .forEach(btn =>
+            btn.classList.remove("selected")
+        );
+
+
+    /* LOCATION */
+
+    document
+        .querySelectorAll(
+            "#dropLocationOptions .locationBtn"
+        )
+        .forEach(btn =>
+            btn.classList.remove("selected")
+        );
+
+
+    /* FREQUENCY */
+
+    renderFrequencyOptions();
+
+    /* DURATION */
+
+    buildDurationOptions();
+
+    /* DOSE */
+
+    buildDoseOptions();
+
+
+    /* SELECT DEFAULT QUICK DOSE */
+
+    document
+        .querySelectorAll(
+            "#quickDose button"
+        )
+        .forEach(btn => {
+
+            if (
+                btn.textContent === "1"
+            ) {
+                btn.classList.add("active");
+            }
+
+        });
+
+
+    renderFloatBox();
+
+
+    setTimeout(() => {
+
+        document
+            .getElementById("productInput")
+            .focus();
+
+    }, 50);
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+selectType("حبوب");
+
+document
+    .getElementById("doseNumber")
+    .value = 1;
+
+selection.dose = "1 حبة";
+
+currentFrequency =
+    "3 مرات يوميًا";
+
+selection.frequency =
+    "3 مرات يوميًا";
+
+renderFrequencyOptions();
+
+buildDurationOptions();
+
+buildDoseOptions();
+
+document
+    .querySelectorAll(
+        "#quickDose button"
+    )
+    .forEach(btn => {
+
+        if (
+            btn.textContent === "1"
+        ) {
+            btn.classList.add("active");
+        }
+
+    });
+
+renderFloatBox();
 
 renderList();
 
