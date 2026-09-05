@@ -199,25 +199,36 @@ function clearAll() {
   currentFrequency = null;
   currentBarcode = null;
 
-  document.querySelectorAll("#typeOptions button, #frequencyOptions button, #timingOptions button, #durationOptions button")
-    .forEach(b => b.classList.remove("selected", "type-selected"));
+  document.querySelectorAll("#typeOptions button").forEach(btn => {
+  btn.onclick = () => {
+    const alreadySelected = btn.classList.contains("type-selected");
+    document.querySelectorAll("#typeOptions button").forEach(b => b.classList.remove("type-selected"));
 
-  document.getElementById("doseSection").classList.remove("hidden");
-  document.getElementById("timingSection").classList.remove("hidden");
-  document.getElementById("doseOptions").innerHTML = "";
-  document.getElementById("doseLabel").textContent = "الجرعة";
-  buildDurationOptions();
+    if (alreadySelected) {
+      currentType = null;
+      selection.dose = null;
+      document.getElementById("doseSection").classList.remove("hidden");
+      document.getElementById("timingSection").classList.remove("hidden");
+      document.getElementById("doseOptions").innerHTML = "";
+      document.getElementById("doseLabel").textContent = "الجرعة";
+    } else {
+      currentType = btn.dataset.value;
+      btn.classList.add("type-selected");
 
-  document.getElementById("productInput").value = "";
-  document.getElementById("productNameDisplay").innerHTML = "";
-  document.getElementById("defaultNote").style.display = "none";
-
-  document.getElementById("addQrCheckbox").checked = false;
-  document.getElementById("qrText").value = "";
-  document.getElementById("qrText").style.display = "none";
-
-  renderFloatBox();
-}
+      if (currentType === "دهان") {
+        document.getElementById("doseSection").classList.add("hidden");
+        document.getElementById("timingSection").classList.add("hidden");
+        selection.dose = "دهان";
+      } else {
+        document.getElementById("doseSection").classList.remove("hidden");
+        document.getElementById("timingSection").classList.remove("hidden");
+        selection.dose = null;
+        buildDoseOptions();
+      }
+    }
+    renderFloatBox();
+  };
+});
 
 // ---------- نوع الدواء ----------
 document.querySelectorAll("#typeOptions button").forEach(btn => {
@@ -267,8 +278,15 @@ function buildDoseOptions() {
     btn.textContent = v;
     btn.onclick = () => {
       document.querySelectorAll("#doseOptions button").forEach(b => b.classList.remove("selected"));
-      btn.classList.add("selected");
-      selection.dose = v + " " + unit;
+          btn.onclick = () => {
+      const alreadySelected = btn.classList.contains("selected");
+      document.querySelectorAll("#doseOptions button").forEach(b => b.classList.remove("selected"));
+      if (alreadySelected) {
+        selection.dose = null;
+      } else {
+        btn.classList.add("selected");
+        selection.dose = v + " " + unit;
+      }
       renderFloatBox();
     };
     container.appendChild(btn);
@@ -278,10 +296,17 @@ function buildDoseOptions() {
 // ---------- عدد المرات ----------
 document.querySelectorAll("#frequencyOptions button").forEach(btn => {
   btn.onclick = () => {
-    currentFrequency = btn.dataset.value;
+    const alreadySelected = btn.classList.contains("selected");
     document.querySelectorAll("#frequencyOptions button").forEach(b => b.classList.remove("selected"));
-    btn.classList.add("selected");
-    selection.frequency = currentFrequency;
+
+    if (alreadySelected) {
+      currentFrequency = null;
+      selection.frequency = null;
+    } else {
+      currentFrequency = btn.dataset.value;
+      btn.classList.add("selected");
+      selection.frequency = currentFrequency;
+    }
     buildDurationOptions();
     renderFloatBox();
   };
@@ -290,9 +315,15 @@ document.querySelectorAll("#frequencyOptions button").forEach(btn => {
 // ---------- التوقيت ----------
 document.querySelectorAll("#timingOptions button").forEach(btn => {
   btn.onclick = () => {
+    const alreadySelected = btn.classList.contains("selected");
     document.querySelectorAll("#timingOptions button").forEach(b => b.classList.remove("selected"));
-    btn.classList.add("selected");
-    selection.timing = btn.dataset.value;
+
+    if (alreadySelected) {
+      selection.timing = null;
+    } else {
+      btn.classList.add("selected");
+      selection.timing = btn.dataset.value;
+    }
     renderFloatBox();
   };
 });
@@ -312,10 +343,15 @@ function buildDurationOptions() {
   values.forEach(v => {
     const btn = document.createElement("button");
     btn.textContent = v;
-    btn.onclick = () => {
+       btn.onclick = () => {
+      const alreadySelected = btn.classList.contains("selected");
       document.querySelectorAll("#durationOptions button").forEach(b => b.classList.remove("selected"));
-      btn.classList.add("selected");
-      selection.duration = v;
+      if (alreadySelected) {
+        selection.duration = null;
+      } else {
+        btn.classList.add("selected");
+        selection.duration = v;
+      }
       renderFloatBox();
     };
     container.appendChild(btn);
