@@ -33,8 +33,14 @@
   .optionsGrid button { padding:10px 16px; border:1px solid #2b7de9; border-radius:20px; background:#fff; color:#2b7de9; font-size:14px; cursor:pointer; }
   .optionsGrid button.selected { background:#2b7de9; color:#fff; }
   .optionsGrid button.type-selected { background:#f39c12; border-color:#f39c12; color:#fff; }
+   .doseScroll {
+    display:flex; flex-wrap:nowrap; gap:8px;
+    overflow-x:auto; padding-bottom:6px;
+  }
+  .doseScroll button { flex:0 0 auto; }
 
   #doseSection.hidden { display:none; }
+   #timingSection.hidden { display:none; }
 
     .floatingBar {
     position:fixed; bottom:0; left:0; right:22%; width:auto;
@@ -93,9 +99,9 @@
       </div>
     </div>
 
-    <div class="card" id="doseSection">
-      <h4>الجرعة</h4>
-      <div class="optionsGrid" id="doseOptions"></div>
+        <div class="card" id="doseSection">
+      <h4 id="doseLabel">الجرعة</h4>
+      <div class="doseScroll" id="doseOptions"></div>
     </div>
 
     <div class="card">
@@ -113,11 +119,20 @@
       </div>
     </div>
 
-    <div class="card">
+        <div class="card" id="timingSection">
       <h4>التوقيت بالنسبة للأكل</h4>
       <div class="optionsGrid" id="timingOptions">
         <button data-value="بعد الأكل">بعد الأكل</button>
         <button data-value="قبل الأكل">قبل الأكل</button>
+        <button data-value="قبل الأكل بنص ساعة">قبل الأكل بنص ساعة</button>
+        <button data-value="قبل الأكل بساعة أو بعد الأكل بساعتين">قبل الأكل بساعة أو بعد الأكل بساعتين</button>
+        <button data-value="على الريق">على الريق</button>
+        <button data-value="صباحًا">صباحًا</button>
+        <button data-value="مساءً">مساءً</button>
+        <button data-value="بعد الفطار">بعد الفطار</button>
+        <button data-value="بعد الغذاء">بعد الغذاء</button>
+        <button data-value="بعد العشاء">بعد العشاء</button>
+        <button data-value="قبل النوم">قبل النوم</button>
       </div>
     </div>
 
@@ -178,37 +193,42 @@ document.querySelectorAll("#typeOptions button").forEach(btn => {
     document.querySelectorAll("#typeOptions button").forEach(b => b.classList.remove("type-selected"));
     btn.classList.add("type-selected");
 
-    if (currentType === "دهان") {
+        if (currentType === "دهان") {
       document.getElementById("doseSection").classList.add("hidden");
+      document.getElementById("timingSection").classList.add("hidden");
       appendToFloatBox("دهان");
     } else {
       document.getElementById("doseSection").classList.remove("hidden");
+      document.getElementById("timingSection").classList.remove("hidden");
       buildDoseOptions();
     }
   };
 });
-
 function buildDoseOptions() {
   const container = document.getElementById("doseOptions");
+  const label = document.getElementById("doseLabel");
   container.innerHTML = "";
+
   let values = [];
+  let unit = "";
 
   if (currentType === "حبوب") {
-    values = ["1 حبة", "2 حبة", "3 حبة", "4 حبة"];
+    values = [1, 2, 3, 4];
+    unit = "حبة";
   } else if (currentType === "شراب") {
-    for (let v = 0.5; v <= 20; v += 0.5) {
-      values.push((v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + " مل");
-    }
+    for (let v = 0.5; v <= 20; v += 0.5) values.push(v % 1 === 0 ? v.toFixed(0) : v.toFixed(1));
+    unit = "مل";
   } else if (currentType === "حقن") {
-    for (let v = 1; v <= 60; v++) {
-      values.push(v + " وحدة");
-    }
+    for (let v = 1; v <= 60; v++) values.push(v);
+    unit = "وحدة";
   }
+
+  label.textContent = `الجرعة (${unit})`;
 
   values.forEach(v => {
     const btn = document.createElement("button");
     btn.textContent = v;
-    btn.onclick = () => appendToFloatBox(v);
+    btn.onclick = () => appendToFloatBox(v + " " + unit);
     container.appendChild(btn);
   });
 }
