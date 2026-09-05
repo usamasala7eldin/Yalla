@@ -11,7 +11,7 @@
   body { font-family: Tahoma, Arial, sans-serif; background:#f2f2f2; margin:0; }
 
   .layout { display:flex; min-height:100vh; }
-  .main { flex:1; margin-left:22%; padding:20px 25px 240px 25px; }
+   .main { flex:1; margin-right:22%; padding:20px 25px 240px 25px; }
   .sidebar {
     width:22%; position:fixed; right:0; top:0; bottom:0;
     background:#fff; border-left:2px solid #ddd; padding:15px;
@@ -36,8 +36,8 @@
 
   #doseSection.hidden { display:none; }
 
-  .floatingBar {
-    position:fixed; bottom:0; left:0; width:78%;
+    .floatingBar {
+    position:fixed; bottom:0; left:0; right:22%; width:auto;
     background:#eef5ff; border-top:3px solid #2b7de9;
     padding:14px 25px; z-index:50;
   }
