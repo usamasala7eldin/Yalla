@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -579,10 +580,23 @@ textarea {
 
 .builderBottom {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
     gap: 7px;
     align-items: center;
     margin-top: 7px;
+}
+
+.printLanguageSelect {
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 7px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
 }
 
 .qrToggle {
@@ -1268,6 +1282,11 @@ textarea {
 
                 </label>
 
+                <select id="printLanguage" class="printLanguageSelect" aria-label="لغة الطباعة">
+                    <option value="ar">طباعة: عربي</option>
+                    <option value="en">طباعة: English</option>
+                </select>
+
                 <input
                     type="text"
                     id="qrText"
@@ -1428,10 +1447,10 @@ const normalFrequencies = [
 ];
 
 const dropFrequencies = [
-    "مرة",
-    "مرتين",
-    "3 مرات",
-    "4 مرات",
+    "مرة يوميًا",
+    "مرتين يوميًا",
+    "3 مرات يوميًا",
+    "4 مرات يوميًا",
     "كل ساعتين",
     "قبل النوم"
 ];
@@ -1455,6 +1474,58 @@ function escapeHtml(text) {
    DROP DOSE WORDING
 ========================================================= */
 
+function toArabicDigits(value) {
+    return String(value).replace(/\d/g, digit => "٠١٢٣٤٥٦٧٨٩"[digit]);
+}
+
+function arabicText(value) {
+    return value ? toArabicDigits(value) : value;
+}
+
+function englishLabelText(text) {
+    const replacements = [
+        [/١ نقطة في العين/g, "1 drop in the eye"],
+        [/١ نقطة في الأذن/g, "1 drop in the ear"],
+        [/١ نقطة في الأنف/g, "1 drop in the nose"],
+        [/مرة يوميًا/g, "once daily"],
+        [/مرتين يوميًا/g, "twice daily"],
+        [/مرات يوميًا/g, "times daily"],
+        [/كل ساعتين/g, "every 2 hours"],
+        [/قبل النوم/g, "at bedtime"],
+        [/كل ٢٤ ساعة|كل 24 ساعة/g, "every 24 hours"],
+        [/كل ١٢ ساعة|كل 12 ساعة/g, "every 12 hours"],
+        [/كل ٨ ساعات|كل 8 ساعات/g, "every 8 hours"],
+        [/كل ٦ ساعات|كل 6 ساعات/g, "every 6 hours"],
+        [/لمدة /g, "for "],
+        [/أيام/g, "days"],
+        [/يوم/g, "day"],
+        [/أسبوعين/g, "2 weeks"],
+        [/أسابيع/g, "weeks"],
+        [/أسبوع/g, "week"],
+        [/شهور/g, "months"],
+        [/شهرين/g, "2 months"],
+        [/شهر/g, "month"],
+        [/حبة/g, "tablet"],
+        [/مل/g, "mL"],
+        [/وحدة/g, "unit"],
+        [/دهان/g, "Apply topically"],
+        [/نقطتين في العين/g, "2 drops in the eye"],
+        [/نقطتين في الأذن/g, "2 drops in the ear"],
+        [/نقطتين في الأنف/g, "2 drops in the nose"],
+        [/نقطة في العين/g, "1 drop in the eye"],
+        [/نقطة في الأذن/g, "1 drop in the ear"],
+        [/نقطة في الأنف/g, "1 drop in the nose"],
+        [/نقاط في العين/g, "drops in the eye"],
+        [/نقاط في الأذن/g, "drops in the ear"],
+        [/نقاط في الأنف/g, "drops in the nose"]
+    ];
+
+    return replacements.reduce(
+        (result, [pattern, replacement]) => result.replace(pattern, replacement),
+        String(text)
+    ).replace(/[٠-٩]/g, digit => "0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(digit)]);
+}
+
 function formatDropDose(number, location) {
 
     if (!location) {
@@ -1464,7 +1535,7 @@ function formatDropDose(number, location) {
     const n = Number(number);
 
     if (n === 1) {
-        return `1 نقطة في ${location}`;
+        return `١ نقطة في ${location}`;
     }
 
     if (n === 2) {
@@ -1472,14 +1543,14 @@ function formatDropDose(number, location) {
     }
 
     if (n === 3) {
-        return `3 نقاط في ${location}`;
+        return `٣ نقاط في ${location}`;
     }
 
     if (n === 4) {
-        return `4 نقاط في ${location}`;
+        return `٤ نقاط في ${location}`;
     }
 
-    return `${n} نقاط في ${location}`;
+    return `${toArabicDigits(n)} نقاط في ${location}`;
 }
 
 
@@ -1515,7 +1586,7 @@ function getCurrentDoseText() {
 
     const config = doseConfig[currentType];
 
-    return `${value} ${config.unit}`;
+    return `${toArabicDigits(value)} ${config.unit}`;
 }
 
 
@@ -1532,7 +1603,7 @@ function renderFloatBox() {
         selection.duration
             ? "لمدة " + selection.duration
             : null
-    ].filter(Boolean);
+    ].filter(Boolean).map(arabicText);
 
     const text =
         selection.name
@@ -1636,9 +1707,11 @@ function selectType(type) {
 
         selection.dose = "دهان";
 
-        selection.frequency = null;
+        selection.frequency = "مرتين يوميًا";
 
-        currentFrequency = null;
+        currentFrequency = "مرتين يوميًا";
+
+        selection.duration = "أسبوع";
 
         renderFrequencyOptions();
 
@@ -1680,11 +1753,19 @@ function selectType(type) {
             .getElementById("doseNumber")
             .value = 1;
 
-        selection.dose = null;
+        selection.dropLocation = "العين";
 
-        selection.frequency = "3 مرات";
+        document
+            .querySelector('#dropLocationOptions .locationBtn[data-value="العين"]')
+            .classList.add("selected");
 
-        currentFrequency = "3 مرات";
+        selection.dose = "١ نقطة في العين";
+
+        selection.frequency = "3 مرات يوميًا";
+
+        currentFrequency = "3 مرات يوميًا";
+
+        selection.duration = "3 أيام";
 
         renderFrequencyOptions();
 
@@ -1732,6 +1813,18 @@ function selectType(type) {
 
         currentFrequency =
             "3 مرات يوميًا";
+
+    } else if (type === "شراب") {
+
+        document
+            .getElementById("doseNumber")
+            .value = 5;
+
+        selection.dose = "٥ مل";
+
+        selection.frequency = "3 مرات يوميًا";
+
+        currentFrequency = "3 مرات يوميًا";
 
     } else {
 
@@ -2106,6 +2199,10 @@ function buildDurationOptions() {
         btn.className = "optionBtn";
 
         btn.textContent = value;
+
+        if (value === selection.duration) {
+            btn.classList.add("selected");
+        }
 
         btn.addEventListener("click", () => {
 
@@ -2594,13 +2691,25 @@ function addToList() {
             .value
             .trim();
 
+    const printLanguage =
+        document
+            .getElementById("printLanguage")
+            .value;
+
     entries.push({
 
         id:
             Date.now() +
             Math.random(),
 
-        text,
+        text: arabicText(text),
+
+        printText:
+            printLanguage === "en"
+                ? englishLabelText(text)
+                : arabicText(text),
+
+        printLanguage,
 
         qr:
             addQr && qrText
@@ -2805,26 +2914,22 @@ function printAll() {
     const now =
         new Date();
 
-    const dateText =
-        now.toLocaleDateString(
-            "ar-EG"
-        );
-
-    const timeText =
-        now.toLocaleTimeString(
-            "ar-EG",
-            {
-                hour: "2-digit",
-                minute: "2-digit"
-            }
-        );
-
-
     let pagesHtml = "";
 
 
     entries.forEach(
         (entry, index) => {
+
+            const isEnglish = entry.printLanguage === "en";
+
+            const dateText = now.toLocaleDateString(
+                isEnglish ? "en-GB" : "ar-EG"
+            );
+
+            const timeText = now.toLocaleTimeString(
+                isEnglish ? "en-GB" : "ar-EG",
+                { hour: "2-digit", minute: "2-digit" }
+            );
 
             const qrHtml =
                 entry.qr
@@ -2840,7 +2945,7 @@ function printAll() {
 
             pagesHtml += `
 
-                <div class="printLabel">
+                <div class="printLabel ${isEnglish ? "englishLabel" : ""}">
 
                     <!-- DATE / TIME AT TOP -->
 
@@ -2863,7 +2968,7 @@ function printAll() {
 
                     <div class="printContent">
 
-                        ${escapeHtml(entry.text)}
+                        ${escapeHtml(entry.printText || entry.text)}
 
                     </div>
 
@@ -2890,9 +2995,7 @@ function printAll() {
 
         <!DOCTYPE html>
 
-        <html
-            lang="ar"
-            dir="rtl">
+        <html lang="ar" dir="rtl">
 
         <head>
 
@@ -3010,6 +3113,14 @@ function printAll() {
 
                     padding:
                         2mm;
+                }
+
+                .englishLabel,
+                .englishLabel .printDate,
+                .englishLabel .printContent {
+                    direction: ltr;
+                    text-align: center;
+                    font-family: Arial, sans-serif;
                 }
 
                 .printQr {
