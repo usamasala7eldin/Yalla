@@ -620,6 +620,24 @@ textarea {
     color: var(--primary);
 }
 
+.resetPageBtn {
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid #fecaca;
+    border-radius: 7px;
+    background: var(--danger-light);
+    color: var(--danger);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.resetPageBtn:hover {
+    background: var(--danger);
+    color: #fff;
+}
+
 .printLanguageSelect {
     height: 34px;
     border: 1px solid var(--border);
@@ -876,6 +894,13 @@ textarea {
 .removeBtn:hover {
     background: var(--danger);
     color: #fff;
+}
+
+.labelPreview.englishPreview,
+.labelPreview.englishPreview .previewDate,
+.labelPreview.englishPreview .previewContent {
+    direction: ltr;
+    font-family: Arial, sans-serif;
 }
 
 /* =========================================================
@@ -1304,6 +1329,10 @@ textarea {
                     ↻ بدء جديد
                 </button>
 
+                <button class="resetPageBtn" type="button" onclick="resetPage()">
+                    🗑 صفحة جديدة
+                </button>
+
             </div>
 
             <textarea
@@ -1532,13 +1561,6 @@ function escapeHtml(text) {
 
 function toArabicDigits(value) {
     return String(value).replace(/\d/g, digit => "٠١٢٣٤٥٦٧٨٩"[digit]);
-}
-
-.labelPreview.englishPreview,
-.labelPreview.englishPreview .previewDate,
-.labelPreview.englishPreview .previewContent {
-    direction: ltr;
-    font-family: Arial, sans-serif;
 }
 
 function arabicText(value) {
