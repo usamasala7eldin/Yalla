@@ -249,32 +249,94 @@ function buildDurationOptions() {
 buildDurationOptions();
 
 // ---------- البحث عن الصنف ----------
+function parseGs1(raw) {
+  // شكل GS1: 01 + 14 رقم GTIN، وبعده اختياريًا 17 + 6 أرقام تاريخ صلاحية (YYMMDD)
+  if (!raw.startsWith("01") || raw.length < 16) return null;
+
+  const gtin14 = raw.substring(2, 16);
+  let expiry = null;
+  const rest = raw.substring(16);
+
+  if (rest.startsWith("17") && rest.length >= 8) {
+    const dateStr = rest.substring(2, 8); // YYMMDD
+    const yy = parseInt(dateStr.substring(0, 2), 10);
+    const mm = parseInt(dateStr.substring(2, 4), 10);
+    let dd = parseInt(dateStr.substring(4, 6), 10);
+    const year = 2000 + yy;
+    if (dd === 0) {
+      // يوم 00 معناه آخر يوم في الشهر
+      dd = new Date(year, mm, 0).getDate();
+    }
+    expiry = new Date(year, mm - 1, dd);
+  }
+
+  return { gtin14, expiry };
+}
+
+async function lookupProductByCode(code) {
+  // بيجرب الكود زي ما هو، وبعدين بيجرب من غير الصفر اللي في الأول لو موجود
+  let doc = await db.collection("products").doc(code).get();
+  if (doc.exists) return doc;
+
+  if (code.startsWith("0")) {
+    const trimmed = code.replace(/^0+/, "");
+    doc = await db.collection("products").doc(trimmed).get();
+    if (doc.exists) return doc;
+  }
+  return null;
+}
+
 document.getElementById("productInput").addEventListener("change", async function() {
-  const value = this.value.trim();
+  const raw = this.value.trim();
   const nameDisplay = document.getElementById("productNameDisplay");
   const addNameBtn = document.getElementById("addNameBtn");
   const defaultNote = document.getElementById("defaultNote");
   defaultNote.style.display = "none";
 
-  if (/^[0-9]{6,}$/.test(value)) {
+  if (!raw) return;
+
+  let searchCode = raw;
+  let expiryWarningHtml = "";
+
+  // لو الكود شكله GS1 (يبدأ بـ 01)، استخلص الـ GTIN وتاريخ الصلاحية
+  if (/^01\d{14,}/.test(raw)) {
+    const parsed = parseGs1(raw);
+    if (parsed) {
+      searchCode = parsed.gtin14;
+      if (parsed.expiry) {
+        const today = new Date();
+        const oneMonthLater = new Date();
+        oneMonthLater.setMonth(today.getMonth() + 1);
+
+        const dateText = parsed.expiry.toLocaleDateString("ar-EG");
+        if (parsed.expiry <= oneMonthLater) {
+          expiryWarningHtml = `<div style="color:#e74c3c; font-weight:bold; margin-top:6px;">⚠ تنبيه: الصلاحية تنتهي قريبًا (${dateText})</div>`;
+        } else {
+          expiryWarningHtml = `<div style="color:#27ae60; margin-top:6px;">الصلاحية سليمة (${dateText})</div>`;
+        }
+      }
+    }
+  }
+
+  if (/^[0-9]{4,}$/.test(searchCode)) {
     try {
-      const doc = await db.collection("products").doc(value).get();
-      if (doc.exists) {
-        currentBarcode = value;
+      const doc = await lookupProductByCode(searchCode);
+      if (doc && doc.exists) {
+        currentBarcode = doc.id;
         const data = doc.data();
-        currentProductName = data.ar || data.en || value;
-        nameDisplay.textContent = "الصنف: " + currentProductName;
+        currentProductName = data.ar || data.en || currentBarcode;
+        nameDisplay.innerHTML = "الصنف: " + currentProductName + expiryWarningHtml;
         addNameBtn.style.display = "inline-block";
 
-        const defaultDoc = await db.collection("defaultDoses").doc(value).get();
+        const defaultDoc = await db.collection("defaultDoses").doc(currentBarcode).get();
         if (defaultDoc.exists) {
           window._defaultDoseText = defaultDoc.data().text || "";
           defaultNote.style.display = "block";
         }
       } else {
-        currentBarcode = value;
-        currentProductName = value;
-        nameDisplay.textContent = "باركود غير مسجل، هيتم استخدام الرقم كاسم مؤقت";
+        currentBarcode = searchCode;
+        currentProductName = searchCode;
+        nameDisplay.innerHTML = "الصنف غير مسجل في القاعدة، اكتب الاسم يدويًا" + expiryWarningHtml;
         addNameBtn.style.display = "inline-block";
       }
     } catch (e) {
@@ -282,9 +344,9 @@ document.getElementById("productInput").addEventListener("change", async functio
     }
   } else {
     currentBarcode = null;
-    currentProductName = value;
-    nameDisplay.textContent = value ? "الصنف: " + value : "";
-    addNameBtn.style.display = value ? "inline-block" : "none";
+    currentProductName = raw;
+    nameDisplay.textContent = "الصنف: " + raw;
+    addNameBtn.style.display = "inline-block";
   }
 });
 
@@ -328,6 +390,10 @@ function addToList() {
   });
 
   renderList();
+   document.getElementById("floatBox").value = "";
+  document.getElementById("addQrCheckbox").checked = false;
+  document.getElementById("qrText").value = "";
+  document.getElementById("qrText").style.display = "none";
 }
 
 function renderList() {
