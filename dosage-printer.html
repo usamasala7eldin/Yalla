@@ -82,7 +82,6 @@
     <div class="card">
       <input type="text" id="productInput" placeholder="اضرب الباركود أو اكتب اسم الصنف يدويًا" autofocus>
       <div class="productName" id="productNameDisplay"></div>
-      <button class="smallBtn" id="addNameBtn" style="display:none;" onclick="appendToFloatBox(currentProductName)">+ أضف الاسم للنص</button>
       <div class="defaultNote" id="defaultNote" style="display:none;">
         فيه جرعة افتراضية محفوظة لهذا الصنف.
         <button class="smallBtn" onclick="useDefaultDose()">استخدم الجرعة الافتراضية</button>
@@ -158,6 +157,8 @@
   <div class="actions">
     <button class="add" onclick="addToList()">+ أضف للقائمة</button>
     <button class="saveDefault" onclick="saveAsDefault()">احفظ كجرعة افتراضية</button>
+       <button class="saveDefault" style="background:#e74c3c;" onclick="clearAll()">امسح الكل</button>
+
   </div>
 </div>
 
@@ -174,16 +175,48 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let currentBarcode = null;
-let currentProductName = "";
 let currentType = null;
 let currentFrequency = null;
 let entries = [];
 
-function appendToFloatBox(text) {
-  if (!text) return;
-  const box = document.getElementById("floatBox");
-  const current = box.value.trim();
-  box.value = current ? current + " - " + text : text;
+// الترتيب الثابت للجملة النهائية
+let selection = { name: null, dose: null, frequency: null, timing: null, duration: null };
+
+function renderFloatBox() {
+  const parts = [
+    selection.name,
+    selection.dose,
+    selection.frequency,
+    selection.timing,
+    selection.duration ? "لمدة " + selection.duration : null
+  ];
+  document.getElementById("floatBox").value = parts.filter(Boolean).join(" - ");
+}
+
+function clearAll() {
+  selection = { name: null, dose: null, frequency: null, timing: null, duration: null };
+  currentType = null;
+  currentFrequency = null;
+  currentBarcode = null;
+
+  document.querySelectorAll("#typeOptions button, #frequencyOptions button, #timingOptions button, #durationOptions button")
+    .forEach(b => b.classList.remove("selected", "type-selected"));
+
+  document.getElementById("doseSection").classList.remove("hidden");
+  document.getElementById("timingSection").classList.remove("hidden");
+  document.getElementById("doseOptions").innerHTML = "";
+  document.getElementById("doseLabel").textContent = "الجرعة";
+  buildDurationOptions();
+
+  document.getElementById("productInput").value = "";
+  document.getElementById("productNameDisplay").innerHTML = "";
+  document.getElementById("defaultNote").style.display = "none";
+
+  document.getElementById("addQrCheckbox").checked = false;
+  document.getElementById("qrText").value = "";
+  document.getElementById("qrText").style.display = "none";
+
+  renderFloatBox();
 }
 
 // ---------- نوع الدواء ----------
@@ -193,17 +226,21 @@ document.querySelectorAll("#typeOptions button").forEach(btn => {
     document.querySelectorAll("#typeOptions button").forEach(b => b.classList.remove("type-selected"));
     btn.classList.add("type-selected");
 
-        if (currentType === "دهان") {
+    if (currentType === "دهان") {
       document.getElementById("doseSection").classList.add("hidden");
       document.getElementById("timingSection").classList.add("hidden");
-      appendToFloatBox("دهان");
+      selection.dose = "دهان";
+      renderFloatBox();
     } else {
       document.getElementById("doseSection").classList.remove("hidden");
       document.getElementById("timingSection").classList.remove("hidden");
+      selection.dose = null;
       buildDoseOptions();
+      renderFloatBox();
     }
   };
 });
+
 function buildDoseOptions() {
   const container = document.getElementById("doseOptions");
   const label = document.getElementById("doseLabel");
@@ -228,7 +265,12 @@ function buildDoseOptions() {
   values.forEach(v => {
     const btn = document.createElement("button");
     btn.textContent = v;
-    btn.onclick = () => appendToFloatBox(v + " " + unit);
+    btn.onclick = () => {
+      document.querySelectorAll("#doseOptions button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selection.dose = v + " " + unit;
+      renderFloatBox();
+    };
     container.appendChild(btn);
   });
 }
@@ -237,14 +279,22 @@ function buildDoseOptions() {
 document.querySelectorAll("#frequencyOptions button").forEach(btn => {
   btn.onclick = () => {
     currentFrequency = btn.dataset.value;
-    appendToFloatBox(currentFrequency);
+    document.querySelectorAll("#frequencyOptions button").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selection.frequency = currentFrequency;
     buildDurationOptions();
+    renderFloatBox();
   };
 });
 
 // ---------- التوقيت ----------
 document.querySelectorAll("#timingOptions button").forEach(btn => {
-  btn.onclick = () => appendToFloatBox(btn.dataset.value);
+  btn.onclick = () => {
+    document.querySelectorAll("#timingOptions button").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selection.timing = btn.dataset.value;
+    renderFloatBox();
+  };
 });
 
 // ---------- المدة ----------
@@ -262,7 +312,12 @@ function buildDurationOptions() {
   values.forEach(v => {
     const btn = document.createElement("button");
     btn.textContent = v;
-    btn.onclick = () => appendToFloatBox("لمدة " + v);
+    btn.onclick = () => {
+      document.querySelectorAll("#durationOptions button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selection.duration = v;
+      renderFloatBox();
+    };
     container.appendChild(btn);
   });
 }
@@ -270,7 +325,6 @@ buildDurationOptions();
 
 // ---------- البحث عن الصنف ----------
 function parseGs1(raw) {
-  // شكل GS1: 01 + 14 رقم GTIN، وبعده اختياريًا 17 + 6 أرقام تاريخ صلاحية (YYMMDD)
   if (!raw.startsWith("01") || raw.length < 16) return null;
 
   const gtin14 = raw.substring(2, 16);
@@ -278,15 +332,12 @@ function parseGs1(raw) {
   const rest = raw.substring(16);
 
   if (rest.startsWith("17") && rest.length >= 8) {
-    const dateStr = rest.substring(2, 8); // YYMMDD
+    const dateStr = rest.substring(2, 8);
     const yy = parseInt(dateStr.substring(0, 2), 10);
     const mm = parseInt(dateStr.substring(2, 4), 10);
     let dd = parseInt(dateStr.substring(4, 6), 10);
     const year = 2000 + yy;
-    if (dd === 0) {
-      // يوم 00 معناه آخر يوم في الشهر
-      dd = new Date(year, mm, 0).getDate();
-    }
+    if (dd === 0) dd = new Date(year, mm, 0).getDate();
     expiry = new Date(year, mm - 1, dd);
   }
 
@@ -294,7 +345,6 @@ function parseGs1(raw) {
 }
 
 async function lookupProductByCode(code) {
-  // بيجرب الكود زي ما هو، وبعدين بيجرب من غير الصفر اللي في الأول لو موجود
   let doc = await db.collection("products").doc(code).get();
   if (doc.exists) return doc;
 
@@ -309,7 +359,6 @@ async function lookupProductByCode(code) {
 document.getElementById("productInput").addEventListener("change", async function() {
   const raw = this.value.trim();
   const nameDisplay = document.getElementById("productNameDisplay");
-  const addNameBtn = document.getElementById("addNameBtn");
   const defaultNote = document.getElementById("defaultNote");
   defaultNote.style.display = "none";
 
@@ -318,7 +367,6 @@ document.getElementById("productInput").addEventListener("change", async functio
   let searchCode = raw;
   let expiryWarningHtml = "";
 
-  // لو الكود شكله GS1 (يبدأ بـ 01)، استخلص الـ GTIN وتاريخ الصلاحية
   if (/^01\d{14,}/.test(raw)) {
     const parsed = parseGs1(raw);
     if (parsed) {
@@ -327,16 +375,15 @@ document.getElementById("productInput").addEventListener("change", async functio
         const today = new Date();
         const oneMonthLater = new Date();
         oneMonthLater.setMonth(today.getMonth() + 1);
-
         const dateText = parsed.expiry.toLocaleDateString("ar-EG");
-        if (parsed.expiry <= oneMonthLater) {
-          expiryWarningHtml = `<div style="color:#e74c3c; font-weight:bold; margin-top:6px;">⚠ تنبيه: الصلاحية تنتهي قريبًا (${dateText})</div>`;
-        } else {
-          expiryWarningHtml = `<div style="color:#27ae60; margin-top:6px;">الصلاحية سليمة (${dateText})</div>`;
-        }
+        expiryWarningHtml = parsed.expiry <= oneMonthLater
+          ? `<div style="color:#e74c3c; font-weight:bold; margin-top:6px;">⚠ تنبيه: الصلاحية تنتهي قريبًا (${dateText})</div>`
+          : `<div style="color:#27ae60; margin-top:6px;">الصلاحية سليمة (${dateText})</div>`;
       }
     }
   }
+
+  let name = searchCode;
 
   if (/^[0-9]{4,}$/.test(searchCode)) {
     try {
@@ -344,9 +391,8 @@ document.getElementById("productInput").addEventListener("change", async functio
       if (doc && doc.exists) {
         currentBarcode = doc.id;
         const data = doc.data();
-        currentProductName = data.ar || data.en || currentBarcode;
-        nameDisplay.innerHTML = "الصنف: " + currentProductName + expiryWarningHtml;
-        addNameBtn.style.display = "inline-block";
+        name = data.ar || data.en || currentBarcode;
+        nameDisplay.innerHTML = "الصنف: " + name + expiryWarningHtml;
 
         const defaultDoc = await db.collection("defaultDoses").doc(currentBarcode).get();
         if (defaultDoc.exists) {
@@ -355,19 +401,19 @@ document.getElementById("productInput").addEventListener("change", async functio
         }
       } else {
         currentBarcode = searchCode;
-        currentProductName = searchCode;
         nameDisplay.innerHTML = "الصنف غير مسجل في القاعدة، اكتب الاسم يدويًا" + expiryWarningHtml;
-        addNameBtn.style.display = "inline-block";
       }
     } catch (e) {
       nameDisplay.textContent = "حصل خطأ في البحث، حاول تاني";
     }
   } else {
     currentBarcode = null;
-    currentProductName = raw;
+    name = raw;
     nameDisplay.textContent = "الصنف: " + raw;
-    addNameBtn.style.display = "inline-block";
   }
+
+  selection.name = name;
+  renderFloatBox();
 });
 
 function useDefaultDose() {
@@ -410,10 +456,7 @@ function addToList() {
   });
 
   renderList();
-   document.getElementById("floatBox").value = "";
-  document.getElementById("addQrCheckbox").checked = false;
-  document.getElementById("qrText").value = "";
-  document.getElementById("qrText").style.display = "none";
+  clearAll();
 }
 
 function renderList() {
