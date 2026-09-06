@@ -549,7 +549,27 @@ textarea {
 ========================================================= */
 
 .builder {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.builder .builderTop,
+.builder #floatBox {
     display: none;
+}
+
+.builder .builderBottom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
 }
 
 .builderTop {
@@ -947,7 +967,21 @@ textarea {
     outline: none;
     cursor: text;
 }
-
+.langBtn {
+    flex: 1;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: #475569;
+    font-weight: 900;
+    cursor: pointer;
+}
+.langBtn.selected {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
 .previewText[contenteditable="true"]:focus {
     border-radius: 5px;
     background: #fff;
@@ -1450,10 +1484,10 @@ textarea {
         </div>
 
         <div class="queueActions">
-            <select id="printLanguage" class="printLanguageSelect" aria-label="لغة الطباعة">
-                <option value="ar">طباعة: عربي</option>
-                <option value="en">طباعة: English</option>
-            </select>
+            <div class="langToggle" style="display:flex; gap:6px; grid-column: 1 / -1;">
+    <button type="button" class="langBtn selected" data-lang="ar" onclick="setPrintLanguage('ar', this)">ع</button>
+    <button type="button" class="langBtn" data-lang="en" onclick="setPrintLanguage('en', this)">En</button>
+</div>
 
             <button class="builderBtn defaultBtn" type="button" onclick="saveAsDefault()">
                 ★ افتراضية
@@ -1534,7 +1568,14 @@ let selection = {
 };
 
 let defaultDoseText = "";
+let currentPrintLanguage = "ar";
 
+function setPrintLanguage(lang, btn) {
+    currentPrintLanguage = lang;
+    document.querySelectorAll(".langBtn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    renderList();
+}
 
 /* =========================================================
    DOSE CONFIG
@@ -2814,10 +2855,6 @@ function toggleQrInput() {
         checked ? "block" : "none";
 }
 
-document
-    .getElementById("printLanguage")
-    .addEventListener("change", renderList);
-
 
 /* =========================================================
    ADD TO LIST
@@ -2851,10 +2888,7 @@ function addToList() {
             .value
             .trim();
 
-    const printLanguage =
-        document
-            .getElementById("printLanguage")
-            .value;
+       const printLanguage = currentPrintLanguage;
 
     entries.push({
 
@@ -2897,7 +2931,7 @@ function renderList() {
 
     container.innerHTML = "";
 
-    const language = document.getElementById("printLanguage").value;
+    const language = currentPrintLanguage;
     const draftText = document.getElementById("floatBox").value.trim() || "١ حبة";
     const draft = {
         id: "draft",
@@ -2991,6 +3025,16 @@ function buildQrImg(text) {
 ========================================================= */
 
 function printAll() {
+
+    const draftText = document.getElementById("floatBox").value.trim();
+    if (draftText) {
+        addToList();
+    }
+
+    if (!entries.length) {
+        alert("مفيش عناصر في القائمة للطباعة.");
+        return;
+    }
 
     if (!entries.length) {
 
