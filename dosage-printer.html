@@ -2905,9 +2905,15 @@ function addToList() {
                 : null
 
     });
+        localStorage.setItem("defaultQrEnabled", addQr ? "1" : "0");
+    localStorage.setItem("defaultQrText", qrText);
 
     renderList();
+    
 
+
+
+    
     clearAll();
 }
 
@@ -3406,17 +3412,20 @@ function clearAll() {
 
     /* QR */
 
+       const savedQrEnabled = localStorage.getItem("defaultQrEnabled") === "1";
+    const savedQrText = localStorage.getItem("defaultQrText") || "";
+
     document
         .getElementById("addQrCheckbox")
-        .checked = false;
+        .checked = savedQrEnabled;
 
     document
         .getElementById("qrText")
-        .value = "";
+        .value = savedQrText;
 
     document
         .getElementById("qrText")
-        .style.display = "none";
+        .style.display = savedQrEnabled ? "block" : "none";
 
 
     /* TYPE */
@@ -3563,7 +3572,11 @@ document
         }
 
     });
-
+const savedQrEnabled = localStorage.getItem("defaultQrEnabled") === "1";
+const savedQrText = localStorage.getItem("defaultQrText") || "";
+document.getElementById("addQrCheckbox").checked = savedQrEnabled;
+document.getElementById("qrText").value = savedQrText;
+document.getElementById("qrText").style.display = savedQrEnabled ? "block" : "none";
 renderFloatBox();
 
 renderList();
