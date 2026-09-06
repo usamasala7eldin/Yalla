@@ -37,7 +37,7 @@
     --background: #f4f7fb;
     --card: #ffffff;
 
-    --sidebar-width: 350px;
+    --sidebar-width: 270px;
 }
 
 html,
@@ -549,12 +549,7 @@ textarea {
 ========================================================= */
 
 .builder {
-    min-width: 0;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 11px 13px;
-    box-shadow: 0 4px 18px rgba(15, 23, 42, .05);
+    display: none;
 }
 
 .builderTop {
@@ -732,7 +727,7 @@ textarea {
     border-left: 1px solid var(--border);
     padding: 16px;
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
     gap: 10px;
     overflow: hidden;
 }
@@ -894,6 +889,69 @@ textarea {
 .removeBtn:hover {
     background: var(--danger);
     color: #fff;
+}
+
+.queueActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.queueActions button,
+.queueActions select {
+    min-width: 0;
+    height: 34px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.queueActions .addCurrentBtn,
+.queueActions .resetAllBtn {
+    grid-column: 1 / -1;
+    border: none;
+    cursor: pointer;
+}
+
+.queueActions .addCurrentBtn {
+    background: var(--success);
+    color: #fff;
+}
+
+.queueActions .resetAllBtn {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.draftPreview {
+    border: 2px solid var(--primary);
+    background: #f8fbff;
+}
+
+.draftBadge {
+    position: absolute;
+    top: 6px;
+    right: 7px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.previewText[contenteditable="true"] {
+    width: 100%;
+    min-height: 24px;
+    outline: none;
+    cursor: text;
+}
+
+.previewText[contenteditable="true"]:focus {
+    border-radius: 5px;
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--primary-light);
 }
 
 .labelPreview.englishPreview,
@@ -1325,14 +1383,6 @@ textarea {
                     جاهز
                 </span>
 
-                <button class="startOverBtn" type="button" onclick="clearAll()">
-                    ↻ بدء جديد
-                </button>
-
-                <button class="resetPageBtn" type="button" onclick="resetPage()">
-                    🗑 صفحة جديدة
-                </button>
-
             </div>
 
             <textarea
@@ -1354,11 +1404,6 @@ textarea {
 
                 </label>
 
-                <select id="printLanguage" class="printLanguageSelect" aria-label="لغة الطباعة">
-                    <option value="ar">طباعة: عربي</option>
-                    <option value="en">طباعة: English</option>
-                </select>
-
                 <input
                     type="text"
                     id="qrText"
@@ -1376,12 +1421,6 @@ textarea {
                     class="builderBtn defaultBtn"
                     onclick="saveAsDefault()">
                     ★ حفظ كافتراضية
-                </button>
-
-                <button
-                    class="builderBtn clearBtn"
-                    onclick="clearAll()">
-                    مسح
                 </button>
 
             </div>
@@ -1408,6 +1447,25 @@ textarea {
                 0
             </span>
 
+        </div>
+
+        <div class="queueActions">
+            <select id="printLanguage" class="printLanguageSelect" aria-label="لغة الطباعة">
+                <option value="ar">طباعة: عربي</option>
+                <option value="en">طباعة: English</option>
+            </select>
+
+            <button class="builderBtn defaultBtn" type="button" onclick="saveAsDefault()">
+                ★ افتراضية
+            </button>
+
+            <button class="addCurrentBtn" type="button" onclick="addToList()">
+                ＋ أضف اللزقة
+            </button>
+
+            <button class="resetAllBtn" type="button" onclick="resetPage()">
+                ↻ صفحة جديدة
+            </button>
         </div>
 
         <button
@@ -1462,14 +1520,14 @@ try {
 
 let currentBarcode = null;
 let currentType = "حبوب";
-let currentFrequency = "3 مرات يوميًا";
+let currentFrequency = null;
 
 let entries = [];
 
 let selection = {
     name: null,
     dose: "1 حبة",
-    frequency: "3 مرات يوميًا",
+    frequency: null,
     timing: null,
     duration: null,
     dropLocation: null
@@ -1709,6 +1767,10 @@ function renderFloatBox() {
     document.getElementById("floatBox").value = text;
 
     updateBuilderStatus();
+
+    if (typeof renderList === "function") {
+        renderList();
+    }
 }
 
 
@@ -1802,11 +1864,11 @@ function selectType(type) {
 
         selection.dose = "دهان";
 
-        selection.frequency = "مرتين يوميًا";
+        selection.frequency = null;
 
-        currentFrequency = "مرتين يوميًا";
+        currentFrequency = null;
 
-        selection.duration = "أسبوع";
+        selection.duration = null;
 
         renderFrequencyOptions();
 
@@ -1856,11 +1918,11 @@ function selectType(type) {
 
         selection.dose = "١ نقطة في العين";
 
-        selection.frequency = "3 مرات يوميًا";
+        selection.frequency = null;
 
-        currentFrequency = "3 مرات يوميًا";
+        currentFrequency = null;
 
-        selection.duration = "3 أيام";
+        selection.duration = null;
 
         renderFrequencyOptions();
 
@@ -1903,23 +1965,21 @@ function selectType(type) {
 
         selection.dose = "1 حبة";
 
-        selection.frequency =
-            "3 مرات يوميًا";
+        selection.frequency = null;
 
-        currentFrequency =
-            "3 مرات يوميًا";
+        currentFrequency = null;
 
     } else if (type === "شراب") {
 
         document
             .getElementById("doseNumber")
-            .value = 5;
+            .value = 1;
 
-        selection.dose = "٥ مل";
+        selection.dose = "١ مل";
 
-        selection.frequency = "3 مرات يوميًا";
+        selection.frequency = null;
 
-        currentFrequency = "3 مرات يوميًا";
+        currentFrequency = null;
 
     } else {
 
@@ -2749,9 +2809,14 @@ function toggleQrInput() {
 
     document
         .getElementById("qrText")
+
         .style.display =
         checked ? "block" : "none";
 }
+
+document
+    .getElementById("printLanguage")
+    .addEventListener("change", renderList);
 
 
 /* =========================================================
@@ -2832,117 +2897,60 @@ function renderList() {
 
     container.innerHTML = "";
 
+    const language = document.getElementById("printLanguage").value;
+    const draftText = document.getElementById("floatBox").value.trim() || "١ حبة";
+    const draft = {
+        id: "draft",
+        text: arabicText(draftText),
+        printText: language === "en" ? englishLabelText(draftText) : arabicText(draftText),
+        printLanguage: language,
+        qr: null
+    };
 
-    if (!entries.length) {
+    [...entries, draft].forEach(entry => {
 
-        container.innerHTML = `
-            <div class="emptyQueue">
+        const isDraft = entry.id === "draft";
+        const isEnglish = entry.printLanguage === "en";
+        const div = document.createElement("div");
+        div.className = "labelPreview" +
+            (isEnglish ? " englishPreview" : "") +
+            (isDraft ? " draftPreview" : "");
 
-                <div class="emptyQueueIcon">
+        const now = new Date();
+        const locale = isEnglish ? "en-GB" : "ar-EG";
+        const dateText = now.toLocaleDateString(locale);
+        const timeText = now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                        stroke-linecap="round"
-                        stroke-linejoin="round">
-
-                        <path d="M5 4h14v16H5z"/>
-                        <path d="M8 8h8"/>
-                        <path d="M8 12h8"/>
-                        <path d="M8 16h5"/>
-
-                    </svg>
-
-                </div>
-
-                <div class="emptyQueueTitle">
-                    القائمة فارغة
-                </div>
-
-                <div class="emptyQueueText">
-                    أنشئ الجرعة من النموذج<br>
-                    واضغط «أضف للقائمة»
-                </div>
-
-            </div>
+        div.innerHTML = `
+            ${isDraft ? '<span class="draftBadge">قيد التعديل</span>' : `
+                <button class="removeBtn" type="button" title="حذف">×</button>`}
+            <div class="previewDate">${escapeHtml(dateText)} &nbsp;&nbsp; ${escapeHtml(timeText)}</div>
+            <div class="previewContent"><div class="previewText" contenteditable="true" spellcheck="false">${escapeHtml(entry.printText || entry.text)}</div></div>
+            ${entry.qr ? '<div class="previewQr">▦ QR</div>' : ""}
         `;
 
-    } else {
-
-        entries.forEach(entry => {
-
-            const div =
-                document.createElement("div");
-
-            const isEnglish = entry.printLanguage === "en";
-
-            div.className =
-                "labelPreview" +
-                (isEnglish ? " englishPreview" : "");
-
-            const now =
-                new Date();
-
-            const dateText =
-                now.toLocaleDateString(
-                    isEnglish ? "en-GB" : "ar-EG"
-                );
-
-            const timeText =
-                now.toLocaleTimeString(
-                    isEnglish ? "en-GB" : "ar-EG",
-                    {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    }
-                );
-
-            div.innerHTML = `
-
-                <button
-                    class="removeBtn"
-                    onclick="removeEntry(${entry.id})"
-                    title="حذف">
-                    ×
-                </button>
-
-                <div class="previewDate">
-                    ${escapeHtml(dateText)}
-                    &nbsp;&nbsp;
-                    ${escapeHtml(timeText)}
-                </div>
-
-                <div class="previewContent">
-
-                    <div class="previewText">
-                        ${escapeHtml(entry.printText || entry.text)}
-                    </div>
-
-                </div>
-
-                ${
-                    entry.qr
-                        ? `
-                            <div class="previewQr">
-                                ▦ QR
-                            </div>
-                          `
-                        : ""
-                }
-
-            `;
-
-            container.appendChild(div);
-
+        const previewText = div.querySelector(".previewText");
+        previewText.addEventListener("input", () => {
+            const editedText = previewText.innerText.trim();
+            if (isDraft) {
+                document.getElementById("floatBox").value = editedText;
+            } else {
+                entry.text = editedText;
+                entry.printText = editedText;
+            }
         });
-    }
+
+        if (!isDraft) {
+            div.querySelector(".removeBtn").addEventListener("click", () => removeEntry(entry.id));
+        }
+
+        container.appendChild(div);
+    });
 
     document
         .getElementById("countDisplay")
         .textContent =
-        entries.length;
+        entries.length + 1;
 }
 
 
@@ -3323,8 +3331,7 @@ function clearAll() {
 
     currentType = "حبوب";
 
-    currentFrequency =
-        "3 مرات يوميًا";
+    currentFrequency = null;
 
 
     selection = {
@@ -3333,8 +3340,7 @@ function clearAll() {
 
         dose: "1 حبة",
 
-        frequency:
-            "3 مرات يوميًا",
+        frequency: null,
 
         timing: null,
 
@@ -3496,11 +3502,9 @@ document
 
 selection.dose = "1 حبة";
 
-currentFrequency =
-    "3 مرات يوميًا";
+currentFrequency = null;
 
-selection.frequency =
-    "3 مرات يوميًا";
+selection.frequency = null;
 
 renderFrequencyOptions();
 
