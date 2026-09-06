@@ -3071,11 +3071,21 @@ function printAll() {
         (entry, index) => {
 
             const isEnglish = entry.printLanguage === "en";
-            const fullText = entry.printText || entry.text;
-const textParts = fullText.split("\n");
+const fullText = entry.printText || entry.text;
 
-const productName = textParts.shift() || "";
-const doseText = textParts.join("\n");
+let productName = "";
+let doseText = fullText;
+
+if (fullText.includes("\n")) {
+    const textParts = fullText.split("\n");
+
+    productName = textParts.shift() || "";
+    doseText = textParts.join("\n");
+}
+
+const dateText = now.toLocaleDateString(
+    isEnglish ? "en-GB" : "ar-EG"
+);
 
             const dateText = now.toLocaleDateString(
                 isEnglish ? "en-GB" : "ar-EG"
