@@ -2652,8 +2652,8 @@ async function handleProductInput() {
                     doc.data();
 
                 name =
-                    data.ar ||
                     data.en ||
+                    data.ar ||
                     currentBarcode;
 
                 nameDisplay.innerHTML =
@@ -2898,6 +2898,7 @@ function addToList() {
                 : arabicText(text),
 
         printLanguage,
+        freqDots: getFrequencyDotsCount(selection.frequency),
 
         qr:
             addQr && qrText
@@ -3102,6 +3103,10 @@ if (fullText.includes("\n")) {
                       `
 
                     : "";
+                        const dotsHtml =
+                entry.freqDots
+                    ? `<div class="printFreqDots">${"●".repeat(entry.freqDots).split("").join(" ")}</div>`
+                    : "";
 
 
             pagesHtml += `
@@ -3127,7 +3132,7 @@ if (fullText.includes("\n")) {
 
                     <!-- LABEL CONTENT -->
 
-                    <div class="printContent">
+                                        <div class="printContent">
     <div class="printProductName">
         ${escapeHtml(productName)}
     </div>
@@ -3135,6 +3140,8 @@ if (fullText.includes("\n")) {
     <div class="printDose">
         ${escapeHtml(doseText)}
     </div>
+
+    ${dotsHtml}
 </div>
 
 
@@ -3283,6 +3290,14 @@ if (fullText.includes("\n")) {
     overflow: hidden;
     text-align: center;
 } 
+.printFreqDots {
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    color: #2563eb;
+    margin-top: 1.5mm;
+    letter-spacing: 2px;
+}
 
                 .englishLabel,
                 .englishLabel .printDate,
@@ -3309,10 +3324,10 @@ if (fullText.includes("\n")) {
                 .printQr img {
 
                     width:
-                        14mm !important;
+                        18mm !important;
 
                     height:
-                        14mm !important;
+                        18mm !important;
                 }
 
                 .pageBreak {
