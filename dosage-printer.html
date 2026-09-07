@@ -1632,7 +1632,33 @@ const dropFrequencies = [
     "كل ساعتين",
     "قبل النوم"
 ];
+    
+function getFrequencyDotsCount(frequency) {
+    if (!frequency) return 0;
 
+    if (
+        frequency === "مرتين يوميًا" ||
+        frequency === "كل 12 ساعة"
+    ) {
+        return 2;
+    }
+
+    if (
+        frequency === "3 مرات يوميًا" ||
+        frequency === "كل 8 ساعات"
+    ) {
+        return 3;
+    }
+
+    if (
+        frequency === "4 مرات يوميًا" ||
+        frequency === "كل 6 ساعات"
+    ) {
+        return 4;
+    }
+
+    return 1;
+}
 
 /* =========================================================
    ESCAPE HTML
