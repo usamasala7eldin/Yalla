@@ -2589,7 +2589,10 @@ async function handleProductInput() {
 
     defaultDoseText = "";
 
-    if (!raw) {
+       if (!raw) {
+        currentBarcode = null;
+        selection.name = null;
+        renderFloatBox();
         return;
     }
 
@@ -3036,16 +3039,24 @@ function removeEntry(id) {
 
 function buildQrImg(text) {
 
-    const qr =
-        qrcode(0, "L");
+    try {
 
-    qr.addData(text);
+        const qr =
+            qrcode(0, "L");
 
-    qr.make();
+        qr.addData(text);
 
-    return qr.createImgTag(4);
+        qr.make();
+
+        return qr.createImgTag(4);
+
+    } catch (error) {
+
+        console.warn("QR generation failed", error);
+
+        return "";
+    }
 }
-
 
 /* =========================================================
    PRINT
@@ -3059,18 +3070,11 @@ function printAll() {
     }
 
     if (!entries.length) {
-        alert("مفيش عناصر في القائمة للطباعة.");
+        alert("لا يوجد عناصر في القائمة للطباعة.");
         return;
     }
 
-    if (!entries.length) {
 
-        alert(
-            "مفيش عناصر في القائمة للطباعة."
-        );
-
-        return;
-    }
 
     const printWindow =
         window.open(
