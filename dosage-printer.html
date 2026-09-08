@@ -2916,12 +2916,12 @@ function addToList() {
             Date.now() +
             Math.random(),
 
-        text: arabicText(text),
+               text: text,
 
         printText:
             printLanguage === "en"
                 ? englishLabelText(text)
-                : arabicText(text),
+                : text,
 
         printLanguage,
         freqDots: getFrequencyDotsCount(selection.frequency),
@@ -2960,10 +2960,10 @@ function renderList() {
 
     const language = currentPrintLanguage;
     const draftText = document.getElementById("floatBox").value.trim() || "١ حبة";
-    const draft = {
+       const draft = {
         id: "draft",
-        text: arabicText(draftText),
-        printText: language === "en" ? englishLabelText(draftText) : arabicText(draftText),
+        text: draftText,
+        printText: language === "en" ? englishLabelText(draftText) : draftText,
         printLanguage: language,
         qr: null
     };
@@ -3227,8 +3227,8 @@ if (fullText.includes("\n")) {
 
                 .printLabel {
 
-                    width: 10cm;
-                    height: 5cm;
+                    width: 11cm;
+                    height: 7cm;
 
                     padding:
                         5mm
