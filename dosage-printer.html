@@ -789,10 +789,17 @@ textarea {
     font-size: 12px;
     font-weight: 900;
 }
+            <button
+            class="printAllBtn"
+            style="background:#fff;color:var(--text);border:1px solid var(--border);"
+            onclick="openPrintSettings()">
+            ⚙ إعدادات الطباعة
+        </button>
 
 .printAllBtn:hover {
     background: var(--primary-dark);
 }
+
 
 #listContainer {
     min-height: 0;
@@ -1084,6 +1091,88 @@ textarea {
         background: #fff;
     }
 }
+
+
+/* =========================================================
+   PRINT SETTINGS MODAL
+========================================================= */
+
+.settingsModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, .45);
+    align-items: center;
+    justify-content: center;
+}
+
+.settingsBox {
+    width: 340px;
+    max-width: 92vw;
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, .25);
+}
+
+.settingsBox h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.settingsBox label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--muted);
+}
+
+.settingsBox input[type="text"],
+.settingsBox input[type="number"] {
+    width: 100%;
+    height: 36px;
+    padding: 0 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    font-size: 12px;
+}
+
+.settingsBox input:focus {
+    border-color: var(--primary);
+}
+
+.setRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+}
+
+.setQrToggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text) !important;
+    font-size: 11px !important;
+}
+
+.setQrToggle input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary);
+}
+
+.setActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+}
+    
 </style>
 </head>
 
@@ -1426,24 +1515,6 @@ textarea {
 
             <div class="builderBottom">
 
-                <label class="qrToggle">
-
-                    <input
-                        type="checkbox"
-                        id="addQrCheckbox"
-                        onchange="toggleQrInput()"
-                    >
-
-                    أضف QR
-
-                </label>
-
-                <input
-                    type="text"
-                    id="qrText"
-                    placeholder="النص اللي هيتحول إلى QR"
-                    style="display:none;"
-                >
 
           
 
@@ -1563,6 +1634,7 @@ let selection = {
 
 let defaultDoseText = "";
 let currentPrintLanguage = "ar";
+    
 
 function setPrintLanguage(lang, btn) {
     currentPrintLanguage = lang;
@@ -1570,6 +1642,139 @@ function setPrintLanguage(lang, btn) {
     btn.classList.add("selected");
     renderList();
 }
+    /* =========================================================
+   PRINT SETTINGS
+========================================================= */
+
+let printSettings = {
+    pharmacyName: "",
+    labelWidth: 11,
+    labelHeight: 7,
+    qrSize: 18,
+    qrEnabled: false,
+    qrText: ""
+};
+
+function loadPrintSettings() {
+
+    try {
+
+        const saved =
+            JSON.parse(
+                localStorage.getItem("printSettings") || "{}"
+            );
+
+        printSettings =
+            Object.assign(
+                {},
+                printSettings,
+                saved
+            );
+
+    } catch (error) {
+
+        console.warn("Could not load print settings", error);
+    }
+}
+
+function openPrintSettings() {
+
+    document
+        .getElementById("setPharmacyName")
+        .value = printSettings.pharmacyName;
+
+    document
+        .getElementById("setLabelWidth")
+        .value = printSettings.labelWidth;
+
+    document
+        .getElementById("setLabelHeight")
+        .value = printSettings.labelHeight;
+
+    document
+        .getElementById("setQrSize")
+        .value = printSettings.qrSize;
+
+    document
+        .getElementById("setQrEnabled")
+        .checked = printSettings.qrEnabled;
+
+    document
+        .getElementById("setQrText")
+        .value = printSettings.qrText;
+
+    document
+        .getElementById("setQrText")
+        .style.display =
+        printSettings.qrEnabled
+            ? "block"
+            : "none";
+
+    document
+        .getElementById("settingsModal")
+        .style.display = "flex";
+}
+
+function closePrintSettings() {
+
+    document
+        .getElementById("settingsModal")
+        .style.display = "none";
+}
+
+function savePrintSettings() {
+
+    printSettings.pharmacyName =
+        document
+            .getElementById("setPharmacyName")
+            .value
+            .trim();
+
+    printSettings.labelWidth =
+        parseFloat(
+            document.getElementById("setLabelWidth").value
+        ) || 11;
+
+    printSettings.labelHeight =
+        parseFloat(
+            document.getElementById("setLabelHeight").value
+        ) || 7;
+
+    printSettings.qrSize =
+        parseFloat(
+            document.getElementById("setQrSize").value
+        ) || 18;
+
+    printSettings.qrEnabled =
+        document
+            .getElementById("setQrEnabled")
+            .checked;
+
+    printSettings.qrText =
+        document
+            .getElementById("setQrText")
+            .value
+            .trim();
+
+    localStorage.setItem(
+        "printSettings",
+        JSON.stringify(printSettings)
+    );
+
+    closePrintSettings();
+}
+
+document
+    .getElementById("setQrEnabled")
+    .addEventListener("change", function () {
+
+        document
+            .getElementById("setQrText")
+            .style.display =
+            this.checked
+                ? "block"
+                : "none";
+    });
 
 /* =========================================================
    DOSE CONFIG
@@ -2900,16 +3105,9 @@ function addToList() {
         return;
     }
 
-    const addQr =
-        document
-            .getElementById("addQrCheckbox")
-            .checked;
+        const addQr = printSettings.qrEnabled;
 
-    const qrText =
-        document
-            .getElementById("qrText")
-            .value
-            .trim();
+    const qrText = printSettings.qrText;
 
        const printLanguage = currentPrintLanguage;
 
@@ -2935,8 +3133,7 @@ function addToList() {
                 : null
 
     });
-        localStorage.setItem("defaultQrEnabled", addQr ? "1" : "0");
-    localStorage.setItem("defaultQrText", qrText);
+
 
     renderList();
     
@@ -3142,6 +3339,11 @@ if (fullText.includes("\n")) {
             pagesHtml += `
 
                 <div class="printLabel ${isEnglish ? "englishLabel" : ""}">
+                                    ${printSettings.pharmacyName ? `
+                        <div class="printPharmacy">
+                            ${escapeHtml(printSettings.pharmacyName)}
+                        </div>
+                    ` : ""}
 
                     <!-- DATE / TIME AT TOP -->
 
@@ -3205,8 +3407,8 @@ if (fullText.includes("\n")) {
 
             <style>
 
-                @page {
-                    size: 11cm 7cm;
+                                @page {
+                    size: ${printSettings.labelWidth}cm ${printSettings.labelHeight}cm;
                     margin: 0;
                 }
 
@@ -3229,10 +3431,10 @@ if (fullText.includes("\n")) {
                     direction: rtl;
                 }
 
-                .printLabel {
+                                .printLabel {
 
-                    width: 11cm;
-                    height: 7cm;
+                    width: ${printSettings.labelWidth}cm;
+                    height: ${printSettings.labelHeight}cm;
 
                     padding:
                         5mm
@@ -3275,6 +3477,20 @@ if (fullText.includes("\n")) {
                     font-size: 10px;
 
                     font-weight: 700;
+                }
+                                .printPharmacy {
+
+                    text-align: center;
+
+                    font-size: 11px;
+
+                    font-weight: 900;
+
+                    color: #111;
+
+                    padding-bottom: 1mm;
+
+                    border-bottom: 1px solid #cbd5e1;
                 }
 
                 .separator {
@@ -3351,13 +3567,13 @@ if (fullText.includes("\n")) {
                         center;
                 }
 
-                .printQr img {
+                                .printQr img {
 
                     width:
-                        18mm !important;
+                        ${printSettings.qrSize}mm !important;
 
                     height:
-                        18mm !important;
+                        ${printSettings.qrSize}mm !important;
                 }
 
                 .pageBreak {
@@ -3373,6 +3589,59 @@ if (fullText.includes("\n")) {
         <body>
 
             ${pagesHtml}
+
+            <!-- =====================================================
+     PRINT SETTINGS MODAL
+====================================================== -->
+
+<div class="settingsModal" id="settingsModal">
+
+    <div class="settingsBox">
+
+        <h3>إعدادات الطباعة</h3>
+
+        <label>اسم الصيدلية (بيظهر فوق كل لزقة)</label>
+        <input type="text" id="setPharmacyName" placeholder="مثال: صيدلية الشفاء">
+
+        <div class="setRow">
+
+            <div>
+                <label>العرض (سم)</label>
+                <input type="number" id="setLabelWidth" step="0.5" min="4" max="20" value="11">
+            </div>
+
+            <div>
+                <label>الارتفاع (سم)</label>
+                <input type="number" id="setLabelHeight" step="0.5" min="2" max="20" value="7">
+            </div>
+
+            <div>
+                <label>حجم QR (مم)</label>
+                <input type="number" id="setQrSize" step="1" min="8" max="50" value="18">
+            </div>
+
+        </div>
+
+        <label class="setQrToggle">
+            <input type="checkbox" id="setQrEnabled">
+            إضافة QR على اللزقة
+        </label>
+
+        <input
+            type="text"
+            id="setQrText"
+            placeholder="النص اللي هيتحول إلى QR"
+            style="display:none;"
+        >
+
+        <div class="setActions">
+            <button class="builderBtn clearBtn" type="button" onclick="closePrintSettings()">إلغاء</button>
+            <button class="builderBtn addBtn" type="button" onclick="savePrintSettings()">حفظ</button>
+        </div>
+
+    </div>
+
+</div>
 
         </body>
 
@@ -3474,22 +3743,7 @@ function clearAll() {
         .style.display = "none";
 
 
-    /* QR */
 
-       const savedQrEnabled = localStorage.getItem("defaultQrEnabled") === "1";
-    const savedQrText = localStorage.getItem("defaultQrText") || "";
-
-    document
-        .getElementById("addQrCheckbox")
-        .checked = savedQrEnabled;
-
-    document
-        .getElementById("qrText")
-        .value = savedQrText;
-
-    document
-        .getElementById("qrText")
-        .style.display = savedQrEnabled ? "block" : "none";
 
 
     /* TYPE */
@@ -3636,11 +3890,7 @@ document
         }
 
     });
-const savedQrEnabled = localStorage.getItem("defaultQrEnabled") === "1";
-const savedQrText = localStorage.getItem("defaultQrText") || "";
-document.getElementById("addQrCheckbox").checked = savedQrEnabled;
-document.getElementById("qrText").value = savedQrText;
-document.getElementById("qrText").style.display = savedQrEnabled ? "block" : "none";
+loadPrintSettings();
 renderFloatBox();
 
 renderList();
