@@ -789,13 +789,6 @@ textarea {
     font-size: 12px;
     font-weight: 900;
 }
-            <button
-            class="printAllBtn"
-            style="background:#fff;color:var(--text);border:1px solid var(--border);"
-            onclick="openPrintSettings()">
-            ⚙ إعدادات الطباعة
-        </button>
-
 .printAllBtn:hover {
     background: var(--primary-dark);
 }
@@ -1573,7 +1566,66 @@ textarea {
             🖨 طباعة الكل
         </button>
 
+        <button
+            class="printAllBtn"
+            style="background:#fff;color:var(--text);border:1px solid var(--border);"
+            onclick="openPrintSettings()">
+            ⚙ إعدادات الطباعة
+        </button>
+
         <div id="listContainer"></div>
+
+            <!-- =====================================================
+     PRINT SETTINGS MODAL
+====================================================== -->
+
+<div class="settingsModal" id="settingsModal">
+
+    <div class="settingsBox">
+
+        <h3>إعدادات الطباعة</h3>
+
+        <label>اسم الصيدلية (بيظهر فوق كل لزقة)</label>
+        <input type="text" id="setPharmacyName" placeholder="مثال: صيدلية الشفاء">
+
+        <div class="setRow">
+
+            <div>
+                <label>العرض (سم)</label>
+                <input type="number" id="setLabelWidth" step="0.5" min="4" max="20" value="11">
+            </div>
+
+            <div>
+                <label>الارتفاع (سم)</label>
+                <input type="number" id="setLabelHeight" step="0.5" min="2" max="20" value="7">
+            </div>
+
+            <div>
+                <label>حجم QR (مم)</label>
+                <input type="number" id="setQrSize" step="1" min="8" max="50" value="18">
+            </div>
+
+        </div>
+
+        <label class="setQrToggle">
+            <input type="checkbox" id="setQrEnabled">
+            إضافة QR على اللزقة
+        </label>
+
+        <input
+            type="text"
+            id="setQrText"
+            placeholder="النص اللي هيتحول إلى QR"
+            style="display:none;"
+        >
+
+        <div class="setActions">
+            <button class="builderBtn clearBtn" type="button" onclick="closePrintSettings()">إلغاء</button>
+            <button class="builderBtn addBtn" type="button" onclick="savePrintSettings()">حفظ</button>
+        </div>
+
+    </div>
+</div>
 
     </aside>
 
@@ -3073,11 +3125,11 @@ function toggleQrInput() {
 
     const checked =
         document
-            .getElementById("addQrCheckbox")
+            .getElementById("setQrEnabled")
             .checked;
 
     document
-        .getElementById("qrText")
+        .getElementById("setQrText")
 
         .style.display =
         checked ? "block" : "none";
@@ -3590,58 +3642,7 @@ if (fullText.includes("\n")) {
 
             ${pagesHtml}
 
-            <!-- =====================================================
-     PRINT SETTINGS MODAL
-====================================================== -->
 
-<div class="settingsModal" id="settingsModal">
-
-    <div class="settingsBox">
-
-        <h3>إعدادات الطباعة</h3>
-
-        <label>اسم الصيدلية (بيظهر فوق كل لزقة)</label>
-        <input type="text" id="setPharmacyName" placeholder="مثال: صيدلية الشفاء">
-
-        <div class="setRow">
-
-            <div>
-                <label>العرض (سم)</label>
-                <input type="number" id="setLabelWidth" step="0.5" min="4" max="20" value="11">
-            </div>
-
-            <div>
-                <label>الارتفاع (سم)</label>
-                <input type="number" id="setLabelHeight" step="0.5" min="2" max="20" value="7">
-            </div>
-
-            <div>
-                <label>حجم QR (مم)</label>
-                <input type="number" id="setQrSize" step="1" min="8" max="50" value="18">
-            </div>
-
-        </div>
-
-        <label class="setQrToggle">
-            <input type="checkbox" id="setQrEnabled">
-            إضافة QR على اللزقة
-        </label>
-
-        <input
-            type="text"
-            id="setQrText"
-            placeholder="النص اللي هيتحول إلى QR"
-            style="display:none;"
-        >
-
-        <div class="setActions">
-            <button class="builderBtn clearBtn" type="button" onclick="closePrintSettings()">إلغاء</button>
-            <button class="builderBtn addBtn" type="button" onclick="savePrintSettings()">حفظ</button>
-        </div>
-
-    </div>
-
-</div>
 
         </body>
 
