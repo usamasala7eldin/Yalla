@@ -1223,19 +1223,7 @@ textarea {
 
             <div class="productResult" id="productNameDisplay"></div>
 
-            <div class="defaultNote" id="defaultNote" style="display:none;">
-
-                <div class="defaultNoteText">
-                    <span>★</span>
-                    <span>فيه جرعة افتراضية محفوظة لهذا الصنف</span>
-                </div>
-
-                <button class="smallBtn" onclick="useDefaultDose()">
-                    استخدام الجرعة الافتراضية
-                </button>
-
-            </div>
-
+          
         </section>
 
         <!-- =================================================
@@ -2837,14 +2825,7 @@ async function handleProductInput() {
             "productNameDisplay"
         );
 
-    const defaultNote =
-        document.getElementById(
-            "defaultNote"
-        );
-
-    defaultNote.style.display = "none";
-
-    defaultDoseText = "";
+       defaultDoseText = "";
 
        if (!raw) {
         currentBarcode = null;
@@ -2963,11 +2944,6 @@ async function handleProductInput() {
 
                     defaultDoseText =
                         defaultDoc.data().text || "";
-
-                    if (defaultDoseText) {
-                        defaultNote.style.display =
-                            "flex";
-                    }
                 }
 
             } else {
@@ -3013,9 +2989,15 @@ async function handleProductInput() {
             `;
     }
 
-    selection.name = name;
+      selection.name = name;
 
-    renderFloatBox();
+    if (defaultDoseText) {
+        document.getElementById("floatBox").value = defaultDoseText;
+        updateBuilderStatus();
+        renderList();
+    } else {
+        renderFloatBox();
+    }
 }
 
 
@@ -3051,18 +3033,6 @@ document
    DEFAULT DOSE
 ========================================================= */
 
-function useDefaultDose() {
-
-    if (!defaultDoseText) {
-        return;
-    }
-
-    document
-        .getElementById("floatBox")
-        .value = defaultDoseText;
-
-    updateBuilderStatus();
-}
 
 
 async function saveAsDefault() {
