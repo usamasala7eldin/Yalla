@@ -98,6 +98,11 @@ textarea {
     align-items: center;
     min-height: 50px;
 }
+    .pageHeader .resetAllBtn,
+.pageHeader .printAllBtn {
+    height: 38px;
+    white-space: nowrap;
+}
 
 .headerText {
     display: flex;
@@ -1180,13 +1185,24 @@ textarea {
     <main class="main">
 
         <!-- HEADER -->
-        <header class="pageHeader">
+               <header class="pageHeader">
             <div class="headerText">
                 <a class="back" href="index.html">‹ رجوع</a>
                 <h1 class="pageTitle">طباعة جرعات الأدوية</h1>
                 <p class="pageSubtitle">
                     أنشئ تعليمات الجرعة بسرعة وأضفها لقائمة الطباعة
                 </p>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="resetAllBtn" type="button" onclick="resetPage()">
+                    ↻ صفحة جديدة
+                </button>
+                <button class="printAllBtn" style="width:auto; padding:0 16px;" onclick="printAll()">
+                    🖨 طباعة الكل
+                </button>
+                <button class="printAllBtn" style="width:auto; padding:0 16px; background:#fff;color:var(--text);border:1px solid var(--border);" onclick="openPrintSettings()">
+                    ⚙ إعدادات الطباعة
+                </button>
             </div>
         </header>
 
@@ -1531,35 +1547,16 @@ textarea {
 
         </div>
 
-        <div class="queueActions">
+                <div class="queueActions">
             <div class="langToggle" style="display:flex; gap:6px; grid-column: 1 / -1;">
     <button type="button" class="langBtn selected" data-lang="ar" onclick="setPrintLanguage('ar', this)">ع</button>
     <button type="button" class="langBtn" data-lang="en" onclick="setPrintLanguage('en', this)">En</button>
 </div>
 
-       
-
             <button class="addCurrentBtn" type="button" onclick="addToList()">
                 ＋ أضف اللزقة
             </button>
-
-            <button class="resetAllBtn" type="button" onclick="resetPage()">
-                ↻ صفحة جديدة
-            </button>
         </div>
-
-        <button
-            class="printAllBtn"
-            onclick="printAll()">
-            🖨 طباعة الكل
-        </button>
-
-        <button
-            class="printAllBtn"
-            style="background:#fff;color:var(--text);border:1px solid var(--border);"
-            onclick="openPrintSettings()">
-            ⚙ إعدادات الطباعة
-        </button>
 
         <div id="listContainer"></div>
 
@@ -2246,13 +2243,15 @@ function selectType(type) {
        NORMAL TYPES
     ===================================================== */
 
-    document
+        document
         .getElementById("doseSection")
         .classList.remove("hidden");
 
-    document
-        .getElementById("timingSection")
-        .classList.remove("hidden");
+    if (type === "حقن") {
+        document.getElementById("timingSection").classList.add("hidden");
+    } else {
+        document.getElementById("timingSection").classList.remove("hidden");
+    }
 
     document
         .getElementById("dropLocationSection")
@@ -3653,6 +3652,8 @@ if (fullText.includes("\n")) {
         },
         10000
     );
+    entries = [];
+    renderList();
 }
 
 
