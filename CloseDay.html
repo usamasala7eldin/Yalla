@@ -1,20 +1,20 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>حاسبة الكاش المتوقع</title>
+<title>Expected Cash Calculator</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💵</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #F1F4F2; --surface: #FFFFFF; --ink: #16211C; --muted: #5E6B64; --line: #D6DDD8;
     --accent: #0F6B4F; --accent-soft: #E3F1EB; --accent-ink: #FFFFFF;
-    --warn: #8A5A00; --warn-soft: #FFF4DB; --err: #B42318; --err-soft: #FDECEA;
-    --font: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+    --warn: #8A5A00; --warn-soft: #FFF4DB; --err: #B42318; --err-soft: #FDECEA; --locked: #F5F7F6;
+    --font: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -22,17 +22,17 @@
   @media (prefers-color-scheme: dark) {
     :root { --bg: #111714; --surface: #19211D; --ink: #E5ECE8; --muted: #93A19A; --line: #2B3530;
       --accent: #4FC39A; --accent-soft: #1C3229; --accent-ink: #0B1310;
-      --warn: #F2C063; --warn-soft: #33290F; --err: #F28B82; --err-soft: #3A1D1B; }
+      --warn: #F2C063; --warn-soft: #33290F; --err: #F28B82; --err-soft: #3A1D1B; --locked: #151C18; }
   }
   *, *::before, *::after { box-sizing: inherit; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
-  body { line-height: 1.6; }
+  body { line-height: 1.5; }
   [hidden] { display: none !important; }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
-  .num { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+  .num { font-variant-numeric: tabular-nums; }
 
-  header { display: flex; align-items: center; gap: 12px; padding: 8px 0 20px; }
-  header h1 { margin: 0; font-size: 1.5rem; flex: 1; }
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 0 18px; }
+  header h1 { margin: 0; font-size: 1.4rem; flex: 1; }
 
   button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface);
     color: var(--ink); border-radius: 8px; padding: 8px 14px; min-height: 44px; }
@@ -40,35 +40,47 @@
   button.link { border: 0; background: none; color: var(--accent); padding: 0; min-height: 0; text-decoration: underline; }
   button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   textarea { font: inherit; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
-    color: var(--ink); padding: 10px 12px; resize: vertical; direction: ltr; text-align: left; }
-  textarea::placeholder { direction: rtl; text-align: right; }
+    color: var(--ink); padding: 8px 10px; }
 
-  .step { margin-bottom: 28px; }
-  .step h2 { font-size: 1.1rem; margin: 0 0 2px; display: flex; gap: 10px; align-items: baseline; }
-  .step h2 .n { color: var(--accent); font-variant-numeric: tabular-nums; }
-  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 10px; }
-  .note { font-size: .9rem; margin: 6px 0 0; color: var(--muted); }
+  .step { margin-bottom: 24px; }
+  .step h2 { font-size: 1.05rem; margin: 0 0 2px; }
+  .step h2 .n { color: var(--accent); margin-right: 6px; }
+  .hint { color: var(--muted); font-size: .85rem; margin: 0 0 8px; }
+  .note { font-size: .85rem; margin: 6px 0 0; color: var(--muted); }
 
-  .rows { display: grid; gap: 12px; margin-bottom: 12px; }
-  .row { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
-  .row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: var(--muted); font-size: .85rem; }
-  .row-head button { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
-  .row textarea { height: 44px; min-height: 44px; resize: none; overflow: hidden; white-space: pre; }
-  .row .st { margin-top: 8px; font-size: .9rem; }
-  .row .st .facts { display: flex; flex-wrap: wrap; gap: 4px 16px; }
-  .row .st .facts b { font-weight: 600; }
-  .row.ok { border-color: var(--accent); }
-  .row.bad { border-color: var(--err); }
-  .msg-err { color: var(--err); font-weight: 600; }
-  .msg-warn { color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 4px 8px; margin-top: 6px; font-size: .85rem; }
+  #tender { height: calc(3 * 1.5em + 18px); resize: none; overflow-y: auto; white-space: pre; font-size: .9rem; }
+
+  .boxes { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-bottom: 10px; }
+  .box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+  .box-head { display: flex; justify-content: space-between; align-items: center; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+  .box-head button { min-height: 24px; min-width: 24px; padding: 0 6px; font-size: .8rem; line-height: 1; }
+  .box textarea { height: 36px; resize: none; overflow: hidden; white-space: pre; font-size: .8rem; padding: 7px 8px; }
+  .box textarea[readonly] { background: var(--locked); color: var(--muted); cursor: default; }
+  .box .meta { font-size: .72rem; color: var(--muted); margin-top: 4px; min-height: 1.1em; line-height: 1.3; }
+  .box.ok { border-color: var(--accent); }
+  .box.bad { border-color: var(--err); }
+  .box.bad .meta { color: var(--err); font-weight: 600; }
   .np-help { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: .9rem; }
 
   .results-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-  .results-head h2 { flex: 1; margin: 0; font-size: 1.1rem; }
+  .results-head h2 { flex: 1; margin: 0; }
+  .alert { background: var(--err-soft); color: var(--err); border: 2px solid var(--err); border-radius: 12px;
+    padding: 14px 16px; font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; }
+  .total { background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
+  .total .kv .v { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .total .kv .k { font-weight: 600; }
+  .missing { margin-bottom: 14px; }
+  .msg-err { color: var(--err); font-weight: 600; margin-bottom: 6px; }
+  .msg-warn { color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 4px 8px; margin-top: 6px; font-size: .85rem; }
+
   .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  .card.period { border: 2px solid var(--accent); }
-  .card h3 { margin: 0; padding: 10px 14px; font-size: 1.05rem; background: var(--accent-soft); display: flex; justify-content: space-between; }
+  .card.red { border: 2px solid var(--err); }
+  .card h3 { margin: 0; padding: 10px 14px; font-size: 1.05rem; background: var(--accent-soft);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card.red h3 { background: var(--err-soft); }
+  .card h3 .ph { color: var(--muted); font-weight: 500; font-size: .95rem; flex: 1; }
+  .card h3 a { color: var(--accent); font-size: .95rem; font-weight: 600; }
   .card .body { padding: 12px 14px; }
   .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
   .kv.hero { padding: 4px 0 10px; }
@@ -80,21 +92,10 @@
   .sep { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
   .brands .kv { padding: 2px 0; font-size: .95rem; }
   .devices { width: 100%; border-collapse: collapse; font-size: .9rem; }
-  .devices th { text-align: right; color: var(--muted); font-weight: 500; padding: 4px 0; }
+  .devices th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 0; }
   .devices td { padding: 4px 0; border-top: 1px solid var(--line); }
-  .devices a { color: var(--accent); }
-  .card.red { border: 2px solid var(--err); }
-  .card.red h3 { background: var(--err-soft); }
-  .card h3 { align-items: center; gap: 10px; flex-wrap: wrap; }
-  .card h3 .ph { color: var(--muted); font-weight: 500; font-size: .95rem; flex: 1; }
-  .card h3 a { color: var(--accent); font-size: .95rem; font-weight: 600; }
   .devices tr.odd td { color: var(--err); font-weight: 600; }
-  .alert { background: var(--err-soft); color: var(--err); border: 2px solid var(--err); border-radius: 12px;
-    padding: 14px 16px; font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; }
-  .total { background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
-  .total .kv .v { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
-  .total .kv .k { font-weight: 600; }
-  .missing { margin-bottom: 14px; }
+  .devices a { color: var(--accent); }
   .empty { color: var(--muted); padding: 24px; text-align: center; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; }
 
   .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
@@ -106,32 +107,32 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>حاسبة الكاش المتوقع</h1>
-    <button id="clearBtn">مسح الكل</button>
+    <h1>Expected Cash Calculator</h1>
+    <button id="clearBtn">Clear all</button>
   </header>
 
   <section class="step">
-    <h2><span class="n">1</span> بيانات Tender</h2>
-    <p class="hint">الصق الأعمدة الثلاثة كما هي: التاريخ، ونوع الدفع، والمبلغ. يمكن لصق يوم واحد أو عدة أيام.</p>
-    <textarea id="tender" rows="6" placeholder="2026-09-28	SAR_CURRENCY	3965.47" spellcheck="false"></textarea>
+    <h2><span class="n">1</span>Tender</h2>
+    <p class="hint">Paste the three columns as they are: date, tender type, amount.</p>
+    <textarea id="tender" placeholder="2026-09-28	SAR_CURRENCY	3965.47" spellcheck="false" wrap="off"></textarea>
     <p class="note" id="tenderStatus"></p>
   </section>
 
   <section class="step">
-    <h2><span class="n">2</span> الشبكة</h2>
-    <p class="hint">الصق رابط Geidea لكل جهاز، ولكل يوم.</p>
-    <div class="rows" id="rows"></div>
-    <button class="primary" id="addBtn">إضافة شبكة</button>
-    <p class="note"><button class="link" id="npToggle">جهازك NearPay؟</button></p>
+    <h2><span class="n">2</span>Terminals</h2>
+    <p class="hint">Reconciliations before 6:00 AM are counted for the previous day.</p>
+    <div class="boxes" id="rows"></div>
+    <button class="primary" id="addBtn">Add terminal</button>
+    <p class="note"><button class="link" id="npToggle">Using NearPay?</button></p>
     <div class="np-help" id="npHelp" hidden>
-      افتح رابط التسوية، ثم اضغط مطولًا على النص واختر «تحديد الكل» ثم «نسخ»، والصق النص كاملًا في خانة الشبكة. سيتعرف الموقع عليه تلقائيًا.
+      Open the reconciliation link, long-press the text, choose Select all, then Copy, and paste the full text into a terminal box. It is detected automatically.
     </div>
   </section>
 
   <section class="step">
     <div class="results-head">
-      <h2><span class="n" style="color:var(--accent)">3</span> النتائج</h2>
-      <button id="copyBtn">نسخ الجدول</button>
+      <h2><span class="n">3</span>Results</h2>
+      <button id="copyBtn">Copy table</button>
     </div>
     <div id="results"></div>
   </section>
@@ -194,7 +195,7 @@ function geideaTotals(str) {
     const net = toCents(t[i + 10]), buy = toCents(t[i + 3]), ref = toCents(t[i + 5]);
     if (net == null) continue;
     if (buy != null && ref != null && Math.abs(buy - ref - net) > 1)
-      warns.push(`صافي ${code} لا يساوي المبيعات ناقص المرتجعات؛ راجع الرابط.`);
+      warns.push(`${code} net amount does not equal sales minus refunds; check the link.`);
     brands[GEIDEA_MAP[code] || "others"] += net;
     i += 10;
   }
@@ -203,21 +204,21 @@ function geideaTotals(str) {
 
 async function parseGeidea(url) {
   const m = url.match(/details=([^&\s]+)/);
-  if (!m) throw new Error("رابط Geidea غير صحيح.");
+  if (!m) throw new Error("Invalid Geidea link.");
   let b64 = decodeURIComponent(m[1]).replace(/-/g, "+").replace(/_/g, "/");
   while (b64.length % 4) b64 += "=";
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
   const json = JSON.parse(await new Response(stream).text());
-  if (!json.ht_ttl || !json.trx_dt) throw new Error("الرابط لا يحتوي على بيانات تسوية.");
+  if (!json.ht_ttl || !json.trx_dt) throw new Error("This link has no reconciliation data.");
   const host = geideaTotals(json.ht_ttl), warns = [...host.warns];
   if (json.tr_ttl) {
     const term = geideaTotals(json.tr_ttl);
     if (BRANDS.some(([k]) => term.brands[k] !== host.brands[k]))
-      warns.push("مبالغ الجهاز لا تطابق مبالغ البنك؛ اعتُمدت مبالغ البنك.");
+      warns.push("Terminal totals do not match bank totals; bank totals were used.");
   }
   const ph = String(json.mr_en || "").trim().match(/(\d{4})$/);
-  if (!ph) warns.push("لم يُعثر على رقم الصيدلية.");
+  if (!ph) warns.push("Pharmacy number not found.");
   return { kind: "Geidea", pharmacy: ph ? ph[1] : "", terminal: String(json.tr_id || "").slice(0, 8), date: json.trx_dt,
     time: json.trx_tm, brands: host.brands, warns, link: url.trim() };
 }
@@ -225,10 +226,10 @@ async function parseGeidea(url) {
 function parseNearpay(raw) {
   const text = raw.replace(/\s+/g, " ").trim();
   const dt = text.match(/(\d{2}\/\d{2}\/\d{4})\s*(\d{2}:\d{2}:\d{2})/);
-  if (!dt) throw new Error("لم يُعثر على تاريخ التسوية في النص.");
-  const found = NP_SECTIONS.map(([label, brand]) => ({ label, brand, idx: text.indexOf(label) }))
+  if (!dt) throw new Error("Reconciliation date not found.");
+  const found = NP_SECTIONS.map(([label, brand]) => ({ label: label.split(/ [^\x00-\x7F]/)[0], brand, idx: text.indexOf(label) }))
     .filter((s) => s.idx >= 0).sort((a, b) => a.idx - b.idx);
-  if (!found.length) throw new Error("لم يُعثر على أي شبكة في النص. انسخ الصفحة كاملة.");
+  if (!found.length) throw new Error("No card networks found. Copy the whole page.");
   const last = found[found.length - 1].idx;
   const endIdx = text.indexOf("شكراً", last) >= 0 ? text.indexOf("شكراً", last) : text.length;
   const brands = emptyBrands(), warns = [];
@@ -237,18 +238,18 @@ function parseNearpay(raw) {
     if (/No Transactions/i.test(seg)) return;
     const deb = [...seg.matchAll(/Debit\s+\d+\s+([\d,]*\.?\d+)/g)];
     const cre = [...seg.matchAll(/Credit\s+\d+\s+([\d,]*\.?\d+)/g)];
-    if (!deb.length) { warns.push(`تعذّرت قراءة مبلغ ${s.label}.`); return; }
+    if (!deb.length) { warns.push(`Could not read the ${s.label} amount.`); return; }
     const host = toCents(deb[0][1]) - (cre[0] ? toCents(cre[0][1]) : 0);
     if (deb[1]) {
       const pos = toCents(deb[1][1]) - (cre[1] ? toCents(cre[1][1]) : 0);
-      if (pos !== host) warns.push(`مبلغ ${s.label} في الجهاز يختلف عن الخادم؛ اعتُمد مبلغ الخادم.`);
+      if (pos !== host) warns.push(`${s.label}: terminal amount differs from host; host amount was used.`);
     }
     brands[s.brand] += host;
   });
-  if (/Not Matched|غير متوافقة/i.test(text)) warns.push("الإيصال يشير إلى أن المجاميع غير متوافقة.");
+  if (/Not Matched|غير متوافقة/i.test(text)) warns.push("The receipt says totals are not matched.");
   const tm = text.match(/\b(\d{16})\b/);
   const ph = text.match(/\b(\d{4})\s*حي/);
-  if (!ph) warns.push("لم يُعثر على رقم الصيدلية.");
+  if (!ph) warns.push("Pharmacy number not found.");
   return { kind: "NearPay", pharmacy: ph ? ph[1] : "", terminal: tm ? tm[1].slice(0, 8) : "", date: dt[1], time: dt[2],
     brands, warns, link: null };
 }
@@ -257,10 +258,10 @@ async function parseNetwork(input) {
   const s = input.trim();
   if (/^https?:\/\//i.test(s)) {
     if (/geidea/i.test(s)) return parseGeidea(s);
-    throw new Error("هذا ليس رابط Geidea.");
+    throw new Error("This is not a Geidea link.");
   }
   if (/NearPay|Mada Host|خادم مدى/i.test(s)) return parseNearpay(s);
-  throw new Error("لم يُتعرّف على المحتوى. الصق رابط Geidea، أو نص إيصال NearPay كاملًا.");
+  throw new Error("Not recognized. Paste a Geidea link or the full NearPay page.");
 }
 // PARSERS END
 
@@ -286,48 +287,50 @@ function save() {
 function onTender() {
   tender = parseTender($("tender").value);
   const n = Object.keys(tender.days).length;
-  let s = n ? `قُرئت بيانات ${n} ${n === 1 ? "يوم" : "أيام"}.` : "";
-  if (tender.bad) s += ` تم تجاهل ${tender.bad} سطر غير مفهوم.`;
+  let s = n ? `Read ${n} ${n === 1 ? "day" : "days"}.` : "";
+  if (tender.bad) s += ` ${tender.bad} unrecognized ${tender.bad === 1 ? "line" : "lines"} ignored.`;
   $("tenderStatus").textContent = s;
   save(); renderResults();
 }
 let tTimer; $("tender").addEventListener("input", () => { clearTimeout(tTimer); tTimer = setTimeout(onTender, 250); });
 
-// ----- Network rows -----
+// ----- Terminal boxes -----
 function addRow(value = "", focus = false) {
   const r = { id: nextId++, seq: 0, result: null, error: null, loading: false, dup: false };
-  r.box = el("div", "row");
-  const head = el("div", "row-head");
+  r.box = el("div", "box");
+  const head = el("div", "box-head");
   r.label = el("span");
-  const del = el("button", null, "حذف");
-  del.onclick = () => { rows = rows.filter((x) => x !== r); r.box.remove(); if (!rows.length) addRow(); refresh(); };
+  const del = el("button", null, "✕"); del.setAttribute("aria-label", "Delete terminal");
+  del.onclick = () => { rows = rows.filter((x) => x !== r); r.box.remove(); if (!rows.length) addRow(); save(); refresh(); };
   head.append(r.label, del);
   r.ta = el("textarea"); r.ta.rows = 1; r.ta.wrap = "off"; r.ta.spellcheck = false;
-  r.ta.placeholder = "أضف رابط جيديا أو محتويات رابط نيرباي";
+  r.ta.placeholder = "Geidea link or NearPay page";
   r.ta.value = value;
-  r.st = el("div", "st");
-  r.box.append(head, r.ta, r.st);
+  r.meta = el("div", "meta");
+  r.box.append(head, r.ta, r.meta);
   let timer;
-  r.ta.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => processRow(r), 300); });
-  r.ta.addEventListener("paste", () => { r.focusNext = true; });
+  r.ta.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => processRow(r, true), 300); });
+  r.ta.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); clearTimeout(timer); processRow(r, true); }
+  });
   rows.push(r); $("rows").append(r.box);
   if (focus) r.ta.focus();
-  if (value) processRow(r); else refresh();
+  if (value) processRow(r, false); else refresh();
   return r;
 }
 
-async function processRow(r) {
+async function processRow(r, fromUser) {
   const seq = ++r.seq, v = r.ta.value.trim();
+  if (r.ta.readOnly) return;
   r.result = null; r.error = null;
   if (v) {
     r.loading = true; refresh();
     try { const res = await parseNetwork(v); if (seq !== r.seq) return; r.result = res; }
-    catch (e) { if (seq !== r.seq) return; r.error = e.message || "تعذّرت قراءة المحتوى."; }
+    catch (e) { if (seq !== r.seq) return; r.error = e.message || "Could not read this content."; }
     r.loading = false;
+    if (r.result) { r.ta.readOnly = true; r.ta.scrollLeft = 0; r.ta.scrollTop = 0; }
     if (rows[rows.length - 1] === r) addRow();
-    r.ta.scrollLeft = 0; r.ta.scrollTop = 0;
-    if (r.focusNext) {
-      r.focusNext = false;
+    if (r.result && fromUser) {
       const next = rows.slice(rows.indexOf(r) + 1).find((x) => !x.ta.value.trim());
       if (next) next.ta.focus();
     }
@@ -338,32 +341,22 @@ async function processRow(r) {
 function refresh() {
   const seen = new Set();
   rows.forEach((r, i) => {
-    r.label.textContent = `الشبكة ${i + 1}`;
+    r.label.textContent = `Terminal ${i + 1}`;
     r.dup = false;
     if (r.result) {
       const key = `${r.result.terminal}|${r.result.date}|${r.result.time}`;
       if (seen.has(key)) r.dup = true; else seen.add(key);
     }
-    renderRowStatus(r);
+    r.box.classList.remove("ok", "bad");
+    if (r.loading) r.meta.textContent = "Reading…";
+    else if (r.error) { r.box.classList.add("bad"); r.meta.textContent = r.error; }
+    else if (r.dup) { r.box.classList.add("bad"); r.meta.textContent = "Duplicated link"; }
+    else if (r.result) {
+      r.box.classList.add("ok");
+      r.meta.textContent = `${r.result.terminal || "?"} · ${r.result.date} · ${r.result.time.slice(0, 5)}`;
+    } else r.meta.textContent = "";
   });
   renderResults();
-}
-
-function renderRowStatus(r) {
-  r.st.innerHTML = ""; r.box.classList.remove("ok", "bad");
-  if (r.loading) { r.st.textContent = "جارٍ القراءة…"; return; }
-  if (r.error) { r.box.classList.add("bad"); r.st.append(el("div", "msg-err", r.error)); return; }
-  if (!r.result) return;
-  if (r.dup) { r.box.classList.add("bad"); r.st.append(el("div", "msg-err num", "Duplicated link")); return; }
-  const x = r.result; r.box.classList.add("ok");
-  const bd = businessDate(x.date, x.time);
-  const facts = el("div", "facts");
-  const fact = (k, v) => { const s = el("span"); s.append(k + " "); s.append(el("b", "num", v)); facts.append(s); };
-  fact("النوع", x.kind); fact("الجهاز", x.terminal || "غير معروف");
-  fact("اليوم", showDate(bd)); fact("وقت التسوية", x.time.slice(0, 5)); fact("المبلغ", money(sumBrands(x.brands)));
-  r.st.append(facts);
-  if (bd !== normDate(x.date)) r.st.append(el("div", "note", "التسوية قبل الساعة 6 صباحًا، فاحتُسبت على اليوم السابق."));
-  x.warns.forEach((w) => r.st.append(el("div", "msg-warn", w)));
 }
 
 // ----- Results -----
@@ -378,11 +371,12 @@ function computeDays() {
     const devices = valid.filter((v) => v.bd === date).sort((a, b) => a.terminal.localeCompare(b.terminal));
     const brands = emptyBrands();
     devices.forEach((d) => BRANDS.forEach(([k]) => brands[k] += d.brands[k]));
-    const plastic = sumBrands(brands), t = tender.days[date], warns = [];
+    const plastic = sumBrands(brands), t = tender.days[date];
+    const warns = devices.flatMap((d) => d.warns.map((w) => `Terminal ${d.terminal || "?"}: ${w}`));
     let expected = null;
     if (t && !blocked && (devices.length || t.cards === 0)) {
       expected = t.total - plastic - t.other;
-      if (expected < 0) warns.push("الكاش المتوقع بالسالب؛ راجع الروابط أو بيانات Tender.");
+      if (expected < 0) warns.push("Negative expected cash; check the terminals or Tender data.");
     }
     const dayPh = [...new Set(devices.map((d) => d.pharmacy).filter(Boolean))];
     return { date, devices, brands, plastic, other: t ? t.other : null, expected, warns, noTender: !t, pharmacies: dayPh };
@@ -402,18 +396,18 @@ function renderResults() {
   $("copyBtn").hidden = !days.length;
   const shown = days.filter((d) => d.devices.length).reverse();
   const missing = days.filter((d) => !d.devices.length && !d.noTender).reverse();
-  if (!shown.length && !missing.length) { out.append(el("div", "empty", "الصق بيانات Tender وروابط الشبكة لتظهر النتائج هنا.")); return; }
+  if (!shown.length && !missing.length) { out.append(el("div", "empty", "Paste Tender data and terminal links to see results.")); return; }
 
   if (blocked) {
-    const who = pharmacies.length === 2 ? "صيدليتين" : "أكثر من صيدلية";
-    out.append(el("div", "alert", `لن يتم الحساب لوجود روابط من ${who}: ${pharmacies.join(" و ")}`));
+    const who = pharmacies.length === 2 ? "two pharmacies" : "multiple pharmacies";
+    out.append(el("div", "alert", `Not calculated: terminals from ${who}: ${pharmacies.join(" and ")}`));
   } else if (shown.length) {
     const tot = el("div", "total");
-    tot.append(kv("مجموع الكاش المتوقع", money(shown.reduce((a, d) => a + (d.expected || 0), 0))));
+    tot.append(kv("Total Expected Cash", money(shown.reduce((a, d) => a + (d.expected || 0), 0))));
     out.append(tot);
   }
   if (missing.length)
-    out.append(el("div", "msg-warn missing", "أيام في Tender لم تُضف شبكتها: " + missing.map((d) => showDate(d.date)).join("، ")));
+    out.append(el("div", "msg-warn missing", "Tender days without terminals: " + missing.map((d) => showDate(d.date)).join(", ")));
 
   const cards = el("div", "cards");
   for (const d of shown) {
@@ -423,10 +417,10 @@ function renderResults() {
     col.href = `https://rtlapps.nahdi.sa/collection/Collection/AddCollectionDay?date=${d.date}`;
     col.target = "_blank"; col.rel = "noopener";
     h.append(el("span", "num", showDate(d.date)),
-      el("span", "ph", d.pharmacies.length ? "صيدلية " + d.pharmacies.join(" و ") : "صيدلية غير معروفة"), col);
+      el("span", "ph num", d.pharmacies.length ? "Pharmacy " + d.pharmacies.join(" / ") : "Pharmacy unknown"), col);
     const b = el("div", "body");
     if (d.pharmacies.length > 1)
-      b.append(el("div", "msg-err", `روابط هذا اليوم من صيدليتين مختلفتين: ${d.pharmacies.join(" و ")}`));
+      b.append(el("div", "msg-err", `Terminals from different pharmacies: ${d.pharmacies.join(" and ")}`));
     const ex = kv("Expected Cash", d.expected == null ? "—" : money(d.expected), "hero");
     if (d.expected != null && d.expected < 0) ex.querySelector(".v").classList.add("neg");
     b.append(ex,
@@ -443,7 +437,7 @@ function renderResults() {
     }
     b.append(el("hr", "sep"));
     const tb = el("table", "devices");
-    const hr = el("tr"); ["الجهاز", "الصيدلية", "المبلغ", "الرابط"].forEach((x) => hr.append(el("th", null, x)));
+    const hr = el("tr"); ["Terminal", "Pharmacy", "Amount", "Link"].forEach((x) => hr.append(el("th", null, x)));
     tb.append(hr);
     d.devices.forEach((v) => {
       const tr = el("tr", blocked && v.pharmacy !== main ? "odd" : null);
@@ -469,13 +463,13 @@ $("copyBtn").onclick = async () => {
   const text = lines.join("\n");
   try { await navigator.clipboard.writeText(text); }
   catch { const t = el("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
-  toast("نُسخ الجدول، الصقه في Excel أو Google Sheets");
+  toast("Table copied. Paste it into Excel or Google Sheets.");
 };
 
 $("addBtn").onclick = () => addRow("", true);
 $("npToggle").onclick = () => { $("npHelp").hidden = !$("npHelp").hidden; };
 $("clearBtn").onclick = () => {
-  if (!confirm("مسح كل البيانات والروابط؟")) return;
+  if (!confirm("Clear all data and links?")) return;
   $("tender").value = ""; rows.forEach((r) => r.box.remove()); rows = [];
   try { localStorage.removeItem(STORE); } catch {}
   addRow(); onTender();
