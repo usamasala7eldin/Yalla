@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>حاسبة الكاش المتوقع</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💵</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F1F4F2; --surface: #FFFFFF; --ink: #16211C; --muted: #5E6B64; --line: #D6DDD8;
+    --accent: #0F6B4F; --accent-soft: #E3F1EB; --accent-ink: #FFFFFF;
+    --warn: #8A5A00; --warn-soft: #FFF4DB; --err: #B42318; --err-soft: #FDECEA;
+    --font: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111714; --surface: #19211D; --ink: #E5ECE8; --muted: #93A19A; --line: #2B3530;
+      --accent: #4FC39A; --accent-soft: #1C3229; --accent-ink: #0B1310;
+      --warn: #F2C063; --warn-soft: #33290F; --err: #F28B82; --err-soft: #3A1D1B; }
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
+  body { line-height: 1.6; }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .num { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 0 20px; }
+  header h1 { margin: 0; font-size: 1.5rem; flex: 1; }
+
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); border-radius: 8px; padding: 8px 14px; min-height: 44px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.link { border: 0; background: none; color: var(--accent); padding: 0; min-height: 0; text-decoration: underline; }
+  button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  textarea { font: inherit; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+    color: var(--ink); padding: 10px 12px; resize: vertical; direction: ltr; text-align: left; }
+  textarea::placeholder { direction: rtl; text-align: right; }
+
+  .step { margin-bottom: 28px; }
+  .step h2 { font-size: 1.1rem; margin: 0 0 2px; display: flex; gap: 10px; align-items: baseline; }
+  .step h2 .n { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .hint { color: var(--muted); font-size: .9rem; margin: 0 0 10px; }
+  .note { font-size: .9rem; margin: 6px 0 0; color: var(--muted); }
+
+  .rows { display: grid; gap: 12px; margin-bottom: 12px; }
+  .row { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: var(--muted); font-size: .85rem; }
+  .row-head button { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
+  .row textarea { min-height: 48px; }
+  .row .st { margin-top: 8px; font-size: .9rem; }
+  .row .st .facts { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .row .st .facts b { font-weight: 600; }
+  .row.ok { border-color: var(--accent); }
+  .row.bad { border-color: var(--err); }
+  .msg-err { color: var(--err); font-weight: 600; }
+  .msg-warn { color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 4px 8px; margin-top: 6px; font-size: .85rem; }
+  .np-help { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: .9rem; }
+
+  .results-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .results-head h2 { flex: 1; margin: 0; font-size: 1.1rem; }
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .card.period { border: 2px solid var(--accent); }
+  .card h3 { margin: 0; padding: 10px 14px; font-size: 1.05rem; background: var(--accent-soft); display: flex; justify-content: space-between; }
+  .card .body { padding: 12px 14px; }
+  .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
+  .kv.hero { padding: 4px 0 10px; }
+  .kv.hero .v { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .kv.hero .v.neg { color: var(--err); }
+  .kv.main .v { font-size: 1.2rem; font-weight: 600; }
+  .kv .k { color: var(--muted); }
+  .kv.main .k, .kv.hero .k { color: var(--ink); font-weight: 600; }
+  .sep { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
+  .brands .kv { padding: 2px 0; font-size: .95rem; }
+  .devices { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .devices th { text-align: right; color: var(--muted); font-weight: 500; padding: 4px 0; }
+  .devices td { padding: 4px 0; border-top: 1px solid var(--line); }
+  .devices a { color: var(--accent); }
+  .empty { color: var(--muted); padding: 24px; text-align: center; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; }
+
+  .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>حاسبة الكاش المتوقع</h1>
+    <button id="clearBtn">مسح الكل</button>
+  </header>
+
+  <section class="step">
+    <h2><span class="n">1</span> بيانات Tender</h2>
+    <p class="hint">الصق الأعمدة الثلاثة كما هي: التاريخ، ونوع الدفع، والمبلغ. يمكن لصق يوم واحد أو عدة أيام.</p>
+    <textarea id="tender" rows="6" placeholder="2026-09-28	SAR_CURRENCY	3965.47" spellcheck="false"></textarea>
+    <p class="note" id="tenderStatus"></p>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">2</span> الشبكة</h2>
+    <p class="hint">الصق رابط Geidea لكل جهاز، ولكل يوم.</p>
+    <div class="rows" id="rows"></div>
+    <button class="primary" id="addBtn">إضافة شبكة</button>
+    <p class="note"><button class="link" id="npToggle">جهازك NearPay؟</button></p>
+    <div class="np-help" id="npHelp" hidden>
+      افتح رابط التسوية، ثم اضغط مطولًا على النص واختر «تحديد الكل» ثم «نسخ»، والصق النص كاملًا في خانة الشبكة. سيتعرف الموقع عليه تلقائيًا.
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="results-head">
+      <h2><span class="n" style="color:var(--accent)">3</span> النتائج</h2>
+      <button id="copyBtn">نسخ الجدول</button>
+    </div>
+    <div id="results"></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// PARSERS START
+const CASH_CARD = new Set(["SAR_CURRENCY", "AMERICAN_EXPRESS", "CREDIT_CARD", "DISCOVER", "MAESTRO",
+  "MASTERCARD", "DEBIT_CARD", "VISA", "UNIONPAY"]);
+const BRANDS = [["mada", "mada"], ["visa", "Visa"], ["mastercard", "MasterCard"], ["amex", "Amex"],
+  ["discover", "Discover"], ["maestro", "Maestro"], ["unionpay", "UnionPay"], ["others", "Others"]];
+const GEIDEA_MAP = { P1: "mada", GN: "mada", VC: "visa", MC: "mastercard", AX: "amex",
+  DC: "discover", DM: "maestro", UP: "unionpay" };
+const NP_SECTIONS = [
+  ["mada مدى", "mada"], ["Visa فيزا", "visa"], ["Visa Debit فيزا مدين", "visa"],
+  ["MasterCard ماستر كارد", "mastercard"], ["Maestro مايسترو", "maestro"],
+  ["American Express امريكان اكسبرس", "amex"], ["UnionPay يونيون باي", "unionpay"],
+  ["JCB جي سي بي", "others"], ["Discover ديسكفر", "discover"],
+  ["GCCNET الشبكة الخليجية", "mada"], ["Troy تروي", "others"]
+];
+const DAY_CUTOFF_HOUR = 6; // settlements before this hour belong to the previous day
+
+const toCents = (s) => { const n = parseFloat(String(s ?? "").replace(/,/g, "")); return isNaN(n) ? null : Math.round(n * 100); };
+const emptyBrands = () => Object.fromEntries(BRANDS.map(([k]) => [k, 0]));
+const sumBrands = (b) => Object.values(b).reduce((a, c) => a + c, 0);
+
+function normDate(s) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const [d, m, y] = s.split("/");
+  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+function businessDate(dmy, hms) {
+  const [d, m, y] = dmy.split("/").map(Number);
+  const shift = parseInt(hms, 10) < DAY_CUTOFF_HOUR ? 86400000 : 0;
+  return new Date(Date.UTC(y, m - 1, d) - shift).toISOString().slice(0, 10);
+}
+
+function parseTender(text) {
+  const days = {}; let bad = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim(); if (!line) continue;
+    const m = line.match(/^(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})\s+([A-Za-z_]+)\s+(-?[\d,]*\.?\d+)\s*$/);
+    if (!m) { bad++; continue; }
+    const date = normDate(m[1]), type = m[2].toUpperCase(), c = toCents(m[3]);
+    const d = days[date] || (days[date] = { total: 0, other: 0, cards: 0 });
+    d.total += c;
+    if (!CASH_CARD.has(type)) d.other += c;
+    else if (type !== "SAR_CURRENCY") d.cards += c;
+  }
+  return { days, bad };
+}
+
+function geideaTotals(str) {
+  const t = (str || "").split(","), brands = emptyBrands(), warns = [];
+  for (let i = 1; i + 10 < t.length; i++) {
+    const code = t[i];
+    if (!/^[A-Z0-9]{2}$/.test(code) || !isNaN(code) || !isNaN(t[i + 1])) continue;
+    const net = toCents(t[i + 10]), buy = toCents(t[i + 3]), ref = toCents(t[i + 5]);
+    if (net == null) continue;
+    if (buy != null && ref != null && Math.abs(buy - ref - net) > 1)
+      warns.push(`صافي ${code} لا يساوي المبيعات ناقص المرتجعات؛ راجع الرابط.`);
+    brands[GEIDEA_MAP[code] || "others"] += net;
+    i += 10;
+  }
+  return { brands, warns };
+}
+
+async function parseGeidea(url) {
+  const m = url.match(/details=([^&\s]+)/);
+  if (!m) throw new Error("رابط Geidea غير صحيح.");
+  let b64 = decodeURIComponent(m[1]).replace(/-/g, "+").replace(/_/g, "/");
+  while (b64.length % 4) b64 += "=";
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  const json = JSON.parse(await new Response(stream).text());
+  if (!json.ht_ttl || !json.trx_dt) throw new Error("الرابط لا يحتوي على بيانات تسوية.");
+  const host = geideaTotals(json.ht_ttl), warns = [...host.warns];
+  if (json.tr_ttl) {
+    const term = geideaTotals(json.tr_ttl);
+    if (BRANDS.some(([k]) => term.brands[k] !== host.brands[k]))
+      warns.push("مبالغ الجهاز لا تطابق مبالغ البنك؛ اعتُمدت مبالغ البنك.");
+  }
+  return { kind: "Geidea", terminal: String(json.tr_id || "").slice(0, 8), date: json.trx_dt,
+    time: json.trx_tm, brands: host.brands, warns, link: url.trim() };
+}
+
+function parseNearpay(raw) {
+  const text = raw.replace(/\s+/g, " ").trim();
+  const dt = text.match(/(\d{2}\/\d{2}\/\d{4})\s*(\d{2}:\d{2}:\d{2})/);
+  if (!dt) throw new Error("لم يُعثر على تاريخ التسوية في النص.");
+  const found = NP_SECTIONS.map(([label, brand]) => ({ label, brand, idx: text.indexOf(label) }))
+    .filter((s) => s.idx >= 0).sort((a, b) => a.idx - b.idx);
+  if (!found.length) throw new Error("لم يُعثر على أي شبكة في النص. انسخ الصفحة كاملة.");
+  const last = found[found.length - 1].idx;
+  const endIdx = text.indexOf("شكراً", last) >= 0 ? text.indexOf("شكراً", last) : text.length;
+  const brands = emptyBrands(), warns = [];
+  found.forEach((s, k) => {
+    const seg = text.slice(s.idx, k + 1 < found.length ? found[k + 1].idx : endIdx);
+    if (/No Transactions/i.test(seg)) return;
+    const deb = [...seg.matchAll(/Debit\s+\d+\s+([\d,]*\.?\d+)/g)];
+    const cre = [...seg.matchAll(/Credit\s+\d+\s+([\d,]*\.?\d+)/g)];
+    if (!deb.length) { warns.push(`تعذّرت قراءة مبلغ ${s.label}.`); return; }
+    const host = toCents(deb[0][1]) - (cre[0] ? toCents(cre[0][1]) : 0);
+    if (deb[1]) {
+      const pos = toCents(deb[1][1]) - (cre[1] ? toCents(cre[1][1]) : 0);
+      if (pos !== host) warns.push(`مبلغ ${s.label} في الجهاز يختلف عن الخادم؛ اعتُمد مبلغ الخادم.`);
+    }
+    brands[s.brand] += host;
+  });
+  if (/Not Matched|غير متوافقة/i.test(text)) warns.push("الإيصال يشير إلى أن المجاميع غير متوافقة.");
+  const tm = text.match(/\b(\d{16})\b/);
+  return { kind: "NearPay", terminal: tm ? tm[1].slice(0, 8) : "", date: dt[1], time: dt[2],
+    brands, warns, link: null };
+}
+
+async function parseNetwork(input) {
+  const s = input.trim();
+  if (/^https?:\/\//i.test(s)) {
+    if (/geidea/i.test(s)) return parseGeidea(s);
+    throw new Error("هذا ليس رابط Geidea.");
+  }
+  if (/NearPay|Mada Host|خادم مدى/i.test(s)) return parseNearpay(s);
+  throw new Error("لم يُتعرّف على المحتوى. الصق رابط Geidea، أو نص إيصال NearPay كاملًا.");
+}
+// PARSERS END
+
+const $ = (id) => document.getElementById(id);
+const money = (c) => (c / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const showDate = (iso) => { const [y, m, d] = iso.split("-"); return `${d}-${MONTHS[+m - 1]}-${y}`; };
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const STORE = "cashcalc:v1";
+
+let tender = { days: {}, bad: 0 };
+let rows = [], nextId = 1;
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800);
+}
+function save() {
+  try { localStorage.setItem(STORE, JSON.stringify({ tender: $("tender").value, inputs: rows.map((r) => r.ta.value) })); } catch {}
+}
+
+// ----- Tender -----
+function onTender() {
+  tender = parseTender($("tender").value);
+  const n = Object.keys(tender.days).length;
+  let s = n ? `قُرئت بيانات ${n} ${n === 1 ? "يوم" : "أيام"}.` : "";
+  if (tender.bad) s += ` تم تجاهل ${tender.bad} سطر غير مفهوم.`;
+  $("tenderStatus").textContent = s;
+  save(); renderResults();
+}
+let tTimer; $("tender").addEventListener("input", () => { clearTimeout(tTimer); tTimer = setTimeout(onTender, 250); });
+
+// ----- Network rows -----
+function addRow(value = "", focus = false) {
+  const r = { id: nextId++, seq: 0, result: null, error: null, loading: false, dup: false };
+  r.box = el("div", "row");
+  const head = el("div", "row-head");
+  r.label = el("span");
+  const del = el("button", null, "حذف");
+  del.onclick = () => { rows = rows.filter((x) => x !== r); r.box.remove(); if (!rows.length) addRow(); refresh(); };
+  head.append(r.label, del);
+  r.ta = el("textarea"); r.ta.rows = 2; r.ta.spellcheck = false; r.ta.placeholder = "الصق رابط Geidea هنا";
+  r.ta.value = value;
+  r.st = el("div", "st");
+  r.box.append(head, r.ta, r.st);
+  let timer;
+  r.ta.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => processRow(r), 300); });
+  rows.push(r); $("rows").append(r.box);
+  if (focus) r.ta.focus();
+  if (value) processRow(r); else refresh();
+  return r;
+}
+
+async function processRow(r) {
+  const seq = ++r.seq, v = r.ta.value.trim();
+  r.result = null; r.error = null;
+  if (v) {
+    r.loading = true; refresh();
+    try { const res = await parseNetwork(v); if (seq !== r.seq) return; r.result = res; }
+    catch (e) { if (seq !== r.seq) return; r.error = e.message || "تعذّرت قراءة المحتوى."; }
+    r.loading = false;
+    if (rows[rows.length - 1] === r) addRow();
+  }
+  save(); refresh();
+}
+
+function refresh() {
+  const seen = new Set();
+  rows.forEach((r, i) => {
+    r.label.textContent = `الشبكة ${i + 1}`;
+    r.dup = false;
+    if (r.result) {
+      const key = `${r.result.terminal}|${r.result.date}|${r.result.time}`;
+      if (seen.has(key)) r.dup = true; else seen.add(key);
+    }
+    renderRowStatus(r);
+  });
+  renderResults();
+}
+
+function renderRowStatus(r) {
+  r.st.innerHTML = ""; r.box.classList.remove("ok", "bad");
+  if (r.loading) { r.st.textContent = "جارٍ القراءة…"; return; }
+  if (r.error) { r.box.classList.add("bad"); r.st.append(el("div", "msg-err", r.error)); return; }
+  if (!r.result) return;
+  if (r.dup) { r.box.classList.add("bad"); r.st.append(el("div", "msg-err num", "Duplicated link")); return; }
+  const x = r.result; r.box.classList.add("ok");
+  const bd = businessDate(x.date, x.time);
+  const facts = el("div", "facts");
+  const fact = (k, v) => { const s = el("span"); s.append(k + " "); s.append(el("b", "num", v)); facts.append(s); };
+  fact("النوع", x.kind); fact("الجهاز", x.terminal || "غير معروف");
+  fact("اليوم", showDate(bd)); fact("وقت التسوية", x.time.slice(0, 5)); fact("المبلغ", money(sumBrands(x.brands)));
+  r.st.append(facts);
+  if (bd !== normDate(x.date)) r.st.append(el("div", "note", "التسوية قبل الساعة 6 صباحًا، فاحتُسبت على اليوم السابق."));
+  x.warns.forEach((w) => r.st.append(el("div", "msg-warn", w)));
+}
+
+// ----- Results -----
+function computeDays() {
+  const valid = rows.filter((r) => r.result && !r.dup).map((r) => ({ ...r.result, bd: businessDate(r.result.date, r.result.time) }));
+  const dates = [...new Set([...Object.keys(tender.days), ...valid.map((v) => v.bd)])].sort();
+  return dates.map((date) => {
+    const devices = valid.filter((v) => v.bd === date).sort((a, b) => a.terminal.localeCompare(b.terminal));
+    const brands = emptyBrands();
+    devices.forEach((d) => BRANDS.forEach(([k]) => brands[k] += d.brands[k]));
+    const plastic = sumBrands(brands), t = tender.days[date], warns = [];
+    let expected = null;
+    if (!t) warns.push("لا توجد بيانات Tender لهذا اليوم.");
+    else if (!devices.length && t.cards > 0) warns.push("لا توجد شبكة لهذا اليوم. أضف روابط أجهزة هذا اليوم.");
+    else {
+      expected = t.total - plastic - t.other;
+      if (expected < 0) warns.push("الكاش المتوقع بالسالب؛ راجع الروابط أو بيانات Tender.");
+    }
+    return { date, devices, brands, plastic, other: t ? t.other : null, expected, warns };
+  });
+}
+
+function kv(k, v, cls) {
+  const d = el("div", "kv" + (cls ? " " + cls : ""));
+  d.append(el("span", "k", k), el("span", "v num", v));
+  return d;
+}
+
+function renderResults() {
+  const out = $("results"); out.innerHTML = "";
+  const days = computeDays();
+  $("copyBtn").hidden = !days.length;
+  if (!days.length) { out.append(el("div", "empty", "الصق بيانات Tender وروابط الشبكة لتظهر النتائج هنا.")); return; }
+  const cards = el("div", "cards");
+
+  if (days.length > 1) {
+    const done = days.filter((d) => d.expected != null);
+    const c = el("div", "card period");
+    const h = el("h3"); h.append(el("span", null, "إجمالي الفترة"), el("span", "num", `${done.length} / ${days.length}`));
+    const b = el("div", "body");
+    const ex = kv("Expected Cash", money(done.reduce((a, d) => a + d.expected, 0)), "hero");
+    b.append(ex,
+      kv("Total Plastic", money(done.reduce((a, d) => a + d.plastic, 0)), "main"),
+      kv("Other Sales", money(done.reduce((a, d) => a + d.other, 0)), "main"));
+    if (done.length < days.length) b.append(el("div", "msg-warn", "الإجمالي يشمل الأيام المكتملة فقط."));
+    c.append(h, b); cards.append(c);
+  }
+
+  for (const d of days) {
+    const c = el("div", "card");
+    const h = el("h3"); h.append(el("span", "num", showDate(d.date)));
+    const b = el("div", "body");
+    const ex = kv("Expected Cash", d.expected == null ? "—" : money(d.expected), "hero");
+    if (d.expected != null && d.expected < 0) ex.querySelector(".v").classList.add("neg");
+    b.append(ex,
+      kv("Total Plastic", money(d.plastic), "main"),
+      kv("Other Sales", d.other == null ? "—" : money(d.other), "main"));
+    d.warns.forEach((w) => b.append(el("div", "msg-warn", w)));
+
+    const nz = BRANDS.filter(([k]) => d.brands[k] !== 0);
+    if (nz.length) {
+      b.append(el("hr", "sep"));
+      const br = el("div", "brands");
+      nz.forEach(([k, label]) => br.append(kv(label, money(d.brands[k]))));
+      b.append(br);
+    }
+    if (d.devices.length) {
+      b.append(el("hr", "sep"));
+      const tb = el("table", "devices");
+      const hr = el("tr"); ["الجهاز", "المبلغ", "الرابط"].forEach((x) => hr.append(el("th", null, x)));
+      tb.append(hr);
+      d.devices.forEach((v) => {
+        const tr = el("tr");
+        const link = el("td");
+        if (v.link) { const a = el("a", null, "Geidea"); a.href = v.link; a.target = "_blank"; a.rel = "noopener"; link.append(a); }
+        else link.textContent = "-";
+        tr.append(el("td", "num", v.terminal || "?"), el("td", "num", money(sumBrands(v.brands))), link);
+        tb.append(tr);
+      });
+      b.append(tb);
+    }
+    c.append(h, b); cards.append(c);
+  }
+  out.append(cards);
+}
+
+$("copyBtn").onclick = async () => {
+  const days = computeDays();
+  const head = ["Date", "Expected Cash", "Total Plastic", "Other Sales", ...BRANDS.map(([, l]) => l)];
+  const val = (c) => c == null ? "" : (c / 100).toFixed(2);
+  const lines = [head.join("\t"), ...days.map((d) => [showDate(d.date), val(d.expected), val(d.plastic), val(d.other),
+    ...BRANDS.map(([k]) => val(d.brands[k]))].join("\t"))];
+  const text = lines.join("\n");
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = el("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
+  toast("نُسخ الجدول، الصقه في Excel أو Google Sheets");
+};
+
+$("addBtn").onclick = () => addRow("", true);
+$("npToggle").onclick = () => { $("npHelp").hidden = !$("npHelp").hidden; };
+$("clearBtn").onclick = () => {
+  if (!confirm("مسح كل البيانات والروابط؟")) return;
+  $("tender").value = ""; rows.forEach((r) => r.box.remove()); rows = [];
+  try { localStorage.removeItem(STORE); } catch {}
+  addRow(); onTender();
+};
+
+// ----- Restore -----
+(function init() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
+  if (saved) {
+    $("tender").value = saved.tender || "";
+    (saved.inputs || []).filter((v) => v.trim()).forEach((v) => addRow(v));
+  }
+  if (!rows.length || rows[rows.length - 1].ta.value.trim()) addRow();
+  onTender();
+})();
+</script>
+</body>
+</html>
