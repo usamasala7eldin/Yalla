@@ -14,6 +14,7 @@
     --bg: #F1F4F2; --surface: #FFFFFF; --ink: #16211C; --muted: #5E6B64; --line: #D6DDD8;
     --accent: #0F6B4F; --accent-soft: #E3F1EB; --accent-ink: #FFFFFF;
     --warn: #8A5A00; --warn-soft: #FFF4DB; --err: #B42318; --err-soft: #FDECEA; --locked: #F5F7F6;
+    --pos: #0F7A3D; --edited: #FFF8E1;
     --font: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
@@ -22,7 +23,8 @@
   @media (prefers-color-scheme: dark) {
     :root { --bg: #111714; --surface: #19211D; --ink: #E5ECE8; --muted: #93A19A; --line: #2B3530;
       --accent: #4FC39A; --accent-soft: #1C3229; --accent-ink: #0B1310;
-      --warn: #F2C063; --warn-soft: #33290F; --err: #F28B82; --err-soft: #3A1D1B; --locked: #151C18; }
+      --warn: #F2C063; --warn-soft: #33290F; --err: #F28B82; --err-soft: #3A1D1B; --locked: #151C18;
+      --pos: #5CD08E; --edited: #2E2A16; }
   }
   *, *::before, *::after { box-sizing: inherit; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
@@ -31,28 +33,41 @@
   .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
   .num { font-variant-numeric: tabular-nums; }
 
-  header { display: flex; align-items: center; gap: 12px; padding: 8px 0 18px; }
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 0 14px; }
   header h1 { margin: 0; font-size: 1.4rem; flex: 1; }
 
   button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface);
-    color: var(--ink); border-radius: 8px; padding: 8px 14px; min-height: 44px; }
+    color: var(--ink); border-radius: 8px; padding: 8px 14px; min-height: 40px; }
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
   button.link { border: 0; background: none; color: var(--accent); padding: 0; min-height: 0; text-decoration: underline; }
-  button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   textarea { font: inherit; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
     color: var(--ink); padding: 8px 10px; }
 
-  .step { margin-bottom: 24px; }
-  .step h2 { font-size: 1.05rem; margin: 0 0 2px; }
-  .step h2 .n { color: var(--accent); margin-right: 6px; }
+  /* Collapsible sections */
+  .sec { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; }
+  .sec-head { width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: none;
+    padding: 12px 16px; min-height: 52px; text-align: left; border-radius: 12px; }
+  .sec-head .n { color: var(--accent); font-weight: 700; }
+  .sec-head .t { font-weight: 600; font-size: 1.05rem; }
+  .sec-head .sum { color: var(--muted); font-size: .9rem; flex: 1; }
+  .sec-head .chev { color: var(--muted); transition: transform .15s; }
+  .sec.closed .chev { transform: rotate(-90deg); }
+  .sec.closed .sec-body { display: none; }
+  .sec-body { padding: 0 16px 16px; }
+  @media (prefers-reduced-motion: reduce) { .sec-head .chev { transition: none; } }
+
   .hint { color: var(--muted); font-size: .85rem; margin: 0 0 8px; }
   .note { font-size: .85rem; margin: 6px 0 0; color: var(--muted); }
+  .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .bar .grow { flex: 1; }
 
   #tender { height: calc(3 * 1.5em + 18px); resize: none; overflow-y: auto; white-space: pre; font-size: .9rem; }
 
-  .boxes { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-bottom: 10px; }
-  .box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
-  .box-head { display: flex; justify-content: space-between; align-items: center; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+  .boxes { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); margin-bottom: 10px; }
+  .box { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+  .box-head { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+  .box-head span { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .box-head button { min-height: 24px; min-width: 24px; padding: 0 6px; font-size: .8rem; line-height: 1; }
   .box textarea { height: 36px; resize: none; overflow: hidden; white-space: pre; font-size: .8rem; padding: 7px 8px; }
   .box textarea[readonly] { background: var(--locked); color: var(--muted); cursor: default; }
@@ -62,19 +77,38 @@
   .box.bad .meta { color: var(--err); font-weight: 600; }
   .np-help { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: .9rem; }
 
-  .results-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-  .results-head h2 { flex: 1; margin: 0; }
   .alert { background: var(--err-soft); color: var(--err); border: 2px solid var(--err); border-radius: 12px;
-    padding: 14px 16px; font-size: 1.1rem; font-weight: 700; margin-bottom: 14px; }
-  .total { background: var(--surface); border: 2px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
-  .total .kv .v { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
-  .total .kv .k { font-weight: 600; }
-  .missing { margin-bottom: 14px; }
+    padding: 14px 16px; font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; }
   .msg-err { color: var(--err); font-weight: 600; margin-bottom: 6px; }
   .msg-warn { color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 4px 8px; margin-top: 6px; font-size: .85rem; }
+  .missing { margin: 0 0 12px; }
+  .empty { color: var(--muted); padding: 20px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
 
+  /* Collection days + table */
+  .wd { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .wd .lbl { font-size: .9rem; color: var(--muted); margin-right: 4px; }
+  .wd button { min-height: 34px; padding: 4px 10px; font-size: .85rem; }
+  .wd button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .tbl-wrap { overflow-x: auto; }
+  table.cc { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 620px; }
+  table.cc th { text-align: right; font-weight: 600; color: var(--muted); font-size: .85rem; padding: 8px 10px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+  table.cc th:first-child, table.cc td:first-child { text-align: left; }
+  table.cc td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  table.cc tr.red td { background: var(--err-soft); }
+  table.cc tr.coll td { font-weight: 600; }
+  table.cc input { font: inherit; width: 120px; text-align: right; border: 1px solid var(--line); border-radius: 6px;
+    padding: 4px 8px; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
+  table.cc td.edited input { background: var(--edited); border-color: var(--warn); }
+  table.cc .reset { min-height: 26px; min-width: 26px; padding: 0 6px; margin-left: 4px; font-size: .85rem; visibility: hidden; }
+  table.cc td.edited .reset { visibility: visible; }
+  .pos { color: var(--pos); font-weight: 600; }
+  .neg { color: var(--err); font-weight: 600; }
+  .inc { color: var(--err); }
+  .tot { font-size: 1.05rem; font-weight: 700; color: var(--accent); }
+
+  /* Day cards */
   .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .card { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .card.red { border: 2px solid var(--err); }
   .card h3 { margin: 0; padding: 10px 14px; font-size: 1.05rem; background: var(--accent-soft);
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -96,7 +130,6 @@
   .devices td { padding: 4px 0; border-top: 1px solid var(--line); }
   .devices tr.odd td { color: var(--err); font-weight: 600; }
   .devices a { color: var(--accent); }
-  .empty { color: var(--muted); padding: 24px; text-align: center; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; }
 
   .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
     background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; }
@@ -111,30 +144,45 @@
     <button id="clearBtn">Clear all</button>
   </header>
 
-  <section class="step">
-    <h2><span class="n">1</span>Tender</h2>
-    <p class="hint">Paste the three columns as they are: date, tender type, amount.</p>
-    <textarea id="tender" placeholder="2026-09-28	SAR_CURRENCY	3965.47" spellcheck="false" wrap="off"></textarea>
-    <p class="note" id="tenderStatus"></p>
-  </section>
-
-  <section class="step">
-    <h2><span class="n">2</span>Terminals</h2>
-    <p class="hint">Reconciliations before 6:00 AM are counted for the previous day.</p>
-    <div class="boxes" id="rows"></div>
-    <button class="primary" id="addBtn">Add terminal</button>
-    <p class="note"><button class="link" id="npToggle">Using NearPay?</button></p>
-    <div class="np-help" id="npHelp" hidden>
-      Open the reconciliation link, long-press the text, choose Select all, then Copy, and paste the full text into a terminal box. It is detected automatically.
+  <section class="sec" data-sec="tender">
+    <button class="sec-head" aria-expanded="true"><span class="n">1</span><span class="t">Tender</span><span class="sum" id="sum-tender"></span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <p class="hint">Paste the three columns as they are: date, tender type, amount.</p>
+      <textarea id="tender" placeholder="2026-09-28	SAR_CURRENCY	3965.47" spellcheck="false" wrap="off"></textarea>
+      <p class="note" id="tenderStatus"></p>
     </div>
   </section>
 
-  <section class="step">
-    <div class="results-head">
-      <h2><span class="n">3</span>Results</h2>
-      <button id="copyBtn">Copy table</button>
+  <section class="sec" data-sec="terminals">
+    <button class="sec-head" aria-expanded="true"><span class="n">2</span><span class="t">Terminals</span><span class="sum" id="sum-terminals"></span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <p class="hint">Reconciliations before 6:00 AM are counted for the previous day.</p>
+      <div class="boxes" id="rows"></div>
+      <button class="primary" id="addBtn">Add terminal</button>
+      <p class="note"><button class="link" id="npToggle">Using NearPay?</button></p>
+      <div class="np-help" id="npHelp" hidden>
+        Open the NearPay reconciliation link, press Ctrl+A to select the whole page, then Ctrl+C (or right-click and choose Copy), and paste it into a terminal box. It is detected automatically.
+      </div>
     </div>
-    <div id="results"></div>
+  </section>
+
+  <section class="sec" data-sec="collection">
+    <button class="sec-head" aria-expanded="true"><span class="n">3</span><span class="t">Cash Collection</span><span class="sum" id="sum-collection"></span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <div class="bar">
+        <div class="wd grow" id="weekdays"><span class="lbl">Collection days:</span></div>
+        <button id="copyCcBtn">Copy table</button>
+      </div>
+      <div id="ccOut"></div>
+    </div>
+  </section>
+
+  <section class="sec" data-sec="days">
+    <button class="sec-head" aria-expanded="true"><span class="n">4</span><span class="t">Days</span><span class="sum" id="sum-days"></span><span class="chev">▾</span></button>
+    <div class="sec-body">
+      <div class="bar"><span class="grow"></span><button id="copyBtn">Copy details</button></div>
+      <div id="results"></div>
+    </div>
   </section>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -267,20 +315,53 @@ async function parseNetwork(input) {
 
 const $ = (id) => document.getElementById(id);
 const money = (c) => (c / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const plain = (c) => (c / 100).toFixed(2);
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const showDate = (iso) => { const [y, m, d] = iso.split("-"); return `${d}-${MONTHS[+m - 1]}-${y}`; };
+const weekday = (iso) => new Date(iso + "T00:00:00Z").getUTCDay();
+const addDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const STORE = "cashcalc:v1";
 
 let tender = { days: {}, bad: 0 };
 let rows = [], nextId = 1;
+let state = { collected: {}, colDays: [], closed: [] };
+let cc = { rows: [], dayMap: {} };
 
 function toast(msg) {
   const t = $("toast"); t.textContent = msg; t.classList.add("show");
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800);
 }
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ tender: $("tender").value, inputs: rows.map((r) => r.ta.value) })); } catch {}
+  try {
+    localStorage.setItem(STORE, JSON.stringify({ tender: $("tender").value, inputs: rows.map((r) => r.ta.value), ...state }));
+  } catch {}
+}
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = el("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
+  toast(msg);
+}
+
+// ----- Collapsible sections -----
+document.querySelectorAll(".sec").forEach((sec) => {
+  const head = sec.querySelector(".sec-head");
+  head.onclick = () => {
+    const closed = sec.classList.toggle("closed");
+    head.setAttribute("aria-expanded", String(!closed));
+    const k = sec.dataset.sec;
+    state.closed = state.closed.filter((x) => x !== k);
+    if (closed) state.closed.push(k);
+    save();
+  };
+});
+function applyClosed() {
+  document.querySelectorAll(".sec").forEach((sec) => {
+    const closed = state.closed.includes(sec.dataset.sec);
+    sec.classList.toggle("closed", closed);
+    sec.querySelector(".sec-head").setAttribute("aria-expanded", String(!closed));
+  });
 }
 
 // ----- Tender -----
@@ -290,6 +371,7 @@ function onTender() {
   let s = n ? `Read ${n} ${n === 1 ? "day" : "days"}.` : "";
   if (tender.bad) s += ` ${tender.bad} unrecognized ${tender.bad === 1 ? "line" : "lines"} ignored.`;
   $("tenderStatus").textContent = s;
+  $("sum-tender").textContent = n ? `${n} ${n === 1 ? "day" : "days"}` : "";
   save(); renderResults();
 }
 let tTimer; $("tender").addEventListener("input", () => { clearTimeout(tTimer); tTimer = setTimeout(onTender, 250); });
@@ -320,8 +402,8 @@ function addRow(value = "", focus = false) {
 }
 
 async function processRow(r, fromUser) {
-  const seq = ++r.seq, v = r.ta.value.trim();
   if (r.ta.readOnly) return;
+  const seq = ++r.seq, v = r.ta.value.trim();
   r.result = null; r.error = null;
   if (v) {
     r.loading = true; refresh();
@@ -339,27 +421,28 @@ async function processRow(r, fromUser) {
 }
 
 function refresh() {
-  const seen = new Set();
-  rows.forEach((r, i) => {
-    r.label.textContent = `Terminal ${i + 1}`;
+  const seen = new Set(), termNo = {};
+  let n = 0, ok = 0, bad = 0;
+  rows.forEach((r) => {
     r.dup = false;
     if (r.result) {
       const key = `${r.result.terminal}|${r.result.date}|${r.result.time}`;
       if (seen.has(key)) r.dup = true; else seen.add(key);
+      if (!(r.result.terminal in termNo)) termNo[r.result.terminal] = ++n;
     }
     r.box.classList.remove("ok", "bad");
+    r.label.textContent = r.result ? `Terminal ${termNo[r.result.terminal]} (${r.result.terminal || "?"})` : "New";
     if (r.loading) r.meta.textContent = "Reading…";
-    else if (r.error) { r.box.classList.add("bad"); r.meta.textContent = r.error; }
-    else if (r.dup) { r.box.classList.add("bad"); r.meta.textContent = "Duplicated link"; }
-    else if (r.result) {
-      r.box.classList.add("ok");
-      r.meta.textContent = `${r.result.terminal || "?"} · ${r.result.date} · ${r.result.time.slice(0, 5)}`;
-    } else r.meta.textContent = "";
+    else if (r.error) { bad++; r.box.classList.add("bad"); r.meta.textContent = r.error; }
+    else if (r.dup) { bad++; r.box.classList.add("bad"); r.meta.textContent = "Duplicated link"; }
+    else if (r.result) { ok++; r.box.classList.add("ok"); r.meta.textContent = `${r.result.date} ${r.result.time.slice(0, 5)}`; }
+    else r.meta.textContent = "";
   });
+  $("sum-terminals").textContent = ok || bad ? `${ok} read` + (bad ? `, ${bad} with errors` : "") : "";
   renderResults();
 }
 
-// ----- Results -----
+// ----- Calculations -----
 function computeDays() {
   const valid = rows.filter((r) => r.result && !r.dup).map((r) => ({ ...r.result, bd: businessDate(r.result.date, r.result.time) }));
   const counts = {};
@@ -384,30 +467,28 @@ function computeDays() {
   return { days, blocked, pharmacies, main };
 }
 
+function blockedAlert(pharmacies) {
+  const who = pharmacies.length === 2 ? "two pharmacies" : "multiple pharmacies";
+  return el("div", "alert", `Not calculated: terminals from ${who}: ${pharmacies.join(" and ")}`);
+}
+
 function kv(k, v, cls) {
   const d = el("div", "kv" + (cls ? " " + cls : ""));
   d.append(el("span", "k", k), el("span", "v num", v));
   return d;
 }
 
+// ----- Section 4: day cards -----
 function renderResults() {
   const out = $("results"); out.innerHTML = "";
-  const { days, blocked, pharmacies, main } = computeDays();
+  const calc = computeDays();
+  const { days, blocked, pharmacies, main } = calc;
   $("copyBtn").hidden = !days.length;
   const shown = days.filter((d) => d.devices.length).reverse();
-  const missing = days.filter((d) => !d.devices.length && !d.noTender).reverse();
-  if (!shown.length && !missing.length) { out.append(el("div", "empty", "Paste Tender data and terminal links to see results.")); return; }
-
-  if (blocked) {
-    const who = pharmacies.length === 2 ? "two pharmacies" : "multiple pharmacies";
-    out.append(el("div", "alert", `Not calculated: terminals from ${who}: ${pharmacies.join(" and ")}`));
-  } else if (shown.length) {
-    const tot = el("div", "total");
-    tot.append(kv("Total Expected Cash", money(shown.reduce((a, d) => a + (d.expected || 0), 0))));
-    out.append(tot);
-  }
-  if (missing.length)
-    out.append(el("div", "msg-warn missing", "Tender days without terminals: " + missing.map((d) => showDate(d.date)).join(", ")));
+  $("sum-days").textContent = shown.length ? `${shown.length} ${shown.length === 1 ? "day" : "days"}` : "";
+  renderCollection(calc);
+  if (!shown.length) { out.append(el("div", "empty", "Add terminal links to see the days here.")); return; }
+  if (blocked) out.append(blockedAlert(pharmacies));
 
   const cards = el("div", "cards");
   for (const d of shown) {
@@ -454,24 +535,141 @@ function renderResults() {
   out.append(cards);
 }
 
-$("copyBtn").onclick = async () => {
+// ----- Section 3: cash collection -----
+function buildWeekdays() {
+  const box = $("weekdays");
+  WD.forEach((name, i) => {
+    const b = el("button", null, name);
+    b.setAttribute("aria-pressed", String(state.colDays.includes(i)));
+    b.onclick = () => {
+      state.colDays = state.colDays.includes(i) ? state.colDays.filter((x) => x !== i) : [...state.colDays, i].sort();
+      b.setAttribute("aria-pressed", String(state.colDays.includes(i)));
+      save(); renderCollection(computeDays());
+    };
+    box.append(b);
+  });
+}
+
+// Dates covered by the collection on `date`: from the previous collection day up to the day before.
+function collectionRange(date) {
+  let k = 1;
+  while (k < 7 && !state.colDays.includes(weekday(addDays(date, -k)))) k++;
+  return Array.from({ length: k }, (_, i) => addDays(date, -k + i));
+}
+
+const collectedValue = (date) => date in state.collected ? state.collected[date]
+  : (cc.dayMap[date] && cc.dayMap[date].expected != null ? cc.dayMap[date].expected : null);
+
+function renderCollection({ days, blocked, pharmacies }) {
+  const out = $("ccOut"); out.innerHTML = "";
+  $("sum-collection").textContent = state.colDays.length
+    ? "Collection: " + state.colDays.map((i) => WD[i]).join(", ") : "No collection days selected";
+  const data = days.filter((d) => d.devices.length);
+  cc = { rows: [], dayMap: Object.fromEntries(data.map((d) => [d.date, d])) };
+  $("copyCcBtn").hidden = !data.length;
+
+  if (blocked) out.append(blockedAlert(pharmacies));
+  const missing = days.filter((d) => !d.devices.length && !d.noTender).reverse();
+  if (missing.length)
+    out.append(el("div", "msg-warn missing", "Tender days without terminals: " + missing.map((d) => showDate(d.date)).join(", ")));
+  if (!data.length) { out.append(el("div", "empty", "Add terminal links to see the collection table.")); return; }
+  if (!state.colDays.length) out.append(el("p", "hint", "Select the collection days above to calculate Total Cash Collection."));
+
+  const dates = new Set(data.map((d) => d.date));
+  if (state.colDays.length) {
+    const first = data[0].date, last = data[data.length - 1].date;
+    for (let d = addDays(first, 1); d <= addDays(last, 7); d = addDays(d, 1))
+      if (state.colDays.includes(weekday(d)) && collectionRange(d).some((x) => cc.dayMap[x])) dates.add(d);
+  }
+
+  const wrap = el("div", "tbl-wrap"), table = el("table", "cc");
+  const hr = el("tr");
+  ["Date", "Expected Cash", "Cash Collected", "Difference", "Total Cash Collection"].forEach((x) => hr.append(el("th", null, x)));
+  table.append(hr);
+
+  [...dates].sort().reverse().forEach((date) => {
+    const day = cc.dayMap[date];
+    const isColl = state.colDays.includes(weekday(date));
+    const tr = el("tr", [day && day.noTender ? "red" : "", isColl ? "coll" : ""].join(" ").trim() || null);
+    const row = { date, day, isColl };
+    tr.append(el("td", "num", `${WD[weekday(date)]} ${showDate(date)}`));
+    tr.append(el("td", "num", day && day.expected != null ? money(day.expected) : "—"));
+
+    const cCell = el("td", "num");
+    if (day) {
+      const def = () => day.expected != null ? plain(day.expected) : "";
+      const inp = el("input"); inp.inputMode = "decimal"; inp.setAttribute("aria-label", `Cash collected ${showDate(date)}`);
+      inp.value = date in state.collected ? plain(state.collected[date]) : def();
+      const reset = el("button", "reset", "↺"); reset.title = "Reset to expected cash"; reset.setAttribute("aria-label", "Reset");
+      if (date in state.collected) cCell.classList.add("edited");
+      inp.addEventListener("input", () => {
+        const v = inp.value.trim(), c = toCents(v);
+        if (!v) { delete state.collected[date]; cCell.classList.remove("edited"); }
+        else if (c != null) { state.collected[date] = c; cCell.classList.add("edited"); }
+        save(); updateCollection();
+      });
+      inp.addEventListener("change", () => { if (!inp.value.trim()) inp.value = def(); });
+      reset.onclick = () => { delete state.collected[date]; inp.value = def(); cCell.classList.remove("edited"); save(); updateCollection(); };
+      cCell.append(inp, reset);
+    } else cCell.textContent = "—";
+    tr.append(cCell);
+
+    row.diff = el("td", "num"); row.total = el("td", "num");
+    tr.append(row.diff, row.total);
+    table.append(tr);
+    cc.rows.push(row);
+  });
+  wrap.append(table); out.append(wrap);
+  updateCollection();
+}
+
+function updateCollection() {
+  for (const r of cc.rows) {
+    const exp = r.day ? r.day.expected : null, col = r.day ? collectedValue(r.date) : null;
+    r.diffVal = exp != null && col != null ? col - exp : null;
+    r.diff.className = "num" + (r.diffVal > 0 ? " pos" : r.diffVal < 0 ? " neg" : "");
+    r.diff.textContent = r.diffVal == null ? "" : (r.diffVal > 0 ? "+" : "") + money(r.diffVal);
+
+    r.total.innerHTML = ""; r.totalVal = null; r.totalMissing = [];
+    if (!r.isColl) continue;
+    const range = collectionRange(r.date);
+    let sum = 0;
+    range.forEach((d) => { const v = cc.dayMap[d] ? collectedValue(d) : null; if (v == null) r.totalMissing.push(d); else sum += v; });
+    r.totalVal = sum;
+    const s = el("span", "tot", money(sum));
+    r.total.append(s);
+    if (r.totalMissing.length) {
+      s.classList.add("inc");
+      const star = el("span", "inc", " *");
+      star.title = "Incomplete, missing: " + r.totalMissing.map(showDate).join(", ");
+      r.total.title = star.title;
+      r.total.append(star);
+    }
+  }
+}
+
+$("copyCcBtn").onclick = () => {
+  const head = ["Date", "Expected Cash", "Cash Collected", "Difference", "Total Cash Collection"];
+  const val = (c) => c == null ? "" : plain(c);
+  const lines = [head.join("\t"), ...cc.rows.map((r) => [showDate(r.date),
+    val(r.day ? r.day.expected : null), val(r.day ? collectedValue(r.date) : null), val(r.diffVal), val(r.totalVal)].join("\t"))];
+  copyText(lines.join("\n"), "Table copied. Paste it into Excel or Google Sheets.");
+};
+
+$("copyBtn").onclick = () => {
   const { days } = computeDays();
   const head = ["Date", "Expected Cash", "Total Plastic", "Other Sales", ...BRANDS.map(([, l]) => l)];
   const val = (c) => c == null ? "" : (c / 100).toFixed(2);
   const lines = [head.join("\t"), ...days.map((d) => [showDate(d.date), val(d.expected), val(d.plastic), val(d.other),
     ...BRANDS.map(([k]) => val(d.brands[k]))].join("\t"))];
-  const text = lines.join("\n");
-  try { await navigator.clipboard.writeText(text); }
-  catch { const t = el("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
-  toast("Table copied. Paste it into Excel or Google Sheets.");
+  copyText(lines.join("\n"), "Table copied. Paste it into Excel or Google Sheets.");
 };
 
 $("addBtn").onclick = () => addRow("", true);
 $("npToggle").onclick = () => { $("npHelp").hidden = !$("npHelp").hidden; };
 $("clearBtn").onclick = () => {
-  if (!confirm("Clear all data and links?")) return;
-  $("tender").value = ""; rows.forEach((r) => r.box.remove()); rows = [];
-  try { localStorage.removeItem(STORE); } catch {}
+  if (!confirm("Clear all data, links and collected amounts?")) return;
+  $("tender").value = ""; rows.forEach((r) => r.box.remove()); rows = []; state.collected = {};
   addRow(); onTender();
 };
 
@@ -480,9 +678,13 @@ $("clearBtn").onclick = () => {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
   if (saved) {
+    state.collected = saved.collected || {};
+    state.colDays = saved.colDays || [];
+    state.closed = saved.closed || [];
     $("tender").value = saved.tender || "";
-    (saved.inputs || []).filter((v) => v.trim()).forEach((v) => addRow(v));
   }
+  applyClosed(); buildWeekdays();
+  if (saved) (saved.inputs || []).filter((v) => v.trim()).forEach((v) => addRow(v));
   if (!rows.length || rows[rows.length - 1].ta.value.trim()) addRow();
   onTender();
 })();
