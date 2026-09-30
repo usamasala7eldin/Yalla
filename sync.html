@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>صفحة مؤقتة</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏳</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  :root {
+    --bg: #EEF1F4; --surface: #FFFFFF; --ink: #1B2430; --muted: #6B7684; --line: #D5DBE2;
+    --accent: #1F6F78; --accent-ink: #FFFFFF; --warn: #B45309; --danger: #B3261E;
+    --font: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #12171D; --surface: #1A2129; --ink: #E6EAEE; --muted: #8C97A4; --line: #2A333D;
+      --accent: #5FB3BC; --accent-ink: #0E1418; --warn: #F59E0B; --danger: #F2837B; }
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
+  body { line-height: 1.6; }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  .num { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); border-radius: 10px; padding: 8px 14px; min-height: 44px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  header h1 { margin: 0; font-size: 1.4rem; flex: 1; }
+  .timer { display: flex; align-items: baseline; gap: 8px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 6px 14px; }
+  .timer small { color: var(--muted); }
+  .timer b { font-size: 1.4rem; }
+  .timer.warn { border-color: var(--warn); color: var(--warn); }
+
+  .layout { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .layout { grid-template-columns: 1fr 240px; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .panel h2 { font-size: 1rem; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .panel h2 .grow { flex: 1; }
+  .status { color: var(--muted); font-size: .85rem; font-weight: 400; }
+
+  #text { font: inherit; width: 100%; min-height: 220px; resize: vertical; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px; background: var(--bg); color: var(--ink); font-size: 1.05rem; line-height: 1.8; }
+
+  details.qr summary { cursor: pointer; font-weight: 600; min-height: 32px; }
+  .qr-img { display: block; width: 200px; max-width: 100%; margin: 10px auto; background: #fff; padding: 6px; border-radius: 8px; image-rendering: pixelated; }
+  .qr p { color: var(--muted); font-size: .85rem; margin: 4px 0 10px; text-align: center; }
+  .qr button { width: 100%; }
+
+  .imgs-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .imgs-bar .hint { color: var(--muted); font-size: .85rem; flex: 1; }
+  .grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+  .card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; cursor: zoom-in; }
+  .card .acts { display: flex; gap: 4px; padding: 6px; }
+  .card .acts button { flex: 1; min-height: 36px; padding: 4px; font-size: .85rem; }
+  .card .acts .danger { color: var(--danger); }
+  .empty { color: var(--muted); text-align: center; padding: 18px; border: 1px dashed var(--line); border-radius: 10px; font-size: .9rem; }
+  .drop { outline: 3px dashed var(--accent); outline-offset: -6px; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+  .overlay .box { background: var(--surface); border-radius: 14px; padding: 24px; max-width: 360px; text-align: center; }
+  .overlay h2 { margin: 0 0 8px; font-size: 1.2rem; }
+  .overlay p { margin: 0 0 16px; color: var(--muted); }
+  #viewer { background: rgba(0,0,0,.92); z-index: 30; }
+  #viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 40; }
+  .toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>صفحة مؤقتة</h1>
+    <div class="timer" id="timer"><small>تُحذف بعد</small><b class="num" id="left">--:--</b></div>
+    <button id="newBtn">صفحة جديدة</button>
+  </header>
+
+  <div class="layout">
+    <div>
+      <section class="panel">
+        <h2><span class="grow">النص</span><span class="status" id="status"></span>
+          <button id="copyText">نسخ النص</button></h2>
+        <textarea id="text" placeholder="اكتب هنا، وسيظهر على الجهاز الآخر فورًا." maxlength="200000"></textarea>
+      </section>
+
+      <section class="panel" style="margin-top:16px" id="imgsPanel">
+        <div class="imgs-bar">
+          <button class="primary" id="addImg">إضافة صور</button>
+          <span class="hint">أو الصق صورة بـ Ctrl+V، أو اسحبها إلى هنا.</span>
+        </div>
+        <input type="file" id="imgInput" accept="image/*" multiple hidden>
+        <ul class="grid" id="grid"></ul>
+        <p class="empty" id="imgEmpty">لا توجد صور.</p>
+      </section>
+    </div>
+
+    <aside class="panel">
+      <details class="qr" id="qrBox">
+        <summary>افتح الصفحة على جهاز آخر</summary>
+        <img class="qr-img" id="qrImg" alt="رمز QR لرابط الصفحة">
+        <p>امسح الرمز بكاميرا الجوال.</p>
+        <button id="copyLink">نسخ الرابط</button>
+      </details>
+    </aside>
+  </div>
+</div>
+
+<div class="overlay" id="expired" hidden>
+  <div class="box">
+    <h2>انتهت صلاحية الصفحة</h2>
+    <p>حُذف كل ما فيها من نص وصور.</p>
+    <button class="primary" id="newBtn2">صفحة جديدة</button>
+  </div>
+</div>
+<div class="overlay" id="errorBox" hidden>
+  <div class="box">
+    <h2>تعذّر الاتصال</h2>
+    <p>تحقّق من الإنترنت ثم أعد تحميل الصفحة.</p>
+    <button class="primary" onclick="location.reload()">إعادة التحميل</button>
+  </div>
+</div>
+<div class="overlay" id="viewer" hidden><img alt=""></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, collection, setDoc, getDoc, getDocs, addDoc, updateDoc, onSnapshot,
+  query, orderBy, serverTimestamp, Timestamp, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ===== Paste your Firebase config here =====
+const firebaseConfig = {
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  storageBucket: "PASTE_HERE",
+  messagingSenderId: "PASTE_HERE",
+  appId: "PASTE_HERE"
+};
+// ===========================================
+
+const db = getFirestore(initializeApp(firebaseConfig));
+const TTL = 5 * 60 * 1000, MAX_IMAGES = 6, MAX_IMG = 880_000, KEY = "temp-page:id";
+const $ = (id) => document.getElementById(id);
+
+let pageId = null, expiresAt = 0, unsubs = [], images = [], expired = true, uploading = 0, lastLocal = 0, saveTimer = null;
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800);
+}
+function randomId() {
+  const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  return [...crypto.getRandomValues(new Uint8Array(22))].map((x) => a[x % a.length]).join("");
+}
+const pageRef = (id = pageId) => doc(db, "pages", id);
+const imgCol = (id = pageId) => collection(db, "pages", id, "images");
+const pageUrl = () => location.origin + location.pathname + "#" + pageId;
+
+// ----- Page lifecycle -----
+function stop() { unsubs.forEach((u) => u()); unsubs = []; clearTimeout(saveTimer); }
+
+function resetUi() {
+  $("text").value = ""; $("status").textContent = ""; images = []; renderImages();
+  $("expired").hidden = true;
+}
+
+async function deletePage(id) {
+  const snap = await getDocs(imgCol(id));
+  const b = writeBatch(db);
+  snap.forEach((d) => b.delete(d.ref));
+  b.delete(pageRef(id));
+  await b.commit();
+}
+
+async function createPage() {
+  stop(); resetUi();
+  pageId = randomId(); expiresAt = Date.now() + TTL;
+  try {
+    await setDoc(pageRef(), { text: "", createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
+  } catch { $("errorBox").hidden = false; return; }
+  start();
+}
+
+async function openPage(id, fromLink) {
+  stop(); resetUi(); pageId = id;
+  try {
+    const s = await getDoc(pageRef());
+    const ok = s.exists() && s.data().expiresAt && s.data().expiresAt.toMillis() > Date.now();
+    if (!ok) {
+      if (s.exists()) deletePage(id).catch(() => {});
+      if (fromLink) { history.replaceState(null, "", "#" + id); return showExpired(); }
+      return createPage();
+    }
+    expiresAt = s.data().expiresAt.toMillis();
+    $("text").value = s.data().text || "";
+  } catch { $("errorBox").hidden = false; return; }
+  start();
+}
+
+function start() {
+  expired = false;
+  history.replaceState(null, "", "#" + pageId);
+  try { localStorage.setItem(KEY, pageId); } catch {}
+  renderQr(); tick();
+  unsubs.push(onSnapshot(pageRef(), (s) => {
+    if (!s.exists()) { expire(false); return; }
+    if (s.metadata.hasPendingWrites) return;
+    const t = s.data().text || "";
+    if (Date.now() - lastLocal > 1500 && $("text").value !== t) $("text").value = t;
+  }, () => {}));
+  unsubs.push(onSnapshot(query(imgCol(), orderBy("createdAt")), (s) => {
+    images = s.docs.map((d) => ({ id: d.id, ref: d.ref, ...d.data() }));
+    renderImages();
+  }, () => {}));
+}
+
+function showExpired() {
+  expired = true; stop();
+  $("left").textContent = "0:00"; $("timer").classList.add("warn");
+  $("expired").hidden = false;
+}
+
+function expire(doDelete = true) {
+  if (expired) return;
+  const id = pageId;
+  showExpired();
+  if (doDelete) deletePage(id).catch(() => {});
+}
+
+async function newPage(ask) {
+  if (ask && !expired && !confirm("سيُحذف كل محتوى هذه الصفحة. هل تريد المتابعة؟")) return;
+  const old = pageId;
+  expired = true; stop();
+  if (old) deletePage(old).catch(() => {});
+  await createPage();
+}
+$("newBtn").onclick = () => newPage(true);
+$("newBtn2").onclick = () => newPage(false);
+
+function tick() {
+  if (expired) return;
+  const left = expiresAt - Date.now();
+  if (left <= 0) { expire(); return; }
+  const s = Math.ceil(left / 1000);
+  $("left").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  $("timer").classList.toggle("warn", s <= 60);
+}
+setInterval(tick, 1000);
+
+window.addEventListener("hashchange", () => {
+  const id = location.hash.slice(1);
+  if (id && id !== pageId) openPage(id, true);
+});
+
+// ----- QR -----
+function renderQr() {
+  try {
+    const qr = qrcode(0, "M"); qr.addData(pageUrl()); qr.make();
+    $("qrImg").src = qr.createDataURL(6, 2);
+  } catch { $("qrImg").alt = "تعذّر إنشاء الرمز"; }
+}
+$("copyLink").onclick = () => copyText(pageUrl(), "نُسخ الرابط");
+if (matchMedia("(min-width: 760px)").matches) $("qrBox").open = true;
+
+// ----- Text -----
+$("text").addEventListener("input", () => {
+  if (expired) return;
+  lastLocal = Date.now(); $("status").textContent = "جارٍ الحفظ…";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try { await updateDoc(pageRef(), { text: $("text").value, updatedAt: serverTimestamp() }); $("status").textContent = "محفوظ"; }
+    catch { $("status").textContent = "تعذّر الحفظ"; }
+  }, 400);
+});
+$("copyText").onclick = () => $("text").value ? copyText($("text").value, "نُسخ النص") : toast("لا يوجد نص للنسخ");
+
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const t = document.createElement("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
+  toast(msg);
+}
+
+// ----- Images -----
+async function compress(file) {
+  const bmp = await createImageBitmap(file);
+  const c = document.createElement("canvas"), ctx = c.getContext("2d");
+  let max = 2000, q = 0.85;
+  for (let i = 0; i < 12; i++) {
+    const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    const data = c.toDataURL("image/jpeg", q);
+    if (data.length <= MAX_IMG) return data;
+    if (q > 0.55) q -= 0.1; else max = Math.round(max * 0.8);
+  }
+  throw new Error("too-large");
+}
+
+async function upload(files) {
+  if (expired) return;
+  files = [...files].filter((f) => f.type.startsWith("image/"));
+  if (!files.length) return;
+  const room = MAX_IMAGES - images.length - uploading;
+  if (room <= 0) { toast(`الحد الأقصى ${MAX_IMAGES} صور لكل صفحة.`); return; }
+  if (files.length > room) { toast(`سيُرفع ${room} فقط؛ الحد الأقصى ${MAX_IMAGES} صور.`); files = files.slice(0, room); }
+  const id = pageId;
+  uploading += files.length; renderImages();
+  let failed = 0;
+  for (const f of files) {
+    try {
+      const data = await compress(f);
+      if (expired || id !== pageId) break;
+      await addDoc(imgCol(id), { data, name: f.name || "image", createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
+    } catch { failed++; }
+    uploading--; renderImages();
+  }
+  uploading = 0; renderImages();
+  if (failed) toast("تعذّر رفع بعض الصور.");
+}
+
+function renderImages() {
+  const grid = $("grid"); grid.innerHTML = "";
+  $("imgEmpty").hidden = images.length > 0 || uploading > 0;
+  $("imgEmpty").textContent = uploading ? "" : "لا توجد صور.";
+  const used = images.length + uploading;
+  $("addImg").textContent = uploading ? "جارٍ الرفع…" : `إضافة صور (${images.length}/${MAX_IMAGES})`;
+  $("addImg").disabled = used >= MAX_IMAGES || expired;
+  for (const im of images) {
+    const li = document.createElement("li"); li.className = "card";
+    const img = document.createElement("img"); img.src = im.data; img.alt = im.name; img.loading = "lazy";
+    img.onclick = () => { $("viewer").querySelector("img").src = im.data; $("viewer").hidden = false; };
+    const acts = document.createElement("div"); acts.className = "acts";
+    const btn = (label, fn, cls) => { const b = document.createElement("button"); b.textContent = label; b.onclick = fn; if (cls) b.className = cls; return b; };
+    acts.append(btn("تنزيل", () => downloadImg(im)), btn("نسخ", () => copyImg(im)),
+      btn("حذف", () => deleteImg(im), "danger"));
+    li.append(img, acts); grid.append(li);
+  }
+}
+
+async function deleteImg(im) {
+  try { const b = writeBatch(db); b.delete(im.ref); await b.commit(); toast("حُذفت الصورة"); }
+  catch { toast("تعذّر حذف الصورة"); }
+}
+
+function downloadImg(im) {
+  const a = document.createElement("a");
+  a.href = im.data; a.download = im.name.replace(/\.[^.]+$/, "") + ".jpg";
+  document.body.append(a); a.click(); a.remove();
+}
+
+async function copyImg(im) {
+  const png = (async () => {
+    const img = new Image(); img.src = im.data; await img.decode();
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext("2d").drawImage(img, 0, 0);
+    return new Promise((r) => c.toBlob(r, "image/png"));
+  })();
+  try { await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]); toast("نُسخت الصورة"); }
+  catch { toast("المتصفح لا يدعم نسخ الصور، استخدم التنزيل."); }
+}
+
+$("addImg").onclick = () => $("imgInput").click();
+$("imgInput").onchange = (e) => { upload(e.target.files); e.target.value = ""; };
+document.addEventListener("paste", (e) => {
+  const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/"));
+  if (files.length) { e.preventDefault(); upload(files); }
+});
+const panel = $("imgsPanel");
+panel.addEventListener("dragover", (e) => { e.preventDefault(); panel.classList.add("drop"); });
+panel.addEventListener("dragleave", () => panel.classList.remove("drop"));
+panel.addEventListener("drop", (e) => { e.preventDefault(); panel.classList.remove("drop"); upload(e.dataTransfer.files); });
+$("viewer").onclick = () => { $("viewer").hidden = true; };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("viewer").hidden = true; });
+
+// ----- Start -----
+(function init() {
+  const fromHash = location.hash.slice(1);
+  let saved = null;
+  try { saved = localStorage.getItem(KEY); } catch {}
+  if (fromHash) openPage(fromHash, true);
+  else if (saved) openPage(saved, false);
+  else createPage();
+})();
+</script>
+</body>
+</html>
