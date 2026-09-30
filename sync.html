@@ -44,6 +44,9 @@
   .timer b { font-size: 1.4rem; }
   .timer.warn { border-color: var(--warn); color: var(--warn); }
 
+  .notice { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line);
+    border-inline-start: 4px solid var(--accent); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: .92rem; }
+  .notice .ic { font-size: 1.2rem; line-height: 1.4; }
   .layout { display: grid; gap: 16px; grid-template-columns: 1fr; }
   @media (min-width: 760px) { .layout { grid-template-columns: 1fr 240px; } }
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
@@ -91,6 +94,10 @@
     <button id="newBtn">صفحة جديدة</button>
   </header>
 
+  <div class="notice"><span class="ic" aria-hidden="true">🔒</span>
+    <span>المحتوى مشفّر على جهازك قبل إرساله، ومفتاحه موجود في الرابط فقط ولا يصل إلى أي خادم. لا يستطيع أحد قراءته، حتى صاحب الموقع، ويُحذف كل شيء بعد 5 دقائق.</span>
+  </div>
+
   <div class="layout">
     <div>
       <section class="panel">
@@ -114,7 +121,7 @@
       <details class="qr" id="qrBox">
         <summary>افتح الصفحة على جهاز آخر</summary>
         <img class="qr-img" id="qrImg" alt="رمز QR لرابط الصفحة">
-        <p>امسح الرمز بكاميرا الجوال.</p>
+        <p>امسح الرمز بكاميرا الجوال. الرابط هو مفتاح الصفحة، فلا تشاركه إلا مع من تثق به.</p>
         <button id="copyLink">نسخ الرابط</button>
       </details>
     </aside>
@@ -124,7 +131,7 @@
 <div class="overlay" id="expired" hidden>
   <div class="box">
     <h2>انتهت صلاحية الصفحة</h2>
-    <p>حُذف كل ما فيها من نص وصور.</p>
+    <p>حُذف كل ما فيها من نص وصور، أو أن الرابط غير صالح.</p>
     <button class="primary" id="newBtn2">صفحة جديدة</button>
   </div>
 </div>
@@ -140,7 +147,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, collection, setDoc, getDoc, getDocs, addDoc, updateDoc, onSnapshot,
+import { getFirestore, doc, collection, setDoc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot,
   query, orderBy, serverTimestamp, Timestamp, writeBatch }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -156,28 +163,65 @@ const firebaseConfig = {
 // ===========================================
 
 const db = getFirestore(initializeApp(firebaseConfig));
-const TTL = 5 * 60 * 1000, MAX_IMAGES = 6, MAX_IMG = 880_000, KEY = "temp-page:id";
+const TTL = 5 * 60 * 1000, MAX_IMAGES = 6, MAX_IMG_BYTES = 640_000, KEY = "temp-page:secret";
 const $ = (id) => document.getElementById(id);
 
-let pageId = null, expiresAt = 0, unsubs = [], images = [], expired = true, uploading = 0, lastLocal = 0, saveTimer = null;
+// ----- Encryption (the secret lives only in the URL fragment, never sent to any server) -----
+const te = new TextEncoder(), td = new TextDecoder();
+function toB64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function fromB64(s) {
+  const bin = atob(s), a = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return a;
+}
+const toB64u = (b) => toB64(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const fromB64u = (s) => fromB64(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - s.length % 4) % 4));
+
+async function derive(secret) {
+  const raw = fromB64u(secret);
+  if (raw.length !== 32) throw new Error("bad-secret");
+  const base = await crypto.subtle.importKey("raw", raw, "HKDF", false, ["deriveBits", "deriveKey"]);
+  const salt = te.encode("temp-page-v1");
+  const idBits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: te.encode("page-id") }, base, 128);
+  const key = await crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: te.encode("content-key") },
+    base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  return { id: toB64u(new Uint8Array(idBits)), key };
+}
+async function encBytes(bytes) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cryptoKey, bytes);
+  return toB64(iv) + "." + toB64(new Uint8Array(ct));
+}
+async function decBytes(str, key = cryptoKey) {
+  const [iv, ct] = str.split(".");
+  return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(iv) }, key, fromB64(ct)));
+}
+const encText = async (s) => s ? encBytes(te.encode(s)) : "";
+const decText = async (s) => s ? td.decode(await decBytes(s)) : "";
+
+// ----- State -----
+let secret = null, pageId = null, cryptoKey = null, expiresAt = 0, unsubs = [], images = [], expired = true;
+let uploading = 0, lastLocal = 0, saveTimer = null, textSeq = 0, imgSeq = 0;
+const imgCache = new Map(); // doc id -> { url, blob }
 
 function toast(msg) {
   const t = $("toast"); t.textContent = msg; t.classList.add("show");
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800);
 }
-function randomId() {
-  const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  return [...crypto.getRandomValues(new Uint8Array(22))].map((x) => a[x % a.length]).join("");
-}
 const pageRef = (id = pageId) => doc(db, "pages", id);
 const imgCol = (id = pageId) => collection(db, "pages", id, "images");
-const pageUrl = () => location.origin + location.pathname + "#" + pageId;
+const pageUrl = () => location.origin + location.pathname + "#" + secret;
 
 // ----- Page lifecycle -----
 function stop() { unsubs.forEach((u) => u()); unsubs = []; clearTimeout(saveTimer); }
 
 function resetUi() {
-  $("text").value = ""; $("status").textContent = ""; images = []; renderImages();
+  $("text").value = ""; $("status").textContent = "";
+  images = []; imgCache.forEach((v) => URL.revokeObjectURL(v.url)); imgCache.clear(); renderImages();
   $("expired").hidden = true;
 }
 
@@ -189,44 +233,67 @@ async function deletePage(id) {
   await b.commit();
 }
 
+async function useSecret(s) {
+  const d = await derive(s);
+  secret = s; pageId = d.id; cryptoKey = d.key;
+}
+
 async function createPage() {
   stop(); resetUi();
-  pageId = randomId(); expiresAt = Date.now() + TTL;
+  await useSecret(toB64u(crypto.getRandomValues(new Uint8Array(32))));
+  expiresAt = Date.now() + TTL;
   try {
     await setDoc(pageRef(), { text: "", createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
   } catch { $("errorBox").hidden = false; return; }
   start();
 }
 
-async function openPage(id, fromLink) {
-  stop(); resetUi(); pageId = id;
+async function openPage(s, fromLink) {
+  stop(); resetUi();
+  try { await useSecret(s); }
+  catch { if (fromLink) return showExpired(); return createPage(); }
   try {
-    const s = await getDoc(pageRef());
-    const ok = s.exists() && s.data().expiresAt && s.data().expiresAt.toMillis() > Date.now();
+    const snap = await getDoc(pageRef());
+    const ok = snap.exists() && snap.data().expiresAt && snap.data().expiresAt.toMillis() > Date.now();
     if (!ok) {
-      if (s.exists()) deletePage(id).catch(() => {});
-      if (fromLink) { history.replaceState(null, "", "#" + id); return showExpired(); }
+      if (snap.exists()) deletePage(pageId).catch(() => {});
+      if (fromLink) return showExpired();
       return createPage();
     }
-    expiresAt = s.data().expiresAt.toMillis();
-    $("text").value = s.data().text || "";
+    expiresAt = snap.data().expiresAt.toMillis();
+    try { $("text").value = await decText(snap.data().text || ""); } catch {}
   } catch { $("errorBox").hidden = false; return; }
   start();
 }
 
 function start() {
   expired = false;
-  history.replaceState(null, "", "#" + pageId);
-  try { localStorage.setItem(KEY, pageId); } catch {}
+  history.replaceState(null, "", "#" + secret);
+  try { localStorage.setItem(KEY, secret); } catch {}
   renderQr(); tick();
-  unsubs.push(onSnapshot(pageRef(), (s) => {
+  unsubs.push(onSnapshot(pageRef(), async (s) => {
     if (!s.exists()) { expire(false); return; }
     if (s.metadata.hasPendingWrites) return;
-    const t = s.data().text || "";
+    const seq = ++textSeq;
+    let t = "";
+    try { t = await decText(s.data().text || ""); } catch { return; }
+    if (seq !== textSeq || expired) return;
     if (Date.now() - lastLocal > 1500 && $("text").value !== t) $("text").value = t;
   }, () => {}));
-  unsubs.push(onSnapshot(query(imgCol(), orderBy("createdAt")), (s) => {
-    images = s.docs.map((d) => ({ id: d.id, ref: d.ref, ...d.data() }));
+  unsubs.push(onSnapshot(query(imgCol(), orderBy("createdAt")), async (s) => {
+    const seq = ++imgSeq;
+    const docs = s.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data().data }));
+    await Promise.all(docs.map(async (d) => {
+      if (imgCache.has(d.id)) return;
+      try {
+        const blob = new Blob([await decBytes(d.data)], { type: "image/jpeg" });
+        imgCache.set(d.id, { blob, url: URL.createObjectURL(blob) });
+      } catch {}
+    }));
+    if (seq !== imgSeq) return;
+    const ids = new Set(docs.map((d) => d.id));
+    imgCache.forEach((v, k) => { if (!ids.has(k)) { URL.revokeObjectURL(v.url); imgCache.delete(k); } });
+    images = docs.filter((d) => imgCache.has(d.id));
     renderImages();
   }, () => {}));
 }
@@ -265,8 +332,8 @@ function tick() {
 setInterval(tick, 1000);
 
 window.addEventListener("hashchange", () => {
-  const id = location.hash.slice(1);
-  if (id && id !== pageId) openPage(id, true);
+  const s = location.hash.slice(1);
+  if (s && s !== secret) openPage(s, true);
 });
 
 // ----- QR -----
@@ -285,7 +352,7 @@ $("text").addEventListener("input", () => {
   lastLocal = Date.now(); $("status").textContent = "جارٍ الحفظ…";
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    try { await updateDoc(pageRef(), { text: $("text").value, updatedAt: serverTimestamp() }); $("status").textContent = "محفوظ"; }
+    try { await updateDoc(pageRef(), { text: await encText($("text").value), updatedAt: serverTimestamp() }); $("status").textContent = "محفوظ"; }
     catch { $("status").textContent = "تعذّر الحفظ"; }
   }, 400);
 });
@@ -307,8 +374,8 @@ async function compress(file) {
     c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(bmp, 0, 0, c.width, c.height);
-    const data = c.toDataURL("image/jpeg", q);
-    if (data.length <= MAX_IMG) return data;
+    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", q));
+    if (blob && blob.size <= MAX_IMG_BYTES) return new Uint8Array(await blob.arrayBuffer());
     if (q > 0.55) q -= 0.1; else max = Math.round(max * 0.8);
   }
   throw new Error("too-large");
@@ -326,11 +393,11 @@ async function upload(files) {
   let failed = 0;
   for (const f of files) {
     try {
-      const data = await compress(f);
+      const data = await encBytes(await compress(f));
       if (expired || id !== pageId) break;
-      await addDoc(imgCol(id), { data, name: f.name || "image", createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
+      await addDoc(imgCol(id), { data, createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
     } catch { failed++; }
-    uploading--; renderImages();
+    uploading = Math.max(0, uploading - 1); renderImages();
   }
   uploading = 0; renderImages();
   if (failed) toast("تعذّر رفع بعض الصور.");
@@ -339,40 +406,39 @@ async function upload(files) {
 function renderImages() {
   const grid = $("grid"); grid.innerHTML = "";
   $("imgEmpty").hidden = images.length > 0 || uploading > 0;
-  $("imgEmpty").textContent = uploading ? "" : "لا توجد صور.";
-  const used = images.length + uploading;
   $("addImg").textContent = uploading ? "جارٍ الرفع…" : `إضافة صور (${images.length}/${MAX_IMAGES})`;
-  $("addImg").disabled = used >= MAX_IMAGES || expired;
-  for (const im of images) {
+  $("addImg").disabled = images.length + uploading >= MAX_IMAGES || expired;
+  images.forEach((im, i) => {
+    const c = imgCache.get(im.id); if (!c) return;
     const li = document.createElement("li"); li.className = "card";
-    const img = document.createElement("img"); img.src = im.data; img.alt = im.name; img.loading = "lazy";
-    img.onclick = () => { $("viewer").querySelector("img").src = im.data; $("viewer").hidden = false; };
+    const img = document.createElement("img"); img.src = c.url; img.alt = `صورة ${i + 1}`;
+    img.onclick = () => { $("viewer").querySelector("img").src = c.url; $("viewer").hidden = false; };
     const acts = document.createElement("div"); acts.className = "acts";
     const btn = (label, fn, cls) => { const b = document.createElement("button"); b.textContent = label; b.onclick = fn; if (cls) b.className = cls; return b; };
-    acts.append(btn("تنزيل", () => downloadImg(im)), btn("نسخ", () => copyImg(im)),
+    acts.append(btn("تنزيل", () => downloadImg(c, i)), btn("نسخ", () => copyImg(c)),
       btn("حذف", () => deleteImg(im), "danger"));
     li.append(img, acts); grid.append(li);
-  }
+  });
 }
 
 async function deleteImg(im) {
-  try { const b = writeBatch(db); b.delete(im.ref); await b.commit(); toast("حُذفت الصورة"); }
+  try { await deleteDoc(im.ref); toast("حُذفت الصورة"); }
   catch { toast("تعذّر حذف الصورة"); }
 }
 
-function downloadImg(im) {
+function downloadImg(c, i) {
   const a = document.createElement("a");
-  a.href = im.data; a.download = im.name.replace(/\.[^.]+$/, "") + ".jpg";
+  a.href = c.url; a.download = `image-${i + 1}.jpg`;
   document.body.append(a); a.click(); a.remove();
 }
 
-async function copyImg(im) {
+async function copyImg(c) {
   const png = (async () => {
-    const img = new Image(); img.src = im.data; await img.decode();
-    const c = document.createElement("canvas");
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
-    c.getContext("2d").drawImage(img, 0, 0);
-    return new Promise((r) => c.toBlob(r, "image/png"));
+    const bmp = await createImageBitmap(c.blob);
+    const cv = document.createElement("canvas");
+    cv.width = bmp.width; cv.height = bmp.height;
+    cv.getContext("2d").drawImage(bmp, 0, 0);
+    return new Promise((r) => cv.toBlob(r, "image/png"));
   })();
   try { await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]); toast("نُسخت الصورة"); }
   catch { toast("المتصفح لا يدعم نسخ الصور، استخدم التنزيل."); }
@@ -395,7 +461,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("viewer"
 (function init() {
   const fromHash = location.hash.slice(1);
   let saved = null;
-  try { saved = localStorage.getItem(KEY); } catch {}
+  try { saved = localStorage.getItem(KEY); localStorage.removeItem("temp-page:id"); } catch {}
   if (fromHash) openPage(fromHash, true);
   else if (saved) openPage(saved, false);
   else createPage();
