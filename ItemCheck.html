@@ -62,13 +62,22 @@ textarea{flex:1;height:58px;border:1px solid var(--border);border-radius:8px;pad
 .chip.done:not(.on){border-color:var(--ok);background:var(--ok-soft)}
 .subs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
 .subs .chip{font-size:14px;padding:5px 11px}
-.toolbar{direction:rtl;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
-.toolbar .count{color:var(--muted);font-size:13px;margin-inline-end:auto}
-.toolbar .f{border-radius:999px;padding:3px 11px;font-size:13px}
-.toolbar .f.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
-.toolbar .f.warnf{color:var(--warn)}
-.toolbar .sep{width:1px;height:24px;background:var(--border)}
-.b-all-print{color:var(--ok);border-color:var(--ok)}
+.toolbar{direction:rtl;display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.tgroup{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tlabel{font-size:12px;color:var(--muted);font-weight:600}
+.toolbar .count{color:var(--muted);font-size:12px}
+/* filters: one segmented control */
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--bg)}
+.seg .f{border:0;border-radius:0;background:transparent;padding:4px 12px;font-size:13px;border-inline-start:1px solid var(--border)}
+.seg .f:first-child{border-inline-start:0}
+.seg .f.on{background:var(--accent);color:#fff;font-weight:600}
+.seg .f.warnf:not(.on){color:var(--warn)}
+/* actions: separate solid buttons */
+.act{font-size:13px;padding:5px 12px;font-weight:600;border-radius:7px}
+.act-print{background:var(--ok);border-color:var(--ok);color:#fff}
+.act-none{background:var(--no);border-color:var(--no);color:#fff}
+.act-clear{background:var(--err);border-color:var(--err);color:#fff}
+.act:hover{filter:brightness(1.08)}
 .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
 table{width:100%;border-collapse:collapse}
 th,td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
@@ -425,12 +434,18 @@ function render(){
   const anyFlags = items.some(it => it.flags.length);
   const f = (k, t, cls = '') => `<button class="f ${cls} ${filter === k ? 'on' : ''}" data-f="${k}">${t}</button>`;
   html += `<div class="toolbar">
-    <span class="count">عدد الأصناف الظاهرة: ${list.length}</span>
-    ${f('all', 'الكل')}${f('pending', 'لم تُراجع')}${f('print', 'تُطبع')}${f('none', 'لا رصيد')}${anyFlags ? f('flags', '⚠ تحذيرات', 'warnf') : ''}
-    <span class="sep"></span>
-    <button class="b-all-print" data-bulk="print">الكل يُطبع</button>
-    <button data-bulk="none">الكل لا رصيد</button>
-    <button data-undo ${lastBulk ? '' : 'disabled'}>تراجع</button>
+    <div class="tgroup">
+      <span class="tlabel">عرض:</span>
+      <div class="seg">${f('all', 'الكل')}${f('pending', 'لم تُراجع')}${f('print', 'تُطبع')}${f('none', 'لا رصيد')}${anyFlags ? f('flags', '⚠ تحذيرات', 'warnf') : ''}</div>
+      <span class="count">(${list.length} صنف)</span>
+    </div>
+    <div class="tgroup">
+      <span class="tlabel">تحديد:</span>
+      <button class="act act-print" data-bulk="print">طباعة الكل</button>
+      <button class="act act-none" data-bulk="none">الكل بدون رصيد</button>
+      <button class="act act-clear" data-bulk="clear">إلغاء تحديد الكل</button>
+      <button class="act" data-undo ${lastBulk ? '' : 'disabled'} title="إلغاء آخر عملية جماعية">Undo</button>
+    </div>
   </div>`;
 
   const priceCols = state.map.oldP >= 0 || state.map.newP >= 0;
@@ -445,19 +460,31 @@ function render(){
 }
 
 // ---------- bulk ----------
+const snapshot = it => ({key: it.key, prevStatus: state.status[it.key], prevSrc: state.src[it.key], prevQty: state.qty[it.key]});
+
 function bulk(value){
   const vis = visibleItems();
+  if(value === 'clear'){
+    const targets = vis.filter(it => state.status[it.key]);
+    if(!targets.length){ alert('لا توجد أصناف محددة ضمن الأصناف الظاهرة.'); return; }
+    if(!confirm(`سيتم إلغاء تحديد ${targets.length} صنفًا من الأصناف الظاهرة، بما فيها المحددة يدويًا، وستعود إلى «لم تُراجع».\n\nهل تريد المتابعة؟`)) return;
+    lastBulk = targets.map(snapshot);
+    for(const it of targets){ delete state.status[it.key]; delete state.src[it.key]; delete state.qty[it.key]; }
+    save(); render();
+    toast(`تم إلغاء تحديد ${targets.length} صنفًا`);
+    return;
+  }
   const targets = vis.filter(it => (!state.status[it.key] || state.src[it.key] === 'bulk') && state.status[it.key] !== value);
   const manual = vis.filter(it => state.status[it.key] && state.src[it.key] !== 'bulk').length;
   if(!targets.length){
     alert(manual ? `لا يوجد ما يتغير. الأصناف الظاهرة إما على هذه الحالة بالفعل أو محددة يدويًا (${manual}).` : 'كل الأصناف الظاهرة على هذه الحالة بالفعل.');
     return;
   }
-  const word = value === 'print' ? '«يُطبع»' : '«لا رصيد»';
+  const word = value === 'print' ? '«يُطبع»' : '«بدون رصيد»';
   let text = `سيتم تحديد ${targets.length} صنفًا على أنها ${word}.`;
   if(manual) text += `\nلن يتغير ${manual} صنفًا حددته يدويًا.`;
   if(!confirm(text + '\n\nهل تريد المتابعة؟')) return;
-  lastBulk = targets.map(it => ({key: it.key, prevStatus: state.status[it.key], prevSrc: state.src[it.key]}));
+  lastBulk = targets.map(snapshot);
   for(const it of targets){ state.status[it.key] = value; state.src[it.key] = 'bulk'; }
   save(); render();
   toast(`تم تحديد ${targets.length} صنفًا`);
@@ -468,6 +495,7 @@ function undoBulk(){
   for(const c of lastBulk){
     if(c.prevStatus){ state.status[c.key] = c.prevStatus; state.src[c.key] = c.prevSrc; }
     else { delete state.status[c.key]; delete state.src[c.key]; }
+    if(c.prevQty) state.qty[c.key] = c.prevQty; else delete state.qty[c.key];
   }
   const n = lastBulk.length; lastBulk = null;
   save(); render();
