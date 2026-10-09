@@ -60,6 +60,12 @@ textarea{flex:1;height:58px;border:1px solid var(--border);border-radius:8px;pad
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .chip.on .n,.chip.on .cp{color:#dbe6ff}
 .chip.done:not(.on){border-color:var(--ok);background:var(--ok-soft)}
+.subhead{direction:rtl;display:flex;align-items:center;gap:8px;margin:-4px 0 10px;padding:6px 10px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none}
+.subhead:hover{border-color:var(--accent);color:var(--text)}
+.subhead .arrow{font-size:12px;width:12px;text-align:center}
+.subhead .selname{direction:ltr;white-space:pre;display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border-radius:6px;padding:2px 4px 2px 10px;font-weight:600}
+.subhead .x{cursor:pointer;padding:0 6px;border-radius:4px;font-size:15px;line-height:1}
+.subhead .x:hover{background:rgba(255,255,255,.25)}
 .subs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
 .subs .chip{font-size:14px;padding:5px 11px}
 .toolbar{direction:rtl;display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
@@ -144,6 +150,7 @@ let state = emptyState();
 let items = [];
 let selBrand = null;    // exact brand text, or null for all
 let selTwo = null;      // exact two-word text, or null
+let subsOpen = false;   // two-word row collapsed by default; stays as the user leaves it
 let filter = 'all';
 let lastCopiedKey = null;
 let lastBulk = null;    // [{key, prevStatus, prevSrc}]
@@ -427,7 +434,10 @@ function render(){
 
   if(selBrand !== null){
     const twos = twoGroups(selBrand);
-    html += '<div class="subs">' + twos.map(g => chipHtml('two', g.name, g.list, selTwo === g.name)).join('') + '</div>';
+    const selTag = (!subsOpen && selTwo !== null)
+      ? `<span class="selname"><span>${esc(selTwo)}</span><span class="x" data-cleartwo title="إلغاء اختيار الاسم الثنائي">×</span></span>` : '';
+    html += `<div class="subhead" data-togglesubs><span class="arrow">${subsOpen ? '▾' : '◂'}</span>الأسماء الثنائية (${twos.length})${selTag}</div>`;
+    if(subsOpen) html += '<div class="subs">' + twos.map(g => chipHtml('two', g.name, g.list, selTwo === g.name)).join('') + '</div>';
   }
 
   const list = visibleItems();
@@ -591,6 +601,8 @@ $('#data').addEventListener('click', async e => {
     toast(ok ? 'تم النسخ: ' + t : 'تعذّر النسخ');
     return;
   }
+  if(e.target.closest('[data-cleartwo]')){ selTwo = null; render(); return; }
+  if(e.target.closest('[data-togglesubs]')){ subsOpen = !subsOpen; render(); return; }
   const chip = e.target.closest('.chip');
   if(chip){
     const kind = chip.dataset.kind, name = chip.dataset.name;
