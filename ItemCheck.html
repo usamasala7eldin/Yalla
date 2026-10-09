@@ -446,7 +446,7 @@ function exportCsv(){
   if(printItems.length >= PAD_TO && !confirm(`عدد الأصناف المختارة (${printItems.length}) يساوي أو يتجاوز ${PAD_TO}، لذلك لن تُضاف صفوف التكملة. هل تريد المتابعة؟`)) return;
 
   const lines = printItems.map(it => `1-TAG,${it.bc},${state.qty[it.key] || 1}`);
-  for(let k = printItems.length + 1; k <= PAD_TO; k++) lines.push(`1-TAG,-${k},1`);
+  //for(let k = printItems.length + 1; k <= PAD_TO; k++) lines.push(`1-TAG,-${k},1`);
   const blob = new Blob([lines.join('\r\n') + '\r\n'], {type:'text/csv'});
   const d = new Date(), pad = n => String(n).padStart(2, '0');
   const a = document.createElement('a');
