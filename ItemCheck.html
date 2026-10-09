@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أداة ملصقات الأسعار</title>
+<style>
+:root{
+  --bg:#f4f5f7;--surface:#ffffff;--text:#1d2330;--muted:#6b7385;--border:#dde1e8;
+  --accent:#2563eb;--accent-soft:#e3ecff;
+  --ok:#15803d;--ok-soft:#dcfce7;--no:#6b7280;--no-soft:#eceef1;
+  --warn:#b45309;--warn-soft:#fef3c7;--err:#b91c1c;--err-soft:#fee2e2;--hl:#f59e0b;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14171d;--surface:#1d2129;--text:#e7e9ee;--muted:#9aa2b2;--border:#323846;
+    --accent:#60a5fa;--accent-soft:#1e2c47;
+    --ok:#4ade80;--ok-soft:#163223;--no:#9ca3af;--no-soft:#262a32;
+    --warn:#fbbf24;--warn-soft:#3a2e12;--err:#f87171;--err-soft:#3b1a1a;--hl:#fbbf24;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:15px}
+.wrap{max-width:1400px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 8px}
+textarea{width:100%;height:80px;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg);color:var(--text);font:inherit;resize:vertical}
+button{font:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 12px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.danger{color:var(--err)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.msg{margin-top:10px;padding:8px 10px;border-radius:8px;display:none;line-height:1.7}
+.msg.ok{display:block;background:var(--ok-soft)}
+.msg.err{display:block;background:var(--err-soft);color:var(--err)}
+.msg .warn{color:var(--warn);display:block}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.map label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+select,input[type=search],input[type=number]{font:inherit;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.toolbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px}
+.stat b{font-size:16px;margin-inline-start:4px}
+.stat.pending b{color:var(--warn)}.stat.print b{color:var(--ok)}.stat.none b{color:var(--no)}
+.lastread{font-size:13px;color:var(--muted);margin-bottom:8px}
+#search{flex:1;min-width:260px}
+.chip{border-radius:999px;padding:5px 12px;font-size:13px}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:8px 0;font-size:14px}
+.crumbs button{padding:3px 10px;font-size:13px}
+.crumbs .sep{color:var(--muted)}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-bottom:12px}
+.group{text-align:start;padding:10px 12px;border-radius:10px;display:flex;flex-direction:column;gap:4px}
+.group .name{font-weight:600;direction:ltr;text-align:left}
+.group .meta{font-size:12px;color:var(--muted)}
+.group.done{border-color:var(--ok);background:var(--ok-soft)}
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+th,td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:start;vertical-align:middle}
+th{font-size:13px;color:var(--muted);background:var(--bg);font-weight:600}
+.ltr{direction:ltr;unicode-bidi:isolate}
+td.num{text-align:center}
+td.copy{cursor:pointer;font-family:Consolas,monospace;white-space:nowrap}
+td.copy:hover{color:var(--accent);text-decoration:underline}
+.desc .en{text-align:left}
+.desc .ar{font-size:12px;color:var(--muted)}
+td.st{white-space:nowrap}
+td.st button{padding:4px 10px;font-size:13px;margin-inline-end:4px}
+td.st .b-print.on{background:var(--ok);border-color:var(--ok);color:#fff}
+td.st .b-none.on{background:var(--no);border-color:var(--no);color:#fff}
+tr.st-print{background:var(--ok-soft)}
+tr.st-none{background:var(--no-soft);color:var(--muted)}
+tr.copied td{box-shadow:inset 0 2px 0 var(--hl),inset 0 -2px 0 var(--hl)}
+td input[type=number]{width:70px}
+.missing{color:var(--err);font-family:inherit}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin:4px 0 8px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+#toast.show{opacity:1}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>أداة ملصقات تغيير الأسعار</h1>
+
+  <div class="card">
+    <h2>١. الصق جدول الأصناف</h2>
+    <textarea id="paste" placeholder="انسخ الجدول من صفحة الأسعار مع صف العناوين، ثم الصقه هنا."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="btnRead">قراءة النص الملصق</button>
+      <button id="btnClear" class="danger">مسح كل البيانات</button>
+    </div>
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <div class="card hidden" id="mapCard">
+    <h2>٢. الأعمدة المستخدمة</h2>
+    <div class="map" id="map"></div>
+  </div>
+
+  <div id="work" class="hidden">
+    <div class="toolbar">
+      <div class="stats" id="stats"></div>
+      <div class="lastread" id="lastread"></div>
+      <div class="row">
+        <input type="search" id="search" placeholder="ابحث برقم الصنف أو الباركود أو جزء من الاسم">
+        <button class="chip" data-f="all">الكل</button>
+        <button class="chip" data-f="pending">لم تُراجع</button>
+        <button class="chip" data-f="print">تُطبع</button>
+        <button class="chip" data-f="none">لا رصيد</button>
+        <button class="primary" id="btnExport">تحميل ملف الطباعة</button>
+      </div>
+    </div>
+    <div class="crumbs" id="crumbs"></div>
+    <div class="groups" id="groups"></div>
+    <div class="row hidden" id="showAllRow" style="margin-bottom:8px">
+      <label><input type="checkbox" id="showAll"> عرض كل أصناف هذا المستوى</label>
+    </div>
+    <div class="hint">اضغط على رقم الصنف أو الباركود لنسخه. آخر صنف نسخته يظهر بإطار ملون.</div>
+    <div id="tableWrap"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const LS_KEY = 'priceTagTool.v1';
+const PAD_TO = 1000;
+
+const ROLES = [
+  {k:'id',   label:'رقم الصنف',       hints:['item id','item no','item no.','item number','item code','رقم الصنف','كود الصنف']},
+  {k:'bc',   label:'الباركود',         hints:['ibc','barcode','bar code','الباركود','باركود']},
+  {k:'en',   label:'الوصف الإنجليزي',  hints:['second desc','english desc','english description']},
+  {k:'ar',   label:'الوصف العربي',     hints:['item desc','arabic desc','arabic description','الوصف']},
+  {k:'oldP', label:'السعر الحالي',     hints:['current sales price','current price','old price','السعر الحالي']},
+  {k:'newP', label:'السعر الجديد',     hints:['new sales price','new price','السعر الجديد']},
+];
+
+let state = {headers:[], rows:[], map:{}, status:{}, qty:{}};
+let items = [];
+let segs = [];            // navigation segments, each an array of words
+let query = '', filter = 'all', showAll = false, lastCopiedKey = null;
+
+// ---------- helpers ----------
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+function loadSaved(){ try{ const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s && s.rows) state = s; }catch(e){} }
+function setMsg(type, html){ const m = $('#msg'); m.className = 'msg ' + (type || ''); m.innerHTML = html || ''; }
+let toastTimer;
+function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.classList.remove('show'), 1500); }
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); return true; }
+  catch(e){
+    const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    let ok = false; try{ ok = document.execCommand('copy'); }catch(_){}
+    ta.remove(); return ok;
+  }
+}
+
+// ---------- parsing ----------
+function parseHTML(html){
+  const p = new DOMParser();
+  let doc = p.parseFromString(html, 'text/html');
+  let tables = [...doc.querySelectorAll('table')];
+  if(!tables.length && /<tr/i.test(html)){ doc = p.parseFromString('<table>' + html + '</table>', 'text/html'); tables = [...doc.querySelectorAll('table')]; }
+  if(!tables.length) return null;
+  const t = tables.sort((a,b)=>b.rows.length - a.rows.length)[0];
+  return [...t.rows].map(r => [...r.cells].map(c => c.textContent.replace(/\s+/g,' ').trim()));
+}
+
+function parseText(text){
+  const lines = text.split(/\r?\n/);
+  if(lines.some(l => l.includes('\t'))){
+    return {rows: lines.filter(l => l.trim()).map(l => l.split('\t').map(s => s.trim()))};
+  }
+  // one value per line
+  const vals = lines.map(l => l.trim()).filter(Boolean);
+  const first = vals.findIndex(v => /^\d{6,}$/.test(v));
+  if(first <= 0) return {error:'تعذّر تحديد الأعمدة. يرجى نسخ الجدول مع صف العناوين.'};
+  const h = first;
+  if((vals.length - h) % h !== 0){
+    return {error:`عدد القيم لا يتوافق مع عدد الأعمدة (${h}). غالبًا توجد خانة فارغة في الجدول أدّت إلى إزاحة البيانات، لذلك لم تُقرأ البيانات حفاظًا على صحتها.`};
+  }
+  const rows = [vals.slice(0, h)];
+  for(let i = h; i < vals.length; i += h) rows.push(vals.slice(i, i + h));
+  return {rows};
+}
+
+function shapeRows(raw){
+  raw = raw.filter(r => r.some(c => c !== ''));
+  if(!raw.length) return null;
+  const looksData = r => r.some(c => /^\d{6,}$/.test(c));
+  let headers, data;
+  if(!looksData(raw[0])){ headers = raw[0].slice(); data = raw.slice(1); }
+  else { headers = []; data = raw; }
+  const width = Math.max(headers.length, ...data.map(r => r.length));
+  for(let i = 0; i < width; i++) if(!headers[i]) headers[i] = 'عمود ' + (i + 1);
+  data = data.map(r => { const c = r.slice(); while(c.length < width) c.push(''); return c; });
+  return {headers, rows: data};
+}
+
+function autoMap(headers, rows){
+  const norm = s => s.toLowerCase().replace(/\s+/g,' ').trim();
+  const map = {}; const used = new Set();
+  for(const role of ROLES){
+    const i = headers.findIndex((h, idx) => !used.has(idx) && role.hints.includes(norm(h)));
+    map[role.k] = i; if(i >= 0) used.add(i);
+  }
+  const cols = headers.map((_, c) => rows.map(r => r[c] || ''));
+  const frac = (c, re) => { const v = cols[c].filter(Boolean); return v.length ? v.filter(x => re.test(x)).length / v.length : 0; };
+  if(map.id < 0){
+    for(let c = 0; c < cols.length; c++){
+      if(used.has(c)) continue;
+      const v = cols[c];
+      if(v.every(x => /^\d+$/.test(x)) && new Set(v.map(x => x.length)).size === 1){ map.id = c; used.add(c); break; }
+    }
+  }
+  if(map.bc < 0){
+    let best = -1, bestLen = 0;
+    for(let c = 0; c < cols.length; c++){
+      if(used.has(c) || frac(c, /^\d+$/) < 0.9) continue;
+      const avg = cols[c].reduce((a, x) => a + x.length, 0) / cols[c].length;
+      if(avg >= 8 && avg > bestLen){ best = c; bestLen = avg; }
+    }
+    map.bc = best; if(best >= 0) used.add(best);
+  }
+  const pick = (k, re) => {
+    if(map[k] >= 0) return;
+    let best = -1, bf = 0.5;
+    for(let c = 0; c < cols.length; c++){ if(used.has(c)) continue; const f = frac(c, re); if(f > bf){ best = c; bf = f; } }
+    map[k] = best; if(best >= 0) used.add(best);
+  };
+  pick('en', /[A-Za-z]{2,}/);
+  pick('ar', /[\u0600-\u06FF]/);
+  return map;
+}
+
+// ---------- building items ----------
+function buildItems(){
+  items = [];
+  const {rows, map} = state;
+  if(!rows.length) return {error:'لا توجد بيانات.'};
+  if(map.id < 0) return {error:'يرجى تحديد عمود رقم الصنف من القوائم بالأسفل.'};
+  if(map.bc < 0) return {error:'يرجى تحديد عمود الباركود من القوائم بالأسفل.'};
+  const idLen = (rows[0][map.id] || '').length;
+  const out = [], seen = {}; let dup = 0, noBc = 0, badBc = 0;
+  for(let i = 0; i < rows.length; i++){
+    const r = rows[i], id = r[map.id] || '';
+    if(!/^\d+$/.test(id) || id.length !== idLen){
+      const prev = out[out.length - 1];
+      return {error:`توقفت القراءة عند الصف رقم ${i + 1}: القيمة «${esc(id || 'فارغة')}» ليست رقم صنف صحيحًا، لذلك لم تُعتمد البيانات.`
+        + (prev ? `<br>آخر صنف سليم قبل الخطأ: <b class="ltr">${esc(prev.id)}</b> — <span class="ltr">${esc(prev.en || prev.ar)}</span>` : '')};
+    }
+    const bc = r[map.bc] || '';
+    if(!bc) noBc++; else if(!/^\d+$/.test(bc)) badBc++;
+    const en = map.en >= 0 ? (r[map.en] || '') : '';
+    const ar = map.ar >= 0 ? (r[map.ar] || '') : '';
+    let key = id + '|' + bc;
+    if(seen[key]){ dup++; key += '#' + i; }
+    seen[key] = true;
+    out.push({key, idx:i, id, bc, en, ar,
+      oldP: map.oldP >= 0 ? (r[map.oldP] || '') : '',
+      newP: map.newP >= 0 ? (r[map.newP] || '') : '',
+      words: (en || ar).split(' ').filter(Boolean)});
+  }
+  items = out;
+  const warnings = [];
+  if(noBc) warnings.push(`يوجد ${noBc} صنفًا بدون باركود.`);
+  if(badBc) warnings.push(`يوجد ${badBc} باركودًا يحتوي على رموز غير رقمية، يرجى التأكد من عمود الباركود.`);
+  if(dup) warnings.push(`يوجد ${dup} صنفًا مكررًا بنفس رقم الصنف والباركود.`);
+  return {warnings};
+}
+
+function applyData(raw){
+  const shaped = shapeRows(raw);
+  if(!shaped){ setMsg('err', 'لم يتم العثور على أي بيانات في النص الملصق.'); return; }
+  state = {headers: shaped.headers, rows: shaped.rows, map: autoMap(shaped.headers, shaped.rows), status:{}, qty:{}};
+  segs = []; query = ''; filter = 'all'; showAll = false; lastCopiedKey = null;
+  $('#search').value = '';
+  save();
+  refresh(true);
+}
+
+function refresh(announce){
+  const res = buildItems();
+  if(res.error){ setMsg('err', res.error); }
+  else if(announce){
+    const last = items[items.length - 1];
+    setMsg('ok', `تمت قراءة <b>${items.length}</b> صنفًا بنجاح.`
+      + `<br>آخر صنف تمت قراءته: <b class="ltr">${esc(last.id)}</b> — <span class="ltr">${esc(last.en || last.ar)}</span>`
+      + res.warnings.map(w => `<span class="warn">⚠ ${w}</span>`).join(''));
+  }
+  renderMap();
+  render();
+}
+
+// ---------- navigation ----------
+const curPath = () => segs.flat();
+const itemsUnder = path => items.filter(it => path.every((w, i) => it.words[i] === w));
+const hasDigit = w => /\d/.test(w);
+
+function computeLevel(path){
+  const its = itemsUnder(path);
+  let L = path.length;
+  if(L > 0 && its.length > 1){
+    for(;;){
+      const w = its[0].words[L];
+      if(w === undefined || hasDigit(w) || !its.every(it => it.words[L] === w)) break;
+      L++;
+    }
+  }
+  const prefixAdd = its.length ? its[0].words.slice(path.length, L) : [];
+  const groups = new Map(); let loose = [];
+  if(L > 0 && its.length === 1){ loose = its.slice(); }
+  else {
+    for(const it of its){
+      const k = it.words[L];
+      if(k === undefined){ loose.push(it); continue; }
+      if(!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(it);
+    }
+    if(L > 0){
+      for(const [k, g] of [...groups]){
+        if(hasDigit(k) || g.length === 1){ loose.push(...g); groups.delete(k); }
+      }
+    }
+  }
+  loose.sort((a, b) => a.idx - b.idx);
+  return {its, prefixAdd, groups, loose};
+}
+
+// ---------- rendering ----------
+function renderMap(){
+  $('#mapCard').classList.toggle('hidden', !state.rows.length);
+  const opts = ['<option value="-1">— غير موجود —</option>']
+    .concat(state.headers.map((h, i) => `<option value="${i}">${esc(h)}</option>`)).join('');
+  $('#map').innerHTML = ROLES.map(r => `<label>${r.label}<select data-role="${r.k}">${opts}</select></label>`).join('');
+  $('#map').querySelectorAll('select').forEach(s => { s.value = String(state.map[s.dataset.role] ?? -1); });
+}
+
+function renderStats(){
+  let pending = 0, print = 0, none = 0, labels = 0;
+  for(const it of items){
+    const s = state.status[it.key];
+    if(s === 'print'){ print++; labels += (state.qty[it.key] || 1); }
+    else if(s === 'none') none++; else pending++;
+  }
+  $('#stats').innerHTML =
+    `<div class="stat">إجمالي الأصناف<b>${items.length}</b></div>` +
+    `<div class="stat pending">لم تُراجع<b>${pending}</b></div>` +
+    `<div class="stat print">تُطبع<b>${print}</b></div>` +
+    `<div class="stat none">لا رصيد<b>${none}</b></div>` +
+    `<div class="stat">عدد الملصقات<b>${labels}</b></div>`;
+  const last = items[items.length - 1];
+  $('#lastread').innerHTML = last ? `آخر صنف تمت قراءته: <b class="ltr">${esc(last.id)}</b> — <span class="ltr">${esc(last.en || last.ar)}</span>` : '';
+}
+
+function groupStats(list){
+  let done = 0; for(const it of list) if(state.status[it.key]) done++;
+  return done;
+}
+
+function rowHtml(it){
+  const s = state.status[it.key] || '';
+  const q = state.qty[it.key] || 1;
+  const priceCols = state.map.oldP >= 0 || state.map.newP >= 0;
+  return `<tr data-key="${esc(it.key)}" class="${s ? 'st-' + s : ''} ${it.key === lastCopiedKey ? 'copied' : ''}">
+    <td class="st"><button class="b-print ${s === 'print' ? 'on' : ''}" data-act="print">يُطبع</button><button class="b-none ${s === 'none' ? 'on' : ''}" data-act="none">لا رصيد</button></td>
+    <td class="copy ltr" data-copy="${esc(it.id)}" title="اضغط للنسخ">${esc(it.id)}</td>
+    ${it.bc ? `<td class="copy ltr" data-copy="${esc(it.bc)}" title="اضغط للنسخ">${esc(it.bc)}</td>` : `<td class="missing">بدون باركود</td>`}
+    <td class="desc"><div class="en ltr">${esc(it.en)}</div>${it.ar ? `<div class="ar">${esc(it.ar)}</div>` : ''}</td>
+    ${priceCols ? `<td class="num ltr">${esc(it.oldP)}</td><td class="num ltr">${esc(it.newP)}</td>` : ''}
+    <td>${s === 'print' ? `<input type="number" min="1" step="1" value="${q}" data-qty title="عدد الملصقات">` : ''}</td>
+  </tr>`;
+}
+
+function tableHtml(list){
+  if(!list.length) return '<div class="empty">لا توجد أصناف مطابقة.</div>';
+  const priceCols = state.map.oldP >= 0 || state.map.newP >= 0;
+  return `<table><thead><tr><th>الحالة</th><th>رقم الصنف</th><th>الباركود</th><th>الوصف</th>
+    ${priceCols ? '<th>السعر الحالي</th><th>السعر الجديد</th>' : ''}<th>الملصقات</th></tr></thead>
+    <tbody>${list.map(rowHtml).join('')}</tbody></table>`;
+}
+
+function matchFilter(it){
+  const s = state.status[it.key] || '';
+  if(filter === 'pending') return !s;
+  if(filter === 'print') return s === 'print';
+  if(filter === 'none') return s === 'none';
+  return true;
+}
+
+function render(){
+  const ok = items.length > 0;
+  $('#work').classList.toggle('hidden', !ok);
+  if(!ok) return;
+  renderStats();
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.f === filter));
+
+  const path = curPath();
+  const crumbs = [`<button data-crumb="-1">كل البراندات</button>`]
+    .concat(segs.map((s, i) => `<span class="sep">›</span><button data-crumb="${i}" class="ltr">${esc(s.join(' '))}</button>`));
+  $('#crumbs').innerHTML = crumbs.join('');
+
+  const q = query.trim().toLowerCase();
+  if(q){
+    const list = items.filter(it => matchFilter(it) && (it.id.includes(q) || it.bc.includes(q) || it.en.toLowerCase().includes(q) || it.ar.includes(query.trim())));
+    $('#groups').innerHTML = ''; $('#showAllRow').classList.add('hidden');
+    $('#crumbs').innerHTML = `<span>نتائج البحث: ${list.length}</span>`;
+    $('#tableWrap').innerHTML = tableHtml(list);
+    return;
+  }
+
+  const lvl = computeLevel(path);
+  if(filter !== 'all'){
+    $('#groups').innerHTML = ''; $('#showAllRow').classList.add('hidden');
+    $('#tableWrap').innerHTML = tableHtml(lvl.its.filter(matchFilter));
+    return;
+  }
+
+  const keys = [...lvl.groups.keys()].sort((a, b) => a.localeCompare(b));
+  $('#groups').innerHTML = keys.map(k => {
+    const g = lvl.groups.get(k), done = groupStats(g);
+    const label = path.length ? lvl.prefixAdd.concat([k]).join(' ') : k;
+    return `<button class="group ${done === g.length ? 'done' : ''}" data-group="${esc(k)}">
+      <span class="name">${esc(label)}</span>
+      <span class="meta">${g.length} صنف — تمت مراجعة ${done}</span></button>`;
+  }).join('');
+  $('#showAllRow').classList.toggle('hidden', keys.length === 0);
+  $('#showAll').checked = showAll;
+  const list = (showAll && keys.length) ? lvl.its : lvl.loose;
+  $('#tableWrap').innerHTML = (list.length || !keys.length) ? tableHtml(list) : '';
+  $('#groups')._lvl = lvl;
+}
+
+// ---------- export ----------
+function exportCsv(){
+  const printItems = items.filter(it => state.status[it.key] === 'print');
+  if(!printItems.length){ alert('لم يتم اختيار أي صنف للطباعة بعد.'); return; }
+  const pending = items.filter(it => !state.status[it.key]).length;
+  if(pending > 0 && !confirm(`تنبيه: يوجد ${pending} صنفًا لم تتم مراجعته بعد، وقد يكون من بينها أصناف لها رصيد.\n\nاضغط «موافق» للتحميل على أي حال، أو «إلغاء» لعرض هذه الأصناف.`)){
+    filter = 'pending'; query = ''; $('#search').value = ''; segs = []; render(); return;
+  }
+  const noBc = printItems.filter(it => !it.bc);
+  if(noBc.length){ alert(`لا يمكن التحميل: يوجد ${noBc.length} صنفًا مختارًا للطباعة بدون باركود.\nأول صنف منها: ${noBc[0].id}`); return; }
+  if(printItems.length >= PAD_TO && !confirm(`عدد الأصناف المختارة (${printItems.length}) يساوي أو يتجاوز ${PAD_TO}، لذلك لن تُضاف صفوف التكملة. هل تريد المتابعة؟`)) return;
+
+  const lines = printItems.map(it => `1-TAG,${it.bc},${state.qty[it.key] || 1}`);
+  for(let k = printItems.length + 1; k <= PAD_TO; k++) lines.push(`1-TAG,-${k},1`);
+  const blob = new Blob([lines.join('\r\n') + '\r\n'], {type:'text/csv'});
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `tags_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`تم تحميل الملف: ${printItems.length} صنفًا`);
+}
+
+// ---------- events ----------
+const hasData = () => state.rows.length > 0;
+const confirmReplace = () => !hasData() || confirm('سيتم استبدال البيانات الحالية ومسح كل الحالات المسجّلة. هل تريد المتابعة؟');
+
+$('#paste').addEventListener('paste', e => {
+  if(!confirmReplace()){ e.preventDefault(); return; }
+  const html = e.clipboardData.getData('text/html');
+  const rows = html && /<t[rd]/i.test(html) ? parseHTML(html) : null;
+  if(rows && rows.length){
+    e.preventDefault();
+    $('#paste').value = e.clipboardData.getData('text/plain');
+    applyData(rows);
+    return;
+  }
+  setTimeout(() => readText(false), 0);
+});
+
+function readText(ask){
+  if(ask && !confirmReplace()) return;
+  const t = $('#paste').value;
+  if(!t.trim()){ setMsg('err', 'لا يوجد نص للقراءة.'); return; }
+  const r = parseText(t);
+  if(r.error){ setMsg('err', r.error); return; }
+  applyData(r.rows);
+}
+$('#btnRead').addEventListener('click', () => readText(true));
+
+$('#btnClear').addEventListener('click', () => {
+  if(!confirm('سيتم مسح كل البيانات والحالات المسجّلة. هل أنت متأكد؟')) return;
+  state = {headers:[], rows:[], map:{}, status:{}, qty:{}}; items = []; segs = [];
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  $('#paste').value = ''; setMsg('', ''); renderMap(); render();
+});
+
+$('#map').addEventListener('change', e => {
+  const s = e.target.closest('select'); if(!s) return;
+  state.map[s.dataset.role] = +s.value; segs = []; save(); refresh(true);
+});
+
+$('#search').addEventListener('input', e => { query = e.target.value; render(); });
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { filter = c.dataset.f; render(); }));
+$('#btnExport').addEventListener('click', exportCsv);
+$('#showAll').addEventListener('change', e => { showAll = e.target.checked; render(); });
+
+$('#crumbs').addEventListener('click', e => {
+  const b = e.target.closest('[data-crumb]'); if(!b) return;
+  segs = segs.slice(0, +b.dataset.crumb + 1); showAll = false; render();
+});
+
+$('#groups').addEventListener('click', e => {
+  const b = e.target.closest('[data-group]'); if(!b) return;
+  const lvl = $('#groups')._lvl, k = b.dataset.group;
+  segs.push(curPath().length ? lvl.prefixAdd.concat([k]) : [k]);
+  showAll = false; render(); window.scrollTo({top: 0});
+});
+
+$('#tableWrap').addEventListener('click', async e => {
+  const tr = e.target.closest('tr[data-key]'); if(!tr) return;
+  const key = tr.dataset.key;
+  const act = e.target.closest('[data-act]');
+  if(act){
+    const v = act.dataset.act;
+    if(state.status[key] === v) delete state.status[key]; else state.status[key] = v;
+    save(); render(); return;
+  }
+  const c = e.target.closest('[data-copy]');
+  if(c){
+    const ok = await copyText(c.dataset.copy);
+    lastCopiedKey = key;
+    document.querySelectorAll('tr.copied').forEach(r => r.classList.remove('copied'));
+    tr.classList.add('copied');
+    toast(ok ? 'تم النسخ: ' + c.dataset.copy : 'تعذّر النسخ');
+  }
+});
+
+$('#tableWrap').addEventListener('change', e => {
+  if(!e.target.matches('[data-qty]')) return;
+  const key = e.target.closest('tr').dataset.key;
+  let n = parseInt(e.target.value, 10);
+  if(!Number.isFinite(n) || n < 1){ n = 1; e.target.value = 1; }
+  state.qty[key] = n; save(); renderStats();
+});
+
+// ---------- start ----------
+loadSaved();
+if(hasData()) refresh(false);
+</script>
+</body>
+</html>
