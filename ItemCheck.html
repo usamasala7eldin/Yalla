@@ -91,6 +91,7 @@ td input{width:56px;font:inherit;padding:2px 4px;border:1px solid var(--border);
       <textarea id="paste" placeholder="الصق جدول الأصناف هنا مع صف العناوين"></textarea>
       <div class="top-btns">
         <button class="primary" id="btnExport">تحميل ملف الطباعة</button>
+        <button id="btnNew" class="danger">صفحة جديدة</button>
         <button id="btnSettings">⚙ الإعدادات</button>
       </div>
     </div>
@@ -102,7 +103,6 @@ td input{width:56px;font:inherit;padding:2px 4px;border:1px solid var(--border);
       <div id="map"></div>
       <div class="row">
         <button id="btnRead">إعادة قراءة النص</button>
-        <button id="btnClear" class="danger">مسح كل البيانات</button>
       </div>
     </div>
   </div>
@@ -114,7 +114,6 @@ td input{width:56px;font:inherit;padding:2px 4px;border:1px solid var(--border);
 <script>
 const $ = s => document.querySelector(s);
 const LS_KEY = 'priceTagTool.v2';
-const PAD_TO = 1000;
 
 const ROLES = [
   {k:'id',   label:'رقم الصنف',      hints:['item id','item no','item no.','item number','item code','رقم الصنف','كود الصنف']},
@@ -433,6 +432,12 @@ function undoBulk(){
 }
 
 // ---------- export ----------
+// Fingerprint of the current print selection, used to know whether it was already downloaded.
+function printSignature(){
+  return items.filter(it => state.status[it.key] === 'print')
+    .map(it => it.key + ':' + (state.qty[it.key] || 1)).join(',');
+}
+
 function exportCsv(){
   if(!items.length){ alert('لا توجد بيانات بعد.'); return; }
   const printItems = items.filter(it => state.status[it.key] === 'print');
@@ -443,10 +448,8 @@ function exportCsv(){
   }
   const noBc = printItems.filter(it => !it.bc);
   if(noBc.length){ alert(`لا يمكن التحميل: يوجد ${noBc.length} صنفًا مختارًا للطباعة بدون باركود.\nأول صنف منها: ${noBc[0].id}`); return; }
-  if(printItems.length >= PAD_TO && !confirm(`عدد الأصناف المختارة (${printItems.length}) يساوي أو يتجاوز ${PAD_TO}، لذلك لن تُضاف صفوف التكملة. هل تريد المتابعة؟`)) return;
-
   const lines = printItems.map(it => `1-TAG,${it.bc},${state.qty[it.key] || 1}`);
-  //for(let k = printItems.length + 1; k <= PAD_TO; k++) lines.push(`1-TAG,-${k},1`);
+  state.exportedSig = printSignature(); save();
   const blob = new Blob([lines.join('\r\n') + '\r\n'], {type:'text/csv'});
   const d = new Date(), pad = n => String(n).padStart(2, '0');
   const a = document.createElement('a');
@@ -489,12 +492,18 @@ $('#settings').addEventListener('click', e => e.stopPropagation());
 document.addEventListener('click', () => $('#settings').classList.add('hidden'));
 
 $('#btnRead').addEventListener('click', () => readText(true));
-$('#btnClear').addEventListener('click', () => {
-  if(!confirm('سيتم مسح كل البيانات والحالات المسجّلة. هل أنت متأكد؟')) return;
-  state = {headers:[], rows:[], map:{}, status:{}, qty:{}}; items = []; segs = []; lastBulk = null;
+$('#btnNew').addEventListener('click', () => {
+  if(hasData() || $('#paste').value.trim()){
+    const done = items.filter(it => state.status[it.key]).length;
+    const sig = printSignature();
+    let text = `سيتم مسح كل البيانات، وعدد الأصناف التي راجعتها ${done} صنفًا.`;
+    if(sig && sig !== state.exportedSig) text += `\n\nتنبيه: توجد أصناف محددة «يُطبع» لم يُحمَّل ملفها بعد، وستضيع هذه الاختيارات.`;
+    if(!confirm(text + '\n\nهل تريد بدء صفحة جديدة؟')) return;
+  }
+  state = {headers:[], rows:[], map:{}, status:{}, qty:{}}; items = []; segs = []; filter = 'all'; lastBulk = null; lastCopiedKey = null;
   try{ localStorage.removeItem(LS_KEY); }catch(e){}
   $('#paste').value = ''; setMsg('', ''); renderMap(); render();
-  $('#settings').classList.add('hidden');
+  $('#paste').focus();
 });
 $('#map').addEventListener('change', e => {
   const s = e.target.closest('select'); if(!s) return;
