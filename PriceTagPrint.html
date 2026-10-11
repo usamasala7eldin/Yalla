@@ -120,6 +120,11 @@
   body:not(.phone) .toast { bottom: 24px; }
   .toast.show { opacity: 1; }
   @media (prefers-reduced-motion: reduce) { .toast, .cam { transition: none; } }
+  .chip { display: flex; align-items: center; gap: 8px; justify-content: center; background: var(--seg); border-radius: 10px;
+    padding: 8px 12px; margin-bottom: 12px; font-size: .92rem; font-weight: 600; }
+  .chip button { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
+  .qr-box img { width: 240px; height: 240px; max-width: 70vw; max-height: 70vw; background: #fff; padding: 8px; border-radius: 10px; image-rendering: pixelated; margin-bottom: 12px; }
+  .modal .box .row2 { display: flex; gap: 8px; justify-content: center; }
 </style>
 </head>
 <body>
@@ -131,47 +136,40 @@
     <button id="resetBtn">Reset</button>
     <button class="solid" id="exportBtn">Export CSV</button>
   </span>
-  <button class="icon" id="phoneExport" aria-label="Export CSV" title="Export CSV" hidden>⬇</button>
+  <span id="phoneActions" hidden>
+    <button id="sendBtn">Send to PC</button>
+    <button class="icon" id="phoneReset" aria-label="Reset" title="Reset">↺</button>
+    <button class="icon" id="phoneExport" aria-label="Export CSV" title="Export CSV">⬇</button>
+  </span>
 </header>
 
 <main class="wrap">
   <!-- Computer mode -->
   <section id="pcView">
-    <div class="phone-hint" id="phoneHint" hidden>
-      To scan with your phone camera, open this page on the computer, tap <b>Switch to mobile</b>, then scan the QR code with your phone.
-    </div>
-
     <div class="card" id="scanCard">
-      <input id="scanInput" placeholder="Scan a barcode…" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="none">
-      <p class="scan-msg" id="scanMsg">Scanner ready. Each scan adds one tag.</p>
+      <input id="scanInput" placeholder="Scan a barcode…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <p class="scan-msg" id="scanMsg">Scanner ready. Each scan adds one tag. To join a phone, scan the QR code on the phone.</p>
     </div>
 
     <div class="card session" id="waitCard" hidden>
       <img id="qrImg" alt="QR code to open this session on the phone">
       <div class="txt">
         <h2>Scan with your phone</h2>
-        <p>Open the phone camera and scan this code. Once the phone connects, scanning moves to the phone and this computer only shows the list.</p>
+        <p>Open the phone camera and scan this code. Both devices will share one list and can scan at the same time.</p>
         <button id="cancelBtn">Cancel</button>
       </div>
     </div>
 
-    <div class="card session" id="linkedCard" hidden>
-      <div class="txt">
-        <h2>📱 Scanning from phone</h2>
-        <p>The scanner on this computer is off while the phone is connected. You can still edit counts and export.</p>
-        <button class="primary" id="backBtn">Back to computer</button>
-      </div>
-    </div>
+    <div class="chip" id="pcChip" hidden>🔗 Shared with phone · both devices can scan · Reset ends it</div>
   </section>
 
   <!-- Phone mode -->
   <section id="phoneView" hidden>
+    <div class="chip" id="phoneChip" hidden></div>
     <div class="cam" id="cam">
       <div class="cam-in">
         <video id="video" playsinline muted></video>
-        <div class="overlay" id="camOverlay">Hold red for normal codes
-Hold black for dark codes
-Slide a button up to keep scanning</div>
+        <div class="overlay" id="camOverlay">Starting camera…</div>
         <div class="laser" id="laser" hidden></div>
         <div class="status" id="camStatus" hidden></div>
         <button class="torch" id="torchBtn" aria-label="Flash">ϟ</button>
@@ -193,11 +191,12 @@ Slide a button up to keep scanning</div>
 
 <nav class="tbar" id="tbar" hidden></nav>
 
-<div class="modal" id="endedBox" hidden>
-  <div class="box">
-    <h2 id="endedTitle">Session ended on this device</h2>
-    <p id="endedText">Continue on the computer.</p>
-    <button class="primary" id="endedBtn" hidden onclick="location.reload()">Reload</button>
+<div class="modal" id="qrModal" hidden>
+  <div class="box qr-box">
+    <h2>Scan with the computer</h2>
+    <img id="phoneQr" alt="QR code for the computer's scanner">
+    <p>On the computer, open this page and scan this code with the barcode scanner. Both devices will share one list.</p>
+    <button id="qrClose">Close</button>
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -222,20 +221,28 @@ const firebaseConfig = {
 const db = getFirestore(initializeApp(firebaseConfig));
 const $ = (id) => document.getElementById(id);
 const SESSION_TTL = 2 * 60 * 60 * 1000;          // 2 hours after the last change
-const LOCAL_KEY = "tagscan:items", SESSION_KEY = "tagscan:session", ALIGN_KEY = "tagscan:align", SORT_KEY = "tagscan:sort";
+const LOCAL_KEY = "tagscan:items", SESSION_KEY = "tagscan:session2", ALIGN_KEY = "tagscan:align", SORT_KEY = "tagscan:sort";
 const INVALID_QR = "Invalid QR code: this QR code must contain a GTIN.";
+const SESSION_RE = /[#&]s=([A-Za-z0-9]{8,40})/;
 const sref = (id) => doc(db, "scanSessions", id);
 const expiry = () => Timestamp.fromMillis(Date.now() + SESSION_TTL);
+const sessionUrl = (id) => location.origin + location.pathname + "#s=" + id;
+
+// Phones open the camera page automatically
+const IS_PHONE = matchMedia("(pointer: coarse)").matches && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 function toast(msg) {
   const t = $("toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2400);
 }
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   del(k) { try { localStorage.removeItem(k); } catch {} }
 };
+function qrSrc(text, cell) {
+  try { const qr = qrcode(0, "M"); qr.addData(text); qr.make(); return qr.createDataURL(cell, 2); } catch { return ""; }
+}
 
 // =====================================================================
 // Barcode rules (ported from Scanaria: barcode_rules.dart + gs1_parser.dart)
@@ -330,18 +337,17 @@ function acceptTyped(raw) {
 }
 
 // =====================================================================
-// Items: local (computer only) or shared session (computer + phone)
+// Items: always kept on this device; mirrored from the shared session when connected
 // =====================================================================
-const isPhone = /(^|[#&])s=/.test(location.hash);
-let items = isPhone ? {} : store.get(LOCAL_KEY, {});   // { code: { c: count, t: lastTime } }
-let sess = null;                                       // { id, unsub, data }
+let items = store.get(LOCAL_KEY, {});   // { code: { c: count, t: lastTime } }
+let sess = null;                        // { id, owner, unsub, data }
 let sortMode = store.get(SORT_KEY, "recent");
-let openCode = null;
+let openCode = null, qrOpen = false;
 
-function saveLocal() { if (!isPhone) store.set(LOCAL_KEY, items); }
+function saveLocal() { store.set(LOCAL_KEY, items); }
 
 function onWriteError(e) {
-  if (e && e.code === "permission-denied") endSession("The session expired.");
+  if (e && e.code === "permission-denied") endSession("The session expired. The list stays on this device.");
   else toast("Could not save. Check the internet connection.");
 }
 
@@ -446,8 +452,100 @@ $("exportBtn").onclick = exportCsv;
 $("phoneExport").onclick = exportCsv;
 
 // =====================================================================
-// Cleanup of expired sessions (best effort; locked by the rules anyway)
+// Shared session (same for computer and phone)
 // =====================================================================
+function randId() {
+  const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  return [...crypto.getRandomValues(new Uint8Array(20))].map((x) => a[x % a.length]).join("");
+}
+
+// Creates a session from this device's list and shows its QR code
+async function startSession() {
+  if (sess) return;
+  const id = randId();
+  try {
+    await setDoc(sref(id), { items, phoneJoined: false, createdAt: Timestamp.now(), expiresAt: expiry() });
+  } catch { toast("Could not connect. Check the internet connection."); return; }
+  attach(id, true);
+  $("qrImg").src = qrSrc(sessionUrl(id), 5);
+  $("phoneQr").src = qrSrc(sessionUrl(id), 6);
+  qrOpen = true; ui();
+}
+
+// Joins a session created on the other device (scanned QR or opened link)
+async function joinSession(id) {
+  if (sess && sess.id === id) { toast("Already connected to this session."); return; }
+  let snap;
+  try { snap = await getDoc(sref(id)); }
+  catch (e) { toast(e && e.code === "permission-denied" ? "This session has expired." : "Could not connect. Check the internet connection."); return; }
+  if (!snap.exists()) { toast("This session has ended."); return; }
+
+  const own = Object.entries(items);
+  if (own.length && !confirm(`This device already has ${own.length} scanned items.\n\nOK: add them to the shared list and connect.\nCancel: do not connect.`)) return;
+  if (sess) endSession("", sess.owner);
+
+  try {
+    await updateDoc(sref(id), { phoneJoined: true, expiresAt: expiry() });
+    // add this device's items in chunks (Firestore limits field changes per write)
+    for (let i = 0; i < own.length; i += 200) {
+      const args = [];
+      own.slice(i, i + 200).forEach(([code, v]) => args.push(
+        new FieldPath("items", code, "c"), increment(v.c), new FieldPath("items", code, "t"), v.t || Date.now()));
+      await updateDoc(sref(id), ...args);
+    }
+  } catch (e) { onWriteError(e); return; }
+  attach(id, false);
+  toast("Connected. Both devices can scan now.");
+}
+
+function attach(id, owner) {
+  sess = { id, owner, data: null, unsub: null };
+  store.set(SESSION_KEY, { id, owner });
+  ui();
+  sess.unsub = onSnapshot(sref(id), (s) => {
+    if (!sess || sess.id !== id) return;
+    if (!s.exists()) { endSession("The shared session ended. The list stays on this device.", false); return; }
+    const d = s.data();
+    const joinedNow = d.phoneJoined && !(sess.data && sess.data.phoneJoined);
+    sess.data = d;
+    items = d.items || {};
+    saveLocal(); render(); ui();
+    if (joinedNow && owner) { qrOpen = false; ui(); toast(IS_PHONE ? "Computer connected." : "Phone connected."); }
+  }, () => endSession("The session expired. The list stays on this device.", false));
+}
+
+// Leaves the shared session; the list stays on this device
+function endSession(msg, del = true) {
+  if (!sess) return;
+  const id = sess.id;
+  if (sess.unsub) sess.unsub();
+  sess = null; qrOpen = false;
+  store.del(SESSION_KEY);
+  if (del) deleteDoc(sref(id)).catch(() => {});
+  saveLocal(); render(); ui();
+  if (msg) toast(msg);
+}
+
+// Reset: clears the list everywhere and ends the session
+async function reset() {
+  if (!confirm("Clear all scanned barcodes and start a new page?")) return;
+  if (sess) {
+    const id = sess.id;
+    try { await updateDoc(sref(id), { items: {} }); } catch {}
+    endSession("", true);
+  }
+  items = {}; openCode = null; saveLocal(); render();
+  scanMsg("Scanner ready. Each scan adds one tag. To join a phone, scan the QR code on the phone.");
+  refocus();
+}
+$("resetBtn").onclick = reset;
+$("phoneReset").onclick = reset;
+
+setInterval(() => {
+  if (sess && sess.data && sess.data.expiresAt && sess.data.expiresAt.toMillis() < Date.now())
+    endSession("The session expired after 2 hours without scans. The list stays on this device.");
+}, 15000);
+
 async function sweep() {
   try {
     const q = query(collection(db, "scanSessions"), where("expiresAt", "<", Timestamp.fromMillis(Date.now() - 2 * 60 * 1000)), limit(20));
@@ -456,120 +554,100 @@ async function sweep() {
   } catch {}
 }
 
+function ui() {
+  const waiting = !!(sess && sess.owner && !(sess.data && sess.data.phoneJoined));
+  if (IS_PHONE) {
+    $("sendBtn").hidden = !!sess;
+    $("qrModal").hidden = !(waiting && qrOpen);
+    const chip = $("phoneChip");
+    chip.hidden = !sess; chip.innerHTML = "";
+    if (sess && waiting) {
+      chip.append("Waiting for the computer… ");
+      const b = document.createElement("button"); b.textContent = "Show QR";
+      b.onclick = () => { qrOpen = true; ui(); }; chip.append(b);
+    } else if (sess) chip.textContent = "🔗 Shared with computer · both devices can scan";
+  } else {
+    $("waitCard").hidden = !waiting;
+    $("pcChip").hidden = !sess || waiting;
+    $("mobileBtn").hidden = !!sess;
+  }
+}
+$("sendBtn").onclick = startSession;
+$("mobileBtn").onclick = startSession;
+$("cancelBtn").onclick = () => endSession("");
+$("qrClose").onclick = () => { qrOpen = false; ui(); };
+
+async function restore() {
+  const hashId = (location.hash.match(SESSION_RE) || [])[1];
+  if (hashId) history.replaceState(null, "", location.pathname + location.search);
+  const saved = store.get(SESSION_KEY, null);
+  if (saved && saved.id && saved.id !== hashId) {
+    try {
+      const s = await getDoc(sref(saved.id));
+      if (s.exists() && s.data().expiresAt.toMillis() > Date.now()) {
+        attach(saved.id, saved.owner);
+        $("qrImg").src = qrSrc(sessionUrl(saved.id), 5);
+        $("phoneQr").src = qrSrc(sessionUrl(saved.id), 6);
+      } else store.del(SESSION_KEY);
+    } catch { store.del(SESSION_KEY); }
+  } else if (saved && saved.id === hashId) {
+    attach(saved.id, saved.owner);
+  }
+  if (hashId && !(sess && sess.id === hashId)) await joinSession(hashId);
+  sweep();
+}
+
 // =====================================================================
-// COMPUTER MODE
+// COMPUTER MODE — USB scanner
 // =====================================================================
 function refocus() {
-  if (!isPhone && !$("scanCard").hidden && !openCode) $("scanInput").focus({ preventScroll: true });
+  if (!IS_PHONE && !openCode) $("scanInput").focus({ preventScroll: true });
 }
-
 function scanMsg(text, cls) { const m = $("scanMsg"); m.textContent = text; m.className = "scan-msg" + (cls ? " " + cls : ""); }
 
-function pcState() {
-  const linked = !!(sess && sess.data && sess.data.phoneJoined);
-  $("waitCard").hidden = !(sess && !linked);
-  $("linkedCard").hidden = !linked;
-  $("scanCard").hidden = linked;
-  $("mobileBtn").hidden = !!sess;
-  if (!linked) refocus();
-}
-
 function handleTyped() {
-  const raw = $("scanInput").value; $("scanInput").value = "";
-  if (sess && sess.data && sess.data.phoneJoined) return;
+  const raw = $("scanInput").value.replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+  $("scanInput").value = "";
+  const join = raw.match(SESSION_RE);
+  if (join) { joinSession(join[1]); scanMsg("Connecting to the phone…"); return; }
   const r = acceptTyped(raw);
   if (!r.code) { if (r.err) { scanMsg(r.err, "err"); beep(true); } return; }
   addScan(r.code); beep();
   scanMsg(`Added ${r.code}`, "ok");
 }
+
+// The scanner types like a keyboard. Characters are taken from the physical key,
+// so scans come out right even when the keyboard language is Arabic.
+const KEYMAP = { Minus: ["-", "_"], Equal: ["=", "+"], BracketLeft: ["[", "{"], BracketRight: ["]", "}"], Backslash: ["\\", "|"],
+  IntlBackslash: ["\\", "|"], Semicolon: [";", ":"], Quote: ["'", '"'], Comma: [",", "<"], Period: [".", ">"], Slash: ["/", "?"],
+  Backquote: ["`", "~"], Space: [" ", " "], NumpadDecimal: [".", "."], NumpadDivide: ["/", "/"], NumpadMultiply: ["*", "*"],
+  NumpadSubtract: ["-", "-"], NumpadAdd: ["+", "+"] };
+const DIGIT_SHIFT = ")!@#$%^&*(";
+function keyChar(e) {
+  const c = e.code || ""; let m;
+  if ((m = c.match(/^Key([A-Z])$/))) return e.shiftKey !== e.getModifierState("CapsLock") ? m[1] : m[1].toLowerCase();
+  if ((m = c.match(/^Digit(\d)$/))) return e.shiftKey ? DIGIT_SHIFT[+m[1]] : m[1];
+  if ((m = c.match(/^Numpad(\d)$/))) return m[1];
+  if (KEYMAP[c]) return KEYMAP[c][e.shiftKey ? 1 : 0];
+  return null;
+}
 $("scanInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); handleTyped(); }
+  if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); handleTyped(); return; }
+  // named keys (Backspace, arrows, Shift…) keep their normal behaviour
+  if (e.ctrlKey || e.metaKey || e.altKey || /^[A-Za-z][A-Za-z0-9]+$/.test(e.key)) return;
+  const ch = keyChar(e);
+  if (ch == null) return;
+  e.preventDefault();
+  const el = e.target;
+  el.setRangeText(ch, el.selectionStart, el.selectionEnd, "end");
 });
-// keep the scanner input focused when clicking on empty areas
 document.addEventListener("click", (e) => {
   if (!e.target.closest("button, input, a, .row, .edit")) refocus();
 });
 
-function randId() {
-  const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  return [...crypto.getRandomValues(new Uint8Array(20))].map((x) => a[x % a.length]).join("");
-}
-
-async function startMobile() {
-  if (sess) return;
-  const id = randId();
-  $("mobileBtn").disabled = true;
-  try {
-    await setDoc(sref(id), { items, phoneJoined: false, createdAt: Timestamp.now(), expiresAt: expiry() });
-  } catch { toast("Could not connect. Check the internet connection."); $("mobileBtn").disabled = false; return; }
-  $("mobileBtn").disabled = false;
-  store.set(SESSION_KEY, id);
-  attachPc(id);
-  const url = location.origin + location.pathname + "#s=" + id;
-  try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); $("qrImg").src = qr.createDataURL(5, 2); } catch {}
-}
-$("mobileBtn").onclick = startMobile;
-
-function attachPc(id) {
-  sess = { id, data: null, unsub: null };
-  pcState();
-  sess.unsub = onSnapshot(sref(id), (s) => {
-    if (!sess || sess.id !== id) return;
-    if (!s.exists()) { endSession("The phone session ended."); return; }
-    const d = s.data();
-    const wasLinked = sess.data && sess.data.phoneJoined;
-    sess.data = d;
-    items = d.items || {};
-    saveLocal(); render(); pcState();
-    if (d.phoneJoined && !wasLinked) toast("Phone connected. Scan with the phone.");
-  }, () => endSession("The session expired."));
-}
-
-// Ends the shared session; the list stays on this computer
-function endSession(msg, del = true) {
-  if (!sess) return;
-  const id = sess.id;
-  if (sess.unsub) sess.unsub();
-  sess = null;
-  store.del(SESSION_KEY);
-  if (del) deleteDoc(sref(id)).catch(() => {});
-  if (isPhone) return;
-  saveLocal(); render(); pcState();
-  if (msg) toast(msg);
-}
-$("cancelBtn").onclick = () => endSession("");
-$("backBtn").onclick = () => endSession("Back to computer scanning. The phone is disconnected.");
-
-$("resetBtn").onclick = () => {
-  if (!confirm("Clear all scanned barcodes and start a new page?")) return;
-  endSession("");
-  items = {}; openCode = null; saveLocal(); render();
-  scanMsg("Scanner ready. Each scan adds one tag.");
-  refocus();
-};
-
-// session expiry check on the computer
-setInterval(() => {
-  if (sess && sess.data && sess.data.expiresAt && sess.data.expiresAt.toMillis() < Date.now())
-    endSession("The phone session expired after 2 hours without scans.");
-}, 15000);
-
-async function initPc() {
-  $("phoneHint").hidden = !matchMedia("(pointer: coarse)").matches;
-  render(); setSort(sortMode);
-  const saved = store.get(SESSION_KEY, null);
-  if (saved) {
-    try {
-      const s = await getDoc(sref(saved));
-      if (s.exists() && s.data().expiresAt.toMillis() > Date.now()) {
-        attachPc(saved);
-        const url = location.origin + location.pathname + "#s=" + saved;
-        try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); $("qrImg").src = qr.createDataURL(5, 2); } catch {}
-      } else { store.del(SESSION_KEY); deleteDoc(sref(saved)).catch(() => {}); }
-    } catch { store.del(SESSION_KEY); }
-  }
-  pcState();
-  sweep();
+function initPc() {
+  render(); setSort(sortMode); ui(); refocus();
+  restore();
 }
 
 // =====================================================================
@@ -578,8 +656,8 @@ async function initPc() {
 const REQUIRED_MATCHES = 3, SAME_CODE_GAP = 500, LOCK_SWIPE = 40, IDLE_TIMEOUT = 30000;
 let stream = null, track = null, wakeLock = null, audio = null;
 let held = false, locked = false, invert = false, torchArmed = false, torchLit = false;
-let paused = false, idleTimer = null, pressY = null, flashTimer = null, invalidShown = false;
-let recent = [], lastCode = null, lastSeen = 0, busy = false, detector = null, zx = null, ended = false;
+let paused = false, idleTimer = null, pressY = null, flashTimer = null, invalidShown = false, joining = false;
+let recent = [], lastCode = null, lastSeen = 0, busy = false, detector = null, zx = null;
 let align = store.get(ALIGN_KEY, "right");
 const work = document.createElement("canvas"), wctx = work.getContext("2d", { willReadFrequently: true });
 
@@ -594,6 +672,7 @@ function beep(error = false) {
     o.start(); o.stop(audio.currentTime + (error ? 0.25 : 0.08));
   } catch {}
 }
+function beepUnlock() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {} }
 
 async function initDecoder() {
   if ("BarcodeDetector" in window) {
@@ -638,6 +717,7 @@ async function decodeFrame() {
     const r = await detector.detect(work);
     return r.length ? { format: r[0].format, text: r[0].rawValue } : null;
   }
+  if (!zx) return null;
   const lum = new Uint8ClampedArray(w * h);
   for (let i = 0, j = 0; i < px.length; i += 4, j++) {
     const l = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
@@ -660,6 +740,12 @@ setInterval(scanTick, 90);
 
 function onDetect(r) {
   if (!held) return;
+  // the computer's session QR scanned with the phone camera: join it
+  const join = r.format === "qr_code" && r.text.startsWith(location.origin) && r.text.match(SESSION_RE);
+  if (join) {
+    if (!joining) { joining = true; stopTrigger(); joinSession(join[1]).finally(() => { joining = false; }); }
+    return;
+  }
   const code = acceptCamera(r.format, r.text);
   if (!code) {
     if (r.format === "qr_code" && !invalidShown) { invalidShown = true; toast(INVALID_QR); }
@@ -687,7 +773,8 @@ async function startCamera() {
     });
   } catch {
     stream = null;
-    $("camOverlay").textContent = "Camera not available.\nAllow camera access for this site, then reload.";
+    const ov = $("camOverlay"); ov.hidden = false; ov.className = "overlay";
+    ov.textContent = "Camera not available.\nAllow camera access for this site, then reload.";
     return false;
   }
   track = stream.getVideoTracks()[0];
@@ -723,7 +810,7 @@ async function applyTorch() {
 
 // ----- trigger: press = scan, slide up = lock, tap while locked = stop -----
 async function startTrigger(dark) {
-  if (held || ended) return;
+  if (held) return;
   recent = []; lastCode = null; lastSeen = 0;     // a new press counts the same item again
   held = true; invert = dark;
   if (paused || !stream) { paused = false; camUi(); if (!(await startCamera())) { held = false; camUi(); return; } }
@@ -755,7 +842,6 @@ function bindTrigger(el, dark) {
   el.addEventListener("pointercancel", up);
   el.addEventListener("contextmenu", (e) => e.preventDefault());
 }
-function beepUnlock() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {} }
 
 function showFlash() {
   clearTimeout(flashTimer);
@@ -794,7 +880,6 @@ function camUi() {
     black.textContent = locked && invert ? "🔒" : "☾";
   }
 }
-
 $("torchBtn").onclick = () => { torchArmed = !torchArmed; camUi(); applyTorch(); };
 
 function buildBar() {
@@ -812,56 +897,22 @@ function buildBar() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (!isPhone || ended) return;
+  if (!IS_PHONE) return;
   if (document.hidden) { torchArmed = false; if (held) stopTrigger(); stopCamera(); camUi(); }
   else if (!paused) { startCamera().then(() => { resetIdle(); camUi(); }); }
 });
 
-function phoneEnded(title, text, canReload = false) {
-  ended = true;
-  if (held) stopTrigger();
-  stopCamera();
-  if (sess && sess.unsub) sess.unsub();
-  sess = null;
-  $("endedTitle").textContent = title;
-  $("endedText").textContent = text;
-  $("endedBtn").hidden = !canReload;
-  $("endedBox").hidden = false;
-}
-
 async function initPhone() {
   document.body.classList.add("phone");
   $("pcView").hidden = true; $("pcActions").hidden = true;
-  $("phoneView").hidden = false; $("phoneExport").hidden = false;
-  render(); setSort(sortMode); buildBar();
-  const id = (location.hash.match(/s=([A-Za-z0-9]+)/) || [])[1];
-  if (!id) { phoneEnded("Invalid link", "Scan the QR code from the computer again."); return; }
-  try {
-    const s = await getDoc(sref(id));
-    if (!s.exists() || s.data().expiresAt.toMillis() < Date.now()) throw { code: "permission-denied" };
-    await updateDoc(sref(id), { phoneJoined: true, expiresAt: expiry() });
-  } catch (e) {
-    if (e && e.code === "permission-denied") phoneEnded("Session ended on this device", "Continue on the computer, or switch to mobile again to get a new QR code.");
-    else phoneEnded("Could not connect", "Check the internet connection, then reload.", true);
-    return;
-  }
-  sess = { id, data: null, unsub: null };
-  sess.unsub = onSnapshot(sref(id), (s) => {
-    if (!s.exists()) { phoneEnded("Session ended on this device", "Scanning moved back to the computer."); return; }
-    sess.data = s.data();
-    items = sess.data.items || {};
-    render();
-  }, () => phoneEnded("Session ended on this device", "The session expired."));
-  setInterval(() => {
-    if (sess && sess.data && sess.data.expiresAt.toMillis() < Date.now())
-      phoneEnded("Session ended on this device", "The session expired after 2 hours without scans.");
-  }, 15000);
+  $("phoneView").hidden = false; $("phoneActions").hidden = false;
+  render(); setSort(sortMode); buildBar(); ui();
+  restore();
   try { await initDecoder(); } catch { toast("Could not load the barcode reader. Check the internet connection."); }
   if (await startCamera()) { resetIdle(); camUi(); }
-  sweep();
 }
 
-if (isPhone) initPhone(); else initPc();
+if (IS_PHONE) initPhone(); else initPc();
 </script>
 </body>
 </html>
