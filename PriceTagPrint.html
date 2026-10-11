@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Tag Scanner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏷️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  :root {
+    --bg: #F4F5F7; --surface: #FFFFFF; --ink: #1B2228; --muted: #69737D; --line: #D9DEE3;
+    --brand: #305B70; --brand-ink: #FFFFFF; --seg: #E6DCF5; --recent: #C5DBC4;
+    --red: #E0574B; --danger: #B3261E; --warn: #8A5A00; --warn-soft: #FFF4DB;
+    --font: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+    box-sizing: border-box;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121619; --surface: #1B2126; --ink: #E6EAEE; --muted: #96A0AA; --line: #2C343B;
+      --brand: #26495A; --seg: #3B3250; --recent: #24402A; --danger: #F2837B; --warn: #F2C063; --warn-soft: #33290F; }
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
+  body { line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink); border-radius: 10px; padding: 8px 14px; min-height: 44px; }
+  button.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 600; }
+  button.danger { color: var(--danger); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+  /* ---------- App bar ---------- */
+  .appbar { background: var(--brand); color: var(--brand-ink); padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+    display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 5; }
+  .appbar h1 { margin: 0; font-size: 1.3rem; font-weight: 600; flex: 1; }
+  .appbar button { background: transparent; color: var(--brand-ink); border-color: rgba(255,255,255,.4); }
+  .appbar button.solid { background: #fff; color: var(--brand); border-color: #fff; font-weight: 600; }
+  .appbar .icon { border: 0; font-size: 1.3rem; min-width: 44px; padding: 4px; }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .hint { color: var(--muted); font-size: .88rem; margin: 6px 0 0; }
+  .phone-hint { background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: .92rem; }
+
+  /* ---------- PC scanner input ---------- */
+  #scanInput { font: inherit; width: 100%; font-size: 1.25rem; padding: 12px 14px; border: 2px solid var(--line);
+    border-radius: 10px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+  #scanInput:focus { border-color: var(--brand); outline: none; }
+  .scan-msg { min-height: 1.4em; margin: 6px 0 0; font-size: .9rem; color: var(--muted); }
+  .scan-msg.err { color: var(--danger); font-weight: 600; }
+  .scan-msg.ok { color: #1E7B3A; font-weight: 600; }
+
+  .session { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .session img { width: 170px; height: 170px; background: #fff; padding: 6px; border-radius: 8px; image-rendering: pixelated; }
+  .session .txt { flex: 1; min-width: 200px; }
+  .session h2 { margin: 0 0 4px; font-size: 1.1rem; }
+  .session p { margin: 0 0 12px; color: var(--muted); font-size: .92rem; }
+
+  /* ---------- Camera (Scanaria style) ---------- */
+  .cam { border: 3px solid #BDBDBD; border-radius: 12px; padding: 3px; margin-bottom: 12px; transition: border-color .1s; }
+  .cam-in { position: relative; height: 220px; border-radius: 10px; overflow: hidden; background: #000; }
+  .cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+    color: #fff; background: rgba(0,0,0,.38); white-space: pre-line; padding: 12px; font-size: 1.02rem; }
+  .cam .overlay.paused { background: #212121; color: #BDBDBD; flex-direction: column; gap: 6px; }
+  .cam .laser { position: absolute; left: 16px; right: 16px; top: 50%; height: 2px; transform: translateY(-1px);
+    background: var(--laser, #E53935); box-shadow: 0 0 8px 1px var(--laser, #E53935); }
+  .cam .status { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.54);
+    color: #fff; font-size: .75rem; padding: 4px 10px; border-radius: 12px; white-space: nowrap; }
+  .cam .torch { position: absolute; top: 6px; right: 6px; width: 38px; height: 38px; min-height: 0; padding: 0; border: 0;
+    border-radius: 50%; background: rgba(0,0,0,.45); color: #fff; font-size: 1.05rem; }
+  .cam .torch.on { color: #FFC107; }
+
+  /* ---------- List ---------- */
+  .totals { display: flex; justify-content: space-around; font-weight: 700; font-size: 1.1rem; margin: 4px 0 8px; }
+  .seg { display: flex; justify-content: center; margin-bottom: 12px; }
+  .seg button { border-radius: 0; min-width: 96px; border-color: var(--muted); }
+  .seg button:first-child { border-radius: 22px 0 0 22px; }
+  .seg button:last-child { border-radius: 0 22px 22px 0; border-left: 0; }
+  .seg button[aria-pressed="true"] { background: var(--seg); }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer;
+    font-size: 1.2rem; letter-spacing: .03em; border-bottom: 1px solid var(--line); word-break: break-all; gap: 12px; }
+  .row.recent { background: var(--recent); }
+  .row b { font-size: 1.4rem; }
+  .edit { display: flex; gap: 8px; align-items: center; padding: 10px 18px 14px; border-bottom: 1px solid var(--line); background: var(--bg); flex-wrap: wrap; }
+  .edit input { font: inherit; width: 90px; text-align: center; padding: 8px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--surface); color: var(--ink); font-size: 1.1rem; }
+  .edit .grow { flex: 1; }
+  .empty { color: var(--muted); text-align: center; padding: 28px 12px; }
+
+  /* ---------- Trigger bar ---------- */
+  .tbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(96px + env(safe-area-inset-bottom, 0px));
+    padding: 0 16px env(safe-area-inset-bottom, 0px); background: var(--surface); box-shadow: 0 -2px 10px rgba(0,0,0,.18);
+    display: flex; align-items: center; gap: 16px; z-index: 6; }
+  .tbar .sp { flex: 1; }
+  .tbar .move { border: 0; background: none; font-size: 1.5rem; min-width: 48px; }
+  .trig { border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; padding: 0;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; box-shadow: 0 3px 8px rgba(0,0,0,.38); }
+  .trig.red { width: 72px; height: 72px; background: rgba(229,57,53,.85); border: 0; font-size: 1.9rem; }
+  .trig.red.held { background: #D32F2F; }
+  .trig.black { width: 52px; height: 52px; background: #222; border: 2px solid #fff; font-size: 1.4rem; }
+  .trig.black.held { background: #000; }
+  .trig.locked { outline: 3px solid #fff; outline-offset: -3px; }
+  body.phone { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+  .modal .box { background: var(--surface); border-radius: 14px; padding: 24px; max-width: 360px; text-align: center; }
+  .modal h2 { margin: 0 0 8px; font-size: 1.2rem; }
+  .modal p { margin: 0 0 16px; color: var(--muted); }
+
+  .toast { position: fixed; bottom: calc(120px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 10px; opacity: 0; transition: opacity .2s;
+    pointer-events: none; z-index: 40; max-width: 90vw; text-align: center; }
+  body:not(.phone) .toast { bottom: 24px; }
+  .toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .toast, .cam { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <h1>Tag Scanner</h1>
+  <span id="pcActions">
+    <button id="mobileBtn">Switch to mobile</button>
+    <button id="resetBtn">Reset</button>
+    <button class="solid" id="exportBtn">Export CSV</button>
+  </span>
+  <button class="icon" id="phoneExport" aria-label="Export CSV" title="Export CSV" hidden>⬇</button>
+</header>
+
+<main class="wrap">
+  <!-- Computer mode -->
+  <section id="pcView">
+    <div class="phone-hint" id="phoneHint" hidden>
+      To scan with your phone camera, open this page on the computer, tap <b>Switch to mobile</b>, then scan the QR code with your phone.
+    </div>
+
+    <div class="card" id="scanCard">
+      <input id="scanInput" placeholder="Scan a barcode…" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="none">
+      <p class="scan-msg" id="scanMsg">Scanner ready. Each scan adds one tag.</p>
+    </div>
+
+    <div class="card session" id="waitCard" hidden>
+      <img id="qrImg" alt="QR code to open this session on the phone">
+      <div class="txt">
+        <h2>Scan with your phone</h2>
+        <p>Open the phone camera and scan this code. Once the phone connects, scanning moves to the phone and this computer only shows the list.</p>
+        <button id="cancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="card session" id="linkedCard" hidden>
+      <div class="txt">
+        <h2>📱 Scanning from phone</h2>
+        <p>The scanner on this computer is off while the phone is connected. You can still edit counts and export.</p>
+        <button class="primary" id="backBtn">Back to computer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Phone mode -->
+  <section id="phoneView" hidden>
+    <div class="cam" id="cam">
+      <div class="cam-in">
+        <video id="video" playsinline muted></video>
+        <div class="overlay" id="camOverlay">Hold red for normal codes
+Hold black for dark codes
+Slide a button up to keep scanning</div>
+        <div class="laser" id="laser" hidden></div>
+        <div class="status" id="camStatus" hidden></div>
+        <button class="torch" id="torchBtn" aria-label="Flash">ϟ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shared list -->
+  <section class="card" id="listCard" style="padding:14px 0 0">
+    <div class="totals num"><span id="itemsTotal">Items: 0</span><span id="qtyTotal">Quantity: 0</span></div>
+    <div class="seg" role="group" aria-label="Sort">
+      <button id="sortRecent" aria-pressed="true">Recent</button>
+      <button id="sortNo" aria-pressed="false">No.</button>
+    </div>
+    <ul class="list" id="list"></ul>
+    <p class="empty" id="empty">No barcodes yet.</p>
+  </section>
+</main>
+
+<nav class="tbar" id="tbar" hidden></nav>
+
+<div class="modal" id="endedBox" hidden>
+  <div class="box">
+    <h2 id="endedTitle">Session ended on this device</h2>
+    <p id="endedText">Continue on the computer.</p>
+    <button class="primary" id="endedBtn" hidden onclick="location.reload()">Reload</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, collection, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot,
+  query, where, limit, Timestamp, increment, deleteField, FieldPath }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ===== Firebase config (same project as the temporary page) =====
+const firebaseConfig = {
+  apiKey: "AIzaSyD-QSolp7uoEr0z_0NkOBIeEFAgllmi0ro",
+  authDomain: "sync-df6ca.firebaseapp.com",
+  projectId: "sync-df6ca",
+  storageBucket: "sync-df6ca.firebasestorage.app",
+  messagingSenderId: "1091721719210",
+  appId: "1:1091721719210:web:567cd4ce4056bfce45cfd3"
+};
+// ================================================================
+
+const db = getFirestore(initializeApp(firebaseConfig));
+const $ = (id) => document.getElementById(id);
+const SESSION_TTL = 2 * 60 * 60 * 1000;          // 2 hours after the last change
+const LOCAL_KEY = "tagscan:items", SESSION_KEY = "tagscan:session", ALIGN_KEY = "tagscan:align", SORT_KEY = "tagscan:sort";
+const INVALID_QR = "Invalid QR code: this QR code must contain a GTIN.";
+const sref = (id) => doc(db, "scanSessions", id);
+const expiry = () => Timestamp.fromMillis(Date.now() + SESSION_TTL);
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
+};
+
+// =====================================================================
+// Barcode rules (ported from Scanaria: barcode_rules.dart + gs1_parser.dart)
+// =====================================================================
+
+// Original EAN-13 / UPC-A rule: non-numeric passes, otherwise 12/13 digits with a valid check digit
+function upcEanOk(code) {
+  if (!/^\d+$/.test(code)) return true;
+  if (code.length !== 12 && code.length !== 13) return false;
+  const d = code.length === 12 ? "0" + code : code;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += (i % 2 === 0) ? +d[i] : +d[i] * 3;
+  return (10 - sum % 10) % 10 === +d[12];
+}
+
+// GS1 check digit for any length (EAN-8, ITF-14, GTIN-14)
+function gs1Ok(code) {
+  if (!/^\d{8,14}$/.test(code)) return false;
+  let sum = 0;
+  for (let i = 0; i < code.length - 1; i++) {
+    const d = +code[code.length - 2 - i];
+    sum += i % 2 === 0 ? d * 3 : d;
+  }
+  return (10 - sum % 10) % 10 === +code[code.length - 1];
+}
+
+// Extract the GTIN (AI 01) from a GS1 Digital Link, human-readable or element-string code
+function gs1Gtin(raw) {
+  let v = String(raw).trim().replace(/^\][A-Za-z]\d/, "").replace(/\u001d/g, "|");
+  const dl = v.match(/\/01\/(\d{14})(?:[/?#]|$)/);
+  if (dl) return dl[1];
+  if (/^https?:\/\//i.test(v)) return null;           // any other link is not a product
+
+  const hr = [...v.matchAll(/\((01|10|17|21)\)/g)];
+  if (hr.length) {
+    for (let i = 0; i < hr.length; i++) {
+      if (hr[i][1] !== "01") continue;
+      const s = hr[i].index + hr[i][0].length, e = i + 1 < hr.length ? hr[i + 1].index : v.length;
+      const d = v.slice(s, e).replace(/\|/g, "").trim();
+      if (/^\d{14}$/.test(d)) return d;
+    }
+    return null;
+  }
+
+  let i = 0, gtin = null;
+  while (i < v.length) {
+    if (v[i] === "|") { i++; continue; }
+    const ai = v.substr(i, 2);
+    if (ai === "01" && /^\d{14}$/.test(v.substr(i + 2, 14))) { gtin = v.substr(i + 2, 14); i += 16; continue; }
+    if (ai === "17" && /^\d{6}$/.test(v.substr(i + 2, 6))) { i += 8; continue; }
+    if (ai === "10" || ai === "21") {
+      const sep = v.indexOf("|", i + 2);
+      i = sep !== -1 ? sep + 1 : Math.min(v.length, i + 22);   // variable length, max 20
+      continue;
+    }
+    i++;
+  }
+  return gtin;
+}
+
+// Valid GTIN-14 only; a leading zero is dropped so it matches the normal 13-digit barcode
+function productCode(raw) {
+  const g = gs1Gtin(raw);
+  if (!g || !gs1Ok(g)) return null;
+  return g[0] === "0" ? g.slice(1) : g;
+}
+
+// Camera reads: same acceptance rules as Scanaria, per barcode type
+function acceptCamera(format, text) {
+  switch (format) {
+    case "qr_code": case "data_matrix": return productCode(text);
+    case "ean_13": case "upc_a": return upcEanOk(text) ? text : null;
+    case "ean_8": return text.length === 8 && gs1Ok(text) ? text : null;
+    case "itf": return text.length === 14 && gs1Ok(text) ? text : null;
+    case "code_128": case "code_39": case "code_93": case "codabar": return text;
+    default: return upcEanOk(text) ? text : null;
+  }
+}
+
+// USB scanner reads (the type is unknown, so it is guessed from the text)
+function acceptTyped(raw) {
+  const v = raw.replace(/[\r\n\t]/g, "").trim();
+  if (!v) return { code: null, err: "" };
+  const isLink = /^https?:\/\//i.test(v);
+  const looksGs1 = isLink || /^\]/.test(v) || /\u001d/.test(v) || /^\(01\)/.test(v) || (/^01\d{14}/.test(v) && v.length >= 16);
+  if (looksGs1) {
+    const c = productCode(v);
+    return c ? { code: c } : { code: null, err: isLink ? INVALID_QR : "No valid product number in this code." };
+  }
+  if (/^\d{12,13}$/.test(v) && !upcEanOk(v)) return { code: null, err: "Invalid barcode (check digit)." };
+  return { code: v };
+}
+
+// =====================================================================
+// Items: local (computer only) or shared session (computer + phone)
+// =====================================================================
+const isPhone = /(^|[#&])s=/.test(location.hash);
+let items = isPhone ? {} : store.get(LOCAL_KEY, {});   // { code: { c: count, t: lastTime } }
+let sess = null;                                       // { id, unsub, data }
+let sortMode = store.get(SORT_KEY, "recent");
+let openCode = null;
+
+function saveLocal() { if (!isPhone) store.set(LOCAL_KEY, items); }
+
+function onWriteError(e) {
+  if (e && e.code === "permission-denied") endSession("The session expired.");
+  else toast("Could not save. Check the internet connection.");
+}
+
+function addScan(code) {
+  if (sess) {
+    updateDoc(sref(sess.id), new FieldPath("items", code, "c"), increment(1),
+      new FieldPath("items", code, "t"), Date.now(), "expiresAt", expiry()).catch(onWriteError);
+    return;
+  }
+  const it = items[code] || { c: 0, t: 0 };
+  items[code] = { c: it.c + 1, t: Date.now() };
+  saveLocal(); render();
+}
+
+function setCount(code, n) {
+  n = Math.floor(n);
+  if (sess) {
+    const p = n > 0
+      ? updateDoc(sref(sess.id), new FieldPath("items", code, "c"), n, "expiresAt", expiry())
+      : updateDoc(sref(sess.id), new FieldPath("items", code), deleteField(), "expiresAt", expiry());
+    p.catch(onWriteError);
+    return;
+  }
+  if (n > 0) items[code] = { ...items[code], c: n }; else delete items[code];
+  saveLocal(); render();
+}
+
+// =====================================================================
+// List rendering
+// =====================================================================
+function sorted() {
+  const e = Object.entries(items);
+  if (sortMode === "no") return e.sort((a, b) => a[0].localeCompare(b[0], "en", { numeric: true }));
+  return e.sort((a, b) => b[1].t - a[1].t);
+}
+
+function render() {
+  const rows = sorted();
+  const qty = rows.reduce((s, [, v]) => s + v.c, 0);
+  $("itemsTotal").textContent = `Items: ${rows.length}`;
+  $("qtyTotal").textContent = `Quantity: ${qty}`;
+  $("empty").hidden = rows.length > 0;
+  const latest = rows.reduce((m, r) => (!m || r[1].t > m[1].t ? r : m), null);
+  const list = $("list"); list.innerHTML = "";
+  for (const [code, v] of rows) {
+    const li = document.createElement("li");
+    li.className = "row num" + (latest && latest[0] === code ? " recent" : "");
+    const s = document.createElement("span"); s.textContent = code;
+    const b = document.createElement("b"); b.textContent = v.c;
+    li.append(s, b);
+    li.onclick = () => { openCode = openCode === code ? null : code; render(); };
+    list.append(li);
+    if (openCode === code) list.append(editRow(code, v.c));
+  }
+}
+
+function editRow(code, count) {
+  const li = document.createElement("li"); li.className = "edit";
+  const mk = (t, fn, cls) => { const b = document.createElement("button"); b.textContent = t; b.onclick = fn; if (cls) b.className = cls; return b; };
+  const inp = document.createElement("input");
+  inp.type = "number"; inp.min = "1"; inp.step = "1"; inp.value = count; inp.inputMode = "numeric";
+  inp.setAttribute("aria-label", `Tags for ${code}`);
+  const apply = () => { const n = parseInt(inp.value, 10); if (n > 0 && n !== count) setCount(code, n); };
+  inp.addEventListener("change", apply);
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { apply(); openCode = null; render(); refocus(); } });
+  const sp = document.createElement("span"); sp.className = "grow";
+  li.append(
+    mk("−", () => count > 1 ? setCount(code, count - 1) : null),
+    inp,
+    mk("+", () => setCount(code, count + 1)),
+    sp,
+    mk("Delete", () => { openCode = null; setCount(code, 0); refocus(); }, "danger"));
+  return li;
+}
+
+function setSort(m) {
+  sortMode = m; store.set(SORT_KEY, m);
+  $("sortRecent").setAttribute("aria-pressed", String(m === "recent"));
+  $("sortNo").setAttribute("aria-pressed", String(m === "no"));
+  render();
+}
+$("sortRecent").onclick = () => setSort("recent");
+$("sortNo").onclick = () => setSort("no");
+
+// =====================================================================
+// Export (tag file: 1-TAG,barcode,count — no header)
+// =====================================================================
+function exportCsv() {
+  const rows = sorted();
+  if (!rows.length) { toast("Nothing to export."); return; }
+  const cell = (s) => /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const csv = rows.map(([code, v]) => `1-TAG,${cell(code)},${v.c}`).join("\r\n") + "\r\n";
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  const name = `tags-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.csv`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast(`Exported ${rows.length} items.`);
+}
+$("exportBtn").onclick = exportCsv;
+$("phoneExport").onclick = exportCsv;
+
+// =====================================================================
+// Cleanup of expired sessions (best effort; locked by the rules anyway)
+// =====================================================================
+async function sweep() {
+  try {
+    const q = query(collection(db, "scanSessions"), where("expiresAt", "<", Timestamp.fromMillis(Date.now() - 2 * 60 * 1000)), limit(20));
+    const snap = await getDocs(q);
+    snap.forEach((d) => deleteDoc(d.ref).catch(() => {}));
+  } catch {}
+}
+
+// =====================================================================
+// COMPUTER MODE
+// =====================================================================
+function refocus() {
+  if (!isPhone && !$("scanCard").hidden && !openCode) $("scanInput").focus({ preventScroll: true });
+}
+
+function scanMsg(text, cls) { const m = $("scanMsg"); m.textContent = text; m.className = "scan-msg" + (cls ? " " + cls : ""); }
+
+function pcState() {
+  const linked = !!(sess && sess.data && sess.data.phoneJoined);
+  $("waitCard").hidden = !(sess && !linked);
+  $("linkedCard").hidden = !linked;
+  $("scanCard").hidden = linked;
+  $("mobileBtn").hidden = !!sess;
+  if (!linked) refocus();
+}
+
+function handleTyped() {
+  const raw = $("scanInput").value; $("scanInput").value = "";
+  if (sess && sess.data && sess.data.phoneJoined) return;
+  const r = acceptTyped(raw);
+  if (!r.code) { if (r.err) { scanMsg(r.err, "err"); beep(true); } return; }
+  addScan(r.code); beep();
+  scanMsg(`Added ${r.code}`, "ok");
+}
+$("scanInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); handleTyped(); }
+});
+// keep the scanner input focused when clicking on empty areas
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("button, input, a, .row, .edit")) refocus();
+});
+
+function randId() {
+  const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  return [...crypto.getRandomValues(new Uint8Array(20))].map((x) => a[x % a.length]).join("");
+}
+
+async function startMobile() {
+  if (sess) return;
+  const id = randId();
+  $("mobileBtn").disabled = true;
+  try {
+    await setDoc(sref(id), { items, phoneJoined: false, createdAt: Timestamp.now(), expiresAt: expiry() });
+  } catch { toast("Could not connect. Check the internet connection."); $("mobileBtn").disabled = false; return; }
+  $("mobileBtn").disabled = false;
+  store.set(SESSION_KEY, id);
+  attachPc(id);
+  const url = location.origin + location.pathname + "#s=" + id;
+  try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); $("qrImg").src = qr.createDataURL(5, 2); } catch {}
+}
+$("mobileBtn").onclick = startMobile;
+
+function attachPc(id) {
+  sess = { id, data: null, unsub: null };
+  pcState();
+  sess.unsub = onSnapshot(sref(id), (s) => {
+    if (!sess || sess.id !== id) return;
+    if (!s.exists()) { endSession("The phone session ended."); return; }
+    const d = s.data();
+    const wasLinked = sess.data && sess.data.phoneJoined;
+    sess.data = d;
+    items = d.items || {};
+    saveLocal(); render(); pcState();
+    if (d.phoneJoined && !wasLinked) toast("Phone connected. Scan with the phone.");
+  }, () => endSession("The session expired."));
+}
+
+// Ends the shared session; the list stays on this computer
+function endSession(msg, del = true) {
+  if (!sess) return;
+  const id = sess.id;
+  if (sess.unsub) sess.unsub();
+  sess = null;
+  store.del(SESSION_KEY);
+  if (del) deleteDoc(sref(id)).catch(() => {});
+  if (isPhone) return;
+  saveLocal(); render(); pcState();
+  if (msg) toast(msg);
+}
+$("cancelBtn").onclick = () => endSession("");
+$("backBtn").onclick = () => endSession("Back to computer scanning. The phone is disconnected.");
+
+$("resetBtn").onclick = () => {
+  if (!confirm("Clear all scanned barcodes and start a new page?")) return;
+  endSession("");
+  items = {}; openCode = null; saveLocal(); render();
+  scanMsg("Scanner ready. Each scan adds one tag.");
+  refocus();
+};
+
+// session expiry check on the computer
+setInterval(() => {
+  if (sess && sess.data && sess.data.expiresAt && sess.data.expiresAt.toMillis() < Date.now())
+    endSession("The phone session expired after 2 hours without scans.");
+}, 15000);
+
+async function initPc() {
+  $("phoneHint").hidden = !matchMedia("(pointer: coarse)").matches;
+  render(); setSort(sortMode);
+  const saved = store.get(SESSION_KEY, null);
+  if (saved) {
+    try {
+      const s = await getDoc(sref(saved));
+      if (s.exists() && s.data().expiresAt.toMillis() > Date.now()) {
+        attachPc(saved);
+        const url = location.origin + location.pathname + "#s=" + saved;
+        try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); $("qrImg").src = qr.createDataURL(5, 2); } catch {}
+      } else { store.del(SESSION_KEY); deleteDoc(sref(saved)).catch(() => {}); }
+    } catch { store.del(SESSION_KEY); }
+  }
+  pcState();
+  sweep();
+}
+
+// =====================================================================
+// PHONE MODE — camera, same behaviour as Scanaria's scanner
+// =====================================================================
+const REQUIRED_MATCHES = 3, SAME_CODE_GAP = 500, LOCK_SWIPE = 40, IDLE_TIMEOUT = 30000;
+let stream = null, track = null, wakeLock = null, audio = null;
+let held = false, locked = false, invert = false, torchArmed = false, torchLit = false;
+let paused = false, idleTimer = null, pressY = null, flashTimer = null, invalidShown = false;
+let recent = [], lastCode = null, lastSeen = 0, busy = false, detector = null, zx = null, ended = false;
+let align = store.get(ALIGN_KEY, "right");
+const work = document.createElement("canvas"), wctx = work.getContext("2d", { willReadFrequently: true });
+
+function beep(error = false) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = "square"; o.frequency.value = error ? 320 : 2700;
+    g.gain.value = 0.08;
+    o.connect(g); g.connect(audio.destination);
+    o.start(); o.stop(audio.currentTime + (error ? 0.25 : 0.08));
+  } catch {}
+}
+
+async function initDecoder() {
+  if ("BarcodeDetector" in window) {
+    try {
+      const sup = await BarcodeDetector.getSupportedFormats();
+      const want = ["qr_code", "data_matrix", "ean_13", "ean_8", "upc_a", "upc_e", "itf", "code_128", "code_39", "code_93", "codabar"]
+        .filter((f) => sup.includes(f));
+      if (want.length) { detector = new BarcodeDetector({ formats: want }); return; }
+    } catch {}
+  }
+  // Fallback (iPhone and others): ZXing, loaded only when needed
+  await new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+    s.onload = ok; s.onerror = fail; document.head.append(s);
+  });
+  const Z = window.ZXing, hints = new Map();
+  hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.QR_CODE, Z.BarcodeFormat.DATA_MATRIX, Z.BarcodeFormat.EAN_13,
+    Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.ITF, Z.BarcodeFormat.CODE_128,
+    Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.CODE_93, Z.BarcodeFormat.CODABAR]);
+  const reader = new Z.MultiFormatReader(); reader.setHints(hints);
+  zx = { Z, reader };
+}
+
+// One frame -> { format, text } or null. Dark mode inverts the picture first.
+async function decodeFrame() {
+  const v = $("video");
+  if (!v.videoWidth) return null;
+  const scale = Math.min(1, 1280 / v.videoWidth);
+  const w = Math.round(v.videoWidth * scale), h = Math.round(v.videoHeight * scale);
+  if (detector && !invert) {
+    const r = await detector.detect(v);
+    return r.length ? { format: r[0].format, text: r[0].rawValue } : null;
+  }
+  work.width = w; work.height = h;
+  wctx.drawImage(v, 0, 0, w, h);
+  const img = wctx.getImageData(0, 0, w, h), px = img.data;
+  if (detector) {
+    for (let i = 0; i < px.length; i += 4) { px[i] = 255 - px[i]; px[i + 1] = 255 - px[i + 1]; px[i + 2] = 255 - px[i + 2]; }
+    wctx.putImageData(img, 0, 0);
+    const r = await detector.detect(work);
+    return r.length ? { format: r[0].format, text: r[0].rawValue } : null;
+  }
+  const lum = new Uint8ClampedArray(w * h);
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) {
+    const l = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
+    lum[j] = invert ? 255 - l : l;
+  }
+  try {
+    const { Z, reader } = zx;
+    const res = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.RGBLuminanceSource(lum, w, h))));
+    return { format: String(Z.BarcodeFormat[res.getBarcodeFormat()]).toLowerCase(), text: res.getText() };
+  } catch { return null; }
+}
+
+async function scanTick() {
+  if (!held || busy || paused || !stream) return;
+  busy = true;
+  try { const r = await decodeFrame(); if (r && r.text) onDetect(r); } catch {}
+  busy = false;
+}
+setInterval(scanTick, 90);
+
+function onDetect(r) {
+  if (!held) return;
+  const code = acceptCamera(r.format, r.text);
+  if (!code) {
+    if (r.format === "qr_code" && !invalidShown) { invalidShown = true; toast(INVALID_QR); }
+    return;
+  }
+  const now = Date.now();
+  // the same code is still in front of the camera: do not count it again
+  if (code === lastCode && now - lastSeen < SAME_CODE_GAP) { lastSeen = now; return; }
+  recent.push(code);
+  if (recent.length > REQUIRED_MATCHES) recent.shift();
+  if (!(recent.length === REQUIRED_MATCHES && recent.every((c) => c === recent[0]))) return;
+
+  recent = []; lastCode = code; lastSeen = now; invalidShown = false;
+  resetIdle(); showFlash(); beep();
+  addScan(code);
+}
+
+// ----- camera power -----
+async function startCamera() {
+  if (stream) return true;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
+  } catch {
+    stream = null;
+    $("camOverlay").textContent = "Camera not available.\nAllow camera access for this site, then reload.";
+    return false;
+  }
+  track = stream.getVideoTracks()[0];
+  try { await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {}
+  const v = $("video"); v.srcObject = stream;
+  try { await v.play(); } catch {}
+  torchLit = false;
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+  return true;
+}
+
+function stopCamera() {
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = null; track = null; torchLit = false;
+  try { wakeLock?.release(); } catch {}
+  wakeLock = null;
+}
+
+function resetIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (held) { resetIdle(); return; }
+    paused = true; stopCamera(); camUi();
+  }, IDLE_TIMEOUT);
+}
+
+async function applyTorch() {
+  const want = torchArmed && held;
+  if (want === torchLit || !track) return;
+  try { await track.applyConstraints({ advanced: [{ torch: want }] }); torchLit = want; }
+  catch { torchLit = false; if (torchArmed) { torchArmed = false; toast("Flash is not available on this device/browser."); camUi(); } }
+}
+
+// ----- trigger: press = scan, slide up = lock, tap while locked = stop -----
+async function startTrigger(dark) {
+  if (held || ended) return;
+  recent = []; lastCode = null; lastSeen = 0;     // a new press counts the same item again
+  held = true; invert = dark;
+  if (paused || !stream) { paused = false; camUi(); if (!(await startCamera())) { held = false; camUi(); return; } }
+  resetIdle(); camUi(); applyTorch();
+}
+
+function stopTrigger() {
+  recent = []; pressY = null;
+  held = false; locked = false;
+  applyTorch(); resetIdle(); camUi();
+}
+
+function bindTrigger(el, dark) {
+  el.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    beepUnlock();
+    if (locked && invert === dark) { stopTrigger(); return; }
+    if (held) stopTrigger();
+    pressY = e.clientY;
+    startTrigger(dark);
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (pressY == null || locked || !held) return;
+    if (pressY - e.clientY > LOCK_SWIPE) { locked = true; navigator.vibrate?.(15); camUi(); }
+  });
+  const up = () => { pressY = null; if (!locked) stopTrigger(); };
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
+  el.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+function beepUnlock() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {} }
+
+function showFlash() {
+  clearTimeout(flashTimer);
+  $("cam").dataset.flash = "1"; camUi();
+  flashTimer = setTimeout(() => { delete $("cam").dataset.flash; camUi(); }, 300);
+}
+
+function statusText() {
+  if (locked && invert) return "🔒 Scanning dark codes · Tap black to stop";
+  if (locked) return "🔒 Scanning normal codes · Tap red to stop";
+  if (invert) return "Dark codes · Slide up to keep scanning";
+  return "Normal codes · Slide up to keep scanning";
+}
+
+function camUi() {
+  const flash = !!$("cam").dataset.flash;
+  const laser = flash ? "#43A047" : invert ? "#FB8C00" : "#E53935";
+  $("cam").style.borderColor = held ? laser : "#BDBDBD";
+  $("laser").style.setProperty("--laser", laser);
+  $("laser").hidden = !held;
+  $("camStatus").hidden = !held;
+  $("camStatus").textContent = statusText();
+  const ov = $("camOverlay");
+  if (held) ov.hidden = true;
+  else if (paused) { ov.hidden = false; ov.className = "overlay paused"; ov.textContent = "⏸\nPaused"; }
+  else if (stream) { ov.hidden = false; ov.className = "overlay"; ov.textContent = "Hold red for normal codes\nHold black for dark codes\nSlide a button up to keep scanning"; }
+  $("torchBtn").classList.toggle("on", torchArmed);
+  $("torchBtn").textContent = torchArmed ? "ϟ" : "ϟ̸";
+  const red = $("redBtn"), black = $("blackBtn");
+  if (red) {
+    red.classList.toggle("held", held && !invert);
+    red.classList.toggle("locked", locked && !invert);
+    red.textContent = locked && !invert ? "🔒" : "▣";
+    black.classList.toggle("held", held && invert);
+    black.classList.toggle("locked", locked && invert);
+    black.textContent = locked && invert ? "🔒" : "☾";
+  }
+}
+
+$("torchBtn").onclick = () => { torchArmed = !torchArmed; camUi(); applyTorch(); };
+
+function buildBar() {
+  const bar = $("tbar"); bar.innerHTML = ""; bar.hidden = false;
+  const red = document.createElement("button"); red.className = "trig red"; red.id = "redBtn"; red.setAttribute("aria-label", "Scan normal codes");
+  const black = document.createElement("button"); black.className = "trig black"; black.id = "blackBtn"; black.setAttribute("aria-label", "Scan dark codes");
+  const move = document.createElement("button"); move.className = "move"; move.textContent = "⇄"; move.title = "Move buttons";
+  move.onclick = () => { align = { right: "center", center: "left", left: "right" }[align]; store.set(ALIGN_KEY, align); buildBar(); };
+  bindTrigger(red, false); bindTrigger(black, true);
+  const sp = () => { const s = document.createElement("span"); s.className = "sp"; return s; };
+  if (align === "right") bar.append(move, sp(), black, red);
+  else if (align === "left") bar.append(red, black, sp(), move);
+  else { const pad = document.createElement("span"); pad.style.width = "48px"; bar.append(move, sp(), black, red, sp(), pad); }
+  camUi();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!isPhone || ended) return;
+  if (document.hidden) { torchArmed = false; if (held) stopTrigger(); stopCamera(); camUi(); }
+  else if (!paused) { startCamera().then(() => { resetIdle(); camUi(); }); }
+});
+
+function phoneEnded(title, text, canReload = false) {
+  ended = true;
+  if (held) stopTrigger();
+  stopCamera();
+  if (sess && sess.unsub) sess.unsub();
+  sess = null;
+  $("endedTitle").textContent = title;
+  $("endedText").textContent = text;
+  $("endedBtn").hidden = !canReload;
+  $("endedBox").hidden = false;
+}
+
+async function initPhone() {
+  document.body.classList.add("phone");
+  $("pcView").hidden = true; $("pcActions").hidden = true;
+  $("phoneView").hidden = false; $("phoneExport").hidden = false;
+  render(); setSort(sortMode); buildBar();
+  const id = (location.hash.match(/s=([A-Za-z0-9]+)/) || [])[1];
+  if (!id) { phoneEnded("Invalid link", "Scan the QR code from the computer again."); return; }
+  try {
+    const s = await getDoc(sref(id));
+    if (!s.exists() || s.data().expiresAt.toMillis() < Date.now()) throw { code: "permission-denied" };
+    await updateDoc(sref(id), { phoneJoined: true, expiresAt: expiry() });
+  } catch (e) {
+    if (e && e.code === "permission-denied") phoneEnded("Session ended on this device", "Continue on the computer, or switch to mobile again to get a new QR code.");
+    else phoneEnded("Could not connect", "Check the internet connection, then reload.", true);
+    return;
+  }
+  sess = { id, data: null, unsub: null };
+  sess.unsub = onSnapshot(sref(id), (s) => {
+    if (!s.exists()) { phoneEnded("Session ended on this device", "Scanning moved back to the computer."); return; }
+    sess.data = s.data();
+    items = sess.data.items || {};
+    render();
+  }, () => phoneEnded("Session ended on this device", "The session expired."));
+  setInterval(() => {
+    if (sess && sess.data && sess.data.expiresAt.toMillis() < Date.now())
+      phoneEnded("Session ended on this device", "The session expired after 2 hours without scans.");
+  }, 15000);
+  try { await initDecoder(); } catch { toast("Could not load the barcode reader. Check the internet connection."); }
+  if (await startCamera()) { resetIdle(); camUi(); }
+  sweep();
+}
+
+if (isPhone) initPhone(); else initPc();
+</script>
+</body>
+</html>
