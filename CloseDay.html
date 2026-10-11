@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
   :root {
     --bg: #F1F4F2; --surface: #FFFFFF; --ink: #16211C; --muted: #5E6B64; --line: #D6DDD8;
@@ -135,6 +136,65 @@
     background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.show { opacity: 1; }
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+  /* Phone link (computer side) */
+  .relay { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .relay-st { font-weight: 600; }
+  .relay-qr { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .relay-qr img { width: 190px; height: 190px; background: #fff; padding: 6px; border-radius: 8px; image-rendering: pixelated; }
+  .relay-qr p { flex: 1; min-width: 200px; margin: 0; color: var(--muted); font-size: .9rem; }
+  .secure { font-size: .82rem; color: var(--muted); margin: 6px 0 0; }
+
+  /* Phone mode */
+  body.phone .wrap { display: none; }
+  body.phone { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+  body.phone .toast { bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+  .ph-bar { background: #305B70; color: #fff; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 5; }
+  .ph-bar h1 { margin: 0; font-size: 1.3rem; font-weight: 600; flex: 1; }
+  .ph-bar button { background: transparent; color: #fff; border-color: rgba(255,255,255,.45); }
+  .ph-wrap { padding: 14px; }
+  .chip { display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; background: var(--accent-soft);
+    border-radius: 10px; padding: 8px 12px; margin-bottom: 6px; font-size: .9rem; font-weight: 600; text-align: center; }
+  .chip button { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
+  .cam { border: 3px solid #BDBDBD; border-radius: 12px; padding: 3px; margin: 10px 0 12px; }
+  .cam-in { position: relative; height: 220px; border-radius: 10px; overflow: hidden; background: #000; }
+  .cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+    color: #fff; background: rgba(0,0,0,.38); white-space: pre-line; padding: 12px; font-size: 1.02rem; }
+  .cam .overlay.paused { background: #212121; color: #BDBDBD; }
+  .cam .laser { position: absolute; left: 16px; right: 16px; top: 50%; height: 2px; background: var(--laser, #E53935); box-shadow: 0 0 8px 1px var(--laser, #E53935); }
+  .cam .status { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.54); color: #fff; font-size: .75rem; padding: 4px 10px; border-radius: 12px; white-space: nowrap; }
+  .cam .torch { position: absolute; top: 6px; right: 6px; width: 38px; height: 38px; min-height: 0; padding: 0; border: 0; border-radius: 50%; background: rgba(0,0,0,.45); color: #fff; }
+  .cam .torch.on { color: #FFC107; }
+  .cam .torch svg { display: block; margin: auto; }
+  .ph-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 6px; }
+  .ph-head button { min-height: 32px; padding: 2px 12px; font-size: .85rem; font-weight: 400; }
+  .ph-list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .ph-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .ph-row:last-child { border-bottom: 0; }
+  .ph-row.recent { background: var(--accent-soft); }
+  .ph-t { font-weight: 600; }
+  .ph-m { color: var(--muted); font-size: .85rem; }
+  .ph-r { display: flex; align-items: center; gap: 6px; text-align: right; }
+  .ph-st { font-size: .8rem; font-weight: 600; }
+  .st-ok { color: var(--pos); } .st-wait { color: var(--warn); } .st-pending { color: var(--err); }
+  .ph-del { min-height: 30px; min-width: 30px; padding: 0 6px; font-size: .8rem; }
+  .tbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(96px + env(safe-area-inset-bottom, 0px)); padding: 0 16px env(safe-area-inset-bottom, 0px);
+    background: var(--surface); box-shadow: 0 -2px 10px rgba(0,0,0,.18); display: flex; align-items: center; gap: 16px; z-index: 6; }
+  .tbar .sp { flex: 1; }
+  .tbar .move { border: 0; background: none; font-size: 1.5rem; min-width: 48px; }
+  .trig { border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; padding: 0; touch-action: none;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; box-shadow: 0 3px 8px rgba(0,0,0,.38); }
+  .trig.red { width: 72px; height: 72px; background: rgba(229,57,53,.85); border: 0; font-size: 1.9rem; }
+  .trig.red.held { background: #D32F2F; }
+  .trig.black { width: 52px; height: 52px; background: #222; border: 2px solid #fff; font-size: 1.4rem; }
+  .trig.black.held { background: #000; }
+  .trig.locked { outline: 3px solid #fff; outline-offset: -3px; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+  .modal .box { background: var(--surface); border-radius: 14px; padding: 22px; max-width: 360px; text-align: center; }
+  .modal h2 { margin: 0 0 8px; font-size: 1.15rem; }
+  .modal p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
+  .modal img { width: 250px; height: 250px; max-width: 72vw; max-height: 72vw; background: #fff; padding: 8px; border-radius: 10px; image-rendering: pixelated; margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -163,6 +223,18 @@
       <div class="np-help" id="npHelp" hidden>
         Open the NearPay reconciliation link, press Ctrl+A to select the whole page, then Ctrl+C (or right-click and choose Copy), and paste it into a terminal box. It is detected automatically.
       </div>
+      <div class="relay">
+        <div class="bar" style="margin-bottom:8px">
+          <button id="connectBtn">📱 Connect phone</button>
+          <span class="relay-st grow" id="relaySt"></span>
+          <button id="disconnectBtn" hidden>Disconnect</button>
+        </div>
+        <div class="relay-qr" id="relayQr" hidden>
+          <img id="relayQrImg" alt="QR code to connect the phone">
+          <p>Scan this with the phone camera. Or tap <b>Connect to PC</b> on the phone and scan its code into any terminal box with the scanner.</p>
+        </div>
+        <p class="secure">🔒 Phone link: data is encrypted on the device before it is sent, and nobody can read it, not even the site owner. It passes through for a moment and is deleted as soon as it reaches the computer. Nothing is stored. Without a phone, nothing leaves this computer.</p>
+      </div>
     </div>
   </section>
 
@@ -184,6 +256,38 @@
       <div id="results"></div>
     </div>
   </section>
+</div>
+
+<div id="phoneApp" hidden>
+  <header class="ph-bar">
+    <h1>Close Day</h1>
+    <button id="phConnect">Connect to PC</button>
+  </header>
+  <div class="ph-wrap">
+    <div class="chip" id="phChip"></div>
+    <p class="secure" style="text-align:center">🔒 Encrypted on this phone before sending. Deleted as soon as the computer receives it. Nothing is stored.</p>
+    <div class="cam" id="phCam">
+      <div class="cam-in">
+        <video id="phVideo" playsinline muted></video>
+        <div class="overlay" id="phOverlay">Starting camera…</div>
+        <div class="laser" id="phLaser" hidden></div>
+        <div class="status" id="phStatus" hidden></div>
+        <button class="torch" id="phTorch" aria-label="Flash"></button>
+      </div>
+    </div>
+    <div class="ph-head"><span id="phCount">Reconciliations: 0</span><button id="phClear">Clear list</button></div>
+    <ul class="ph-list" id="phList"></ul>
+    <p class="empty" id="phEmpty">Scan the Geidea reconciliation QR codes. NearPay is added on the computer.</p>
+  </div>
+  <nav class="tbar" id="phBar" hidden></nav>
+  <div class="modal" id="phQrModal" hidden>
+    <div class="box">
+      <h2>Scan with the computer</h2>
+      <img id="phQrImg" alt="QR code for the computer's scanner">
+      <p>On the computer, open Close Day and scan this code into any terminal box with the barcode scanner.</p>
+      <button id="phQrClose">Close</button>
+    </div>
+  </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -404,6 +508,8 @@ function addRow(value = "", focus = false) {
 async function processRow(r, fromUser) {
   if (r.ta.readOnly) return;
   const seq = ++r.seq, v = r.ta.value.trim();
+  // the phone's connection code scanned into a box: connect instead of reading it
+  if (v && typeof relayTryJoin === "function" && relayTryJoin(v)) { r.ta.value = ""; save(); refresh(); return; }
   r.result = null; r.error = null;
   if (v) {
     r.loading = true; refresh();
@@ -689,5 +795,501 @@ $("clearBtn").onclick = () => {
   onTender();
 })();
 </script>
+<script>
+// =====================================================================
+// PHONE LINK — encrypted relay. The phone scans Geidea QR codes and sends them
+// to the computer. Data is encrypted on the device; the key lives only in the
+// QR/link (after #) and never reaches any server. Each message is deleted as
+// soon as the computer receives it.
+// =====================================================================
+const FB_CONFIG = {
+  apiKey: "AIzaSyD-QSolp7uoEr0z_0NkOBIeEFAgllmi0ro",
+  authDomain: "sync-df6ca.firebaseapp.com",
+  projectId: "sync-df6ca",
+  storageBucket: "sync-df6ca.firebasestorage.app",
+  messagingSenderId: "1091721719210",
+  appId: "1:1091721719210:web:567cd4ce4056bfce45cfd3"
+};
+const RELAY_TTL = 2 * 60 * 60 * 1000;
+const RELAY_KEY = "closeday:relay", PHONE_KEY = "closeday:phone", ALIGN_KEY = "closeday:align";
+const LINK_RE = /#c=([A-Za-z0-9_-]{43})/;
+const IS_PHONE = matchMedia("(pointer: coarse)").matches && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+const rstore = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
+};
+
+// ----- Firebase, loaded only when the phone link is used -----
+let FB = null;
+async function fb() {
+  if (FB) return FB;
+  const [app, fs] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+  ]);
+  FB = { ...fs, db: fs.getFirestore(app.initializeApp(FB_CONFIG)) };
+  return FB;
+}
+const relayRef = (F, id) => F.doc(F.db, "closeRelay", id);
+const relayExp = (F) => F.Timestamp.fromMillis(Date.now() + RELAY_TTL);
+
+// ----- Encryption -----
+const te = new TextEncoder(), td = new TextDecoder();
+function toB64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function fromB64(s) { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+const toB64u = (b) => toB64(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const fromB64u = (s) => fromB64(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - s.length % 4) % 4));
+
+async function deriveLink(secret) {
+  const raw = fromB64u(secret);
+  if (raw.length !== 32) throw new Error("bad-secret");
+  const base = await crypto.subtle.importKey("raw", raw, "HKDF", false, ["deriveBits", "deriveKey"]);
+  const salt = te.encode("close-day-v1");
+  const idBits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: te.encode("relay-id") }, base, 128);
+  const key = await crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: te.encode("relay-key") },
+    base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  return { id: toB64u(new Uint8Array(idBits)), key };
+}
+async function encrypt(key, text) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, te.encode(text));
+  return toB64(iv) + "." + toB64(new Uint8Array(ct));
+}
+async function decrypt(key, str) {
+  const [iv, ct] = str.split(".");
+  return td.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(iv) }, key, fromB64(ct)));
+}
+const randStr = (n) => { const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  return [...crypto.getRandomValues(new Uint8Array(n))].map((x) => a[x % a.length]).join(""); };
+const linkUrl = (secret) => location.origin + location.pathname + "#c=" + secret;
+function qrData(text, cell) { try { const q = qrcode(0, "L"); q.addData(text); q.make(); return q.createDataURL(cell, 2); } catch { return ""; } }
+
+// ----- Session -----
+let rel = null;          // { secret, id, key, owner, unsub, data }
+const handled = new Set();
+
+async function relayCreate() {
+  if (rel) return;
+  const secret = toB64u(crypto.getRandomValues(new Uint8Array(32)));
+  try {
+    const F = await fb(), d = await deriveLink(secret);
+    await F.setDoc(relayRef(F, d.id), { msgs: {}, joined: false, createdAt: F.Timestamp.now(), expiresAt: relayExp(F) });
+    relayAttach(secret, d, true);
+  } catch { toast("Could not connect. Check the internet connection."); }
+}
+
+async function relayJoin(secret) {
+  if (rel && rel.secret === secret) { toast("Already connected."); return; }
+  try {
+    const F = await fb(), d = await deriveLink(secret);
+    const s = await F.getDoc(relayRef(F, d.id));
+    if (!s.exists()) throw { code: "gone" };
+    await F.updateDoc(relayRef(F, d.id), { joined: true, expiresAt: relayExp(F) });
+    if (rel) relayEnd("", rel.owner);
+    relayAttach(secret, d, false);
+    toast(IS_PHONE ? "Connected to the computer." : "Phone connected.");
+  } catch (e) {
+    toast(e && (e.code === "permission-denied" || e.code === "gone") ? "This connection has expired. Create a new one."
+      : e && e.message === "bad-secret" ? "Invalid connection code." : "Could not connect. Check the internet connection.");
+  }
+}
+
+// A box on the computer received the phone's connection code (scanned with the scanner)
+function relayTryJoin(text) {
+  const m = String(text).match(LINK_RE);
+  if (!m || !text.trim().startsWith(location.origin)) return false;
+  relayJoin(m[1]);
+  return true;
+}
+
+async function relayAttach(secret, d, owner) {
+  const F = await fb();
+  rel = { secret, id: d.id, key: d.key, owner, unsub: null, data: null };
+  rstore.set(RELAY_KEY, { secret, owner });
+  relayUi();
+  rel.unsub = F.onSnapshot(relayRef(F, d.id), (s) => {
+    if (!rel || rel.id !== d.id) return;
+    if (!s.exists()) { relayEnd(IS_PHONE ? "The computer ended the connection." : "Phone connection ended.", false); return; }
+    const wasJoined = rel.data && rel.data.joined;
+    rel.data = s.data();
+    if (owner && rel.data.joined && !wasJoined) toast(IS_PHONE ? "Computer connected." : "Phone connected.");
+    if (IS_PHONE) phoneOnSnapshot(); else pcOnSnapshot();
+    relayUi();
+  }, () => relayEnd("The connection expired.", false));
+  if (IS_PHONE) phoneFlush();
+}
+
+function relayEnd(msg, del = true) {
+  if (!rel) return;
+  const id = rel.id;
+  if (rel.unsub) rel.unsub();
+  rel = null; handled.clear();
+  rstore.del(RELAY_KEY);
+  if (del && FB) FB.deleteDoc(relayRef(FB, id)).catch(() => {});
+  if (IS_PHONE) phoneOnEnd();
+  relayUi();
+  if (msg) toast(msg);
+}
+
+setInterval(() => {
+  if (rel && rel.data && rel.data.expiresAt && rel.data.expiresAt.toMillis() < Date.now())
+    relayEnd("The connection expired after 2 hours without activity.");
+}, 15000);
+
+async function relaySweep() {
+  try {
+    const F = await fb();
+    const q = F.query(F.collection(F.db, "closeRelay"), F.where("expiresAt", "<", F.Timestamp.fromMillis(Date.now() - 120000)), F.limit(20));
+    (await F.getDocs(q)).forEach((d) => F.deleteDoc(d.ref).catch(() => {}));
+  } catch {}
+}
+
+async function relayRestore() {
+  const hash = (location.hash.match(LINK_RE) || [])[1];
+  if (hash) history.replaceState(null, "", location.pathname + location.search);
+  const saved = rstore.get(RELAY_KEY, null);
+  if (saved && saved.secret && saved.secret !== hash) {
+    try {
+      const F = await fb(), d = await deriveLink(saved.secret);
+      const s = await F.getDoc(relayRef(F, d.id));
+      if (s.exists()) relayAttach(saved.secret, d, saved.owner); else rstore.del(RELAY_KEY);
+    } catch { rstore.del(RELAY_KEY); }
+  } else if (saved && saved.secret === hash) {
+    const d = await deriveLink(hash); relayAttach(hash, d, saved.owner);
+  }
+  if (hash && !(rel && rel.secret === hash)) await relayJoin(hash);
+  if (rel || hash) relaySweep();
+}
+
+// ----- Computer side -----
+async function pcOnSnapshot() {
+  const F = FB, cur = rel;
+  for (const [mid, enc] of Object.entries(cur.data.msgs || {})) {
+    if (handled.has(mid)) continue;
+    handled.add(mid);
+    let text = null;
+    try { text = await decrypt(cur.key, enc); } catch {}
+    if (text) pcAddTerminal(text);
+    // delete as soon as it is received
+    F.updateDoc(relayRef(F, cur.id), new F.FieldPath("msgs", mid), F.deleteField(), "expiresAt", relayExp(F)).catch(() => {});
+  }
+}
+
+function pcAddTerminal(text) {
+  const free = rows.filter((x) => !x.ta.value.trim() && !x.ta.readOnly && document.activeElement !== x.ta).pop();
+  if (free) { free.ta.value = text; processRow(free, false); } else addRow(text);
+  toast("Reconciliation received from the phone.");
+}
+
+function relayUi() {
+  if (IS_PHONE) { phoneUi(); return; }
+  const waiting = !!(rel && rel.owner && !(rel.data && rel.data.joined));
+  $("connectBtn").hidden = !!rel;
+  $("disconnectBtn").hidden = !rel;
+  $("relayQr").hidden = !waiting;
+  if (waiting) $("relayQrImg").src = qrData(linkUrl(rel.secret), 5);
+  $("relaySt").textContent = !rel ? "" : waiting ? "Waiting for the phone…" : "📱 Phone connected · encrypted";
+}
+
+// =====================================================================
+// PHONE MODE — camera (Scanaria style) for Geidea QR codes
+// =====================================================================
+let phItems = rstore.get(PHONE_KEY, []);   // [{ key, text, terminal, date, time, total, status, mid }]
+const phSave = () => rstore.set(PHONE_KEY, phItems);
+
+function phoneOnSnapshot() {
+  const keys = new Set(Object.keys(rel.data.msgs || {}));
+  let changed = false;
+  phItems.forEach((it) => { if (it.status === "waiting" && !keys.has(it.mid)) { it.status = "received"; changed = true; } });
+  if (changed) { phSave(); phoneRender(); }
+}
+function phoneOnEnd() {
+  phItems.forEach((it) => { if (it.status === "waiting" || it.status === "sending") it.status = "pending"; });
+  phSave(); phoneRender();
+}
+
+async function phoneSend(it) {
+  if (!rel) return;
+  it.status = "sending"; it.mid = it.mid || randStr(12); phSave(); phoneRender();
+  try {
+    const F = await fb(), enc = await encrypt(rel.key, it.text);
+    await F.updateDoc(relayRef(F, rel.id), new F.FieldPath("msgs", it.mid), enc, "expiresAt", relayExp(F));
+    if (it.status === "sending") it.status = "waiting";
+  } catch (e) {
+    it.status = "pending";
+    if (e && e.code === "permission-denied") relayEnd("The connection expired.", false);
+  }
+  phSave(); phoneRender();
+}
+function phoneFlush() { phItems.filter((it) => it.status === "pending").forEach(phoneSend); }
+
+async function phoneHandleQr(text) {
+  const t = text.trim();
+  if (LINK_RE.test(t) && t.startsWith(location.origin)) { stopTrigger(); relayJoin(t.match(LINK_RE)[1]); return; }
+  if (/nearpay/i.test(t)) { beep(true); toast("NearPay: add it on the computer."); return; }
+  if (!/geidea/i.test(t) || !/details=/.test(t)) { beep(true); toast("This is not a Geidea reconciliation QR."); return; }
+  let r;
+  try { r = await parseGeidea(t); } catch (e) { beep(true); toast(e.message || "Could not read this QR."); return; }
+  const key = `${r.terminal}|${r.date}|${r.time}`;
+  if (phItems.some((x) => x.key === key)) { beep(true); toast("Duplicated link"); return; }
+  showFlash(); beep();
+  const it = { key, text: t, terminal: r.terminal, date: r.date, time: r.time, total: sumBrands(r.brands), status: "pending", mid: null };
+  phItems.unshift(it); phSave(); phoneRender();
+  if (rel) phoneSend(it); else toast("Saved. Connect to the computer to send it.");
+}
+
+const STATUS = { pending: ["Not sent · connect to the computer", "st-pending"], sending: ["Sending…", "st-wait"],
+  waiting: ["Waiting for the computer…", "st-wait"], received: ["Received ✓", "st-ok"] };
+
+function phoneRender() {
+  const list = $("phList"); list.innerHTML = "";
+  const no = {}; let n = 0;
+  [...phItems].reverse().forEach((it) => { if (!(it.terminal in no)) no[it.terminal] = ++n; });
+  $("phCount").textContent = `Reconciliations: ${phItems.length}`;
+  $("phEmpty").hidden = phItems.length > 0;
+  phItems.forEach((it, i) => {
+    const li = el("li", "ph-row" + (i === 0 ? " recent" : ""));
+    const left = el("div");
+    left.append(el("div", "ph-t", `Terminal ${no[it.terminal]} (${it.terminal || "?"})`),
+      el("div", "ph-m num", `${it.date} ${it.time.slice(0, 5)} · ${money(it.total)}`));
+    const [label, cls] = STATUS[it.status] || STATUS.pending;
+    const right = el("div", "ph-r");
+    right.append(el("span", "ph-st " + cls, label));
+    const del = el("button", "ph-del", "✕"); del.setAttribute("aria-label", "Remove from this list");
+    del.onclick = () => { phItems = phItems.filter((x) => x !== it); phSave(); phoneRender(); };
+    right.append(del);
+    li.append(left, right); list.append(li);
+  });
+}
+
+function phoneUi() {
+  const waiting = !!(rel && rel.owner && !(rel.data && rel.data.joined));
+  $("phConnect").hidden = !!rel;
+  $("phQrModal").hidden = !(waiting && phQrOpen);
+  if (waiting) $("phQrImg").src = qrData(linkUrl(rel.secret), 6);
+  const chip = $("phChip"); chip.innerHTML = "";
+  if (!rel) chip.append("Not connected · scan the computer's QR or tap Connect to PC");
+  else if (waiting) {
+    chip.append("Waiting for the computer… ");
+    const b = el("button", null, "Show QR"); b.onclick = () => { phQrOpen = true; phoneUi(); }; chip.append(b);
+  } else {
+    chip.append("🔗 Connected to computer · encrypted ");
+    const b = el("button", null, "Disconnect"); b.onclick = () => relayEnd("Disconnected."); chip.append(b);
+  }
+}
+let phQrOpen = false;
+
+// ----- camera (same behaviour as Scanaria) -----
+const REQUIRED_MATCHES = 3, SAME_CODE_GAP = 1500, LOCK_SWIPE = 40, IDLE_TIMEOUT = 30000;
+let stream = null, track = null, wakeLock = null, audio = null, detector = null, zx = null;
+let held = false, locked = false, invert = false, torchArmed = false, torchLit = false, paused = false;
+let idleTimer = null, pressY = null, flashTimer = null, recent = [], lastCode = null, lastSeen = 0, busy = false;
+let align = rstore.get(ALIGN_KEY, "right");
+const work = document.createElement("canvas"), wctx = work.getContext("2d", { willReadFrequently: true });
+const ICON_FLASH_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>';
+const ICON_FLASH_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M3.27 3L2 4.27l5 5V13h3v9l3.58-6.14L17.73 20 19 18.73 3.27 3zM17 10h-4l4-8H7v2.18l8.46 8.46L17 10z"/></svg>';
+
+function beep(error = false) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = "square"; o.frequency.value = error ? 320 : 2700; g.gain.value = 0.08;
+    o.connect(g); g.connect(audio.destination);
+    o.start(); o.stop(audio.currentTime + (error ? 0.25 : 0.08));
+  } catch {}
+}
+
+async function initDecoder() {
+  if ("BarcodeDetector" in window) {
+    try {
+      if ((await BarcodeDetector.getSupportedFormats()).includes("qr_code")) { detector = new BarcodeDetector({ formats: ["qr_code"] }); return; }
+    } catch {}
+  }
+  await new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+    s.onload = ok; s.onerror = fail; document.head.append(s);
+  });
+  const Z = window.ZXing, hints = new Map();
+  hints.set(Z.DecodeHintType.TRY_HARDER, true);
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.QR_CODE]);
+  const reader = new Z.MultiFormatReader(); reader.setHints(hints);
+  zx = { Z, reader };
+}
+
+async function decodeFrame() {
+  const v = $("phVideo");
+  if (!v.videoWidth) return null;
+  if (detector && !invert) { const r = await detector.detect(v); return r.length ? r[0].rawValue : null; }
+  const scale = Math.min(1, 1600 / v.videoWidth);
+  const w = Math.round(v.videoWidth * scale), h = Math.round(v.videoHeight * scale);
+  work.width = w; work.height = h; wctx.drawImage(v, 0, 0, w, h);
+  const img = wctx.getImageData(0, 0, w, h), px = img.data;
+  if (detector) {
+    for (let i = 0; i < px.length; i += 4) { px[i] = 255 - px[i]; px[i + 1] = 255 - px[i + 1]; px[i + 2] = 255 - px[i + 2]; }
+    wctx.putImageData(img, 0, 0);
+    const r = await detector.detect(work); return r.length ? r[0].rawValue : null;
+  }
+  if (!zx) return null;
+  const lum = new Uint8ClampedArray(w * h);
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) { const l = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000; lum[j] = invert ? 255 - l : l; }
+  try {
+    const { Z, reader } = zx;
+    return reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.RGBLuminanceSource(lum, w, h)))).getText();
+  } catch { return null; }
+}
+
+setInterval(async () => {
+  if (!IS_PHONE || !held || busy || paused || !stream) return;
+  busy = true;
+  try { const t = await decodeFrame(); if (t) onDetect(t); } catch {}
+  busy = false;
+}, 90);
+
+function onDetect(text) {
+  if (!held) return;
+  const now = Date.now();
+  if (text === lastCode && now - lastSeen < SAME_CODE_GAP) { lastSeen = now; return; }
+  recent.push(text); if (recent.length > REQUIRED_MATCHES) recent.shift();
+  if (!(recent.length === REQUIRED_MATCHES && recent.every((c) => c === recent[0]))) return;
+  recent = []; lastCode = text; lastSeen = now; resetIdle();
+  phoneHandleQr(text);
+}
+
+async function startCamera() {
+  if (stream) return true;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: false,
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+  } catch {
+    stream = null;
+    const ov = $("phOverlay"); ov.hidden = false; ov.className = "overlay";
+    ov.textContent = "Camera not available.\nAllow camera access for this site, then reload.";
+    return false;
+  }
+  track = stream.getVideoTracks()[0];
+  try { await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }); } catch {}
+  const v = $("phVideo"); v.srcObject = stream; try { await v.play(); } catch {}
+  torchLit = false;
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+  return true;
+}
+function stopCamera() {
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = null; track = null; torchLit = false;
+  try { wakeLock?.release(); } catch {}
+  wakeLock = null;
+}
+function resetIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (held) { resetIdle(); return; } paused = true; stopCamera(); camUi(); }, IDLE_TIMEOUT);
+}
+async function applyTorch() {
+  const want = torchArmed && held;
+  if (want === torchLit || !track) return;
+  try { await track.applyConstraints({ advanced: [{ torch: want }] }); torchLit = want; }
+  catch { torchLit = false; if (torchArmed) { torchArmed = false; toast("Flash is not available on this device/browser."); camUi(); } }
+}
+async function startTrigger(dark) {
+  if (held) return;
+  recent = []; lastCode = null; lastSeen = 0; held = true; invert = dark;
+  if (paused || !stream) { paused = false; camUi(); if (!(await startCamera())) { held = false; camUi(); return; } }
+  resetIdle(); camUi(); applyTorch();
+}
+function stopTrigger() { recent = []; pressY = null; held = false; locked = false; applyTorch(); resetIdle(); camUi(); }
+
+function bindTrigger(b, dark) {
+  b.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    try { b.setPointerCapture(e.pointerId); } catch {}
+    try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {}
+    if (locked && invert === dark) { stopTrigger(); return; }
+    if (held) stopTrigger();
+    pressY = e.clientY; startTrigger(dark);
+  });
+  b.addEventListener("pointermove", (e) => {
+    if (pressY == null || locked || !held) return;
+    if (pressY - e.clientY > LOCK_SWIPE) { locked = true; navigator.vibrate?.(15); camUi(); }
+  });
+  const up = () => { pressY = null; if (!locked) stopTrigger(); };
+  b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+function showFlash() {
+  clearTimeout(flashTimer); $("phCam").dataset.flash = "1"; camUi();
+  flashTimer = setTimeout(() => { delete $("phCam").dataset.flash; camUi(); }, 300);
+}
+function statusText() {
+  if (locked && invert) return "🔒 Scanning dark codes · Tap black to stop";
+  if (locked) return "🔒 Scanning normal codes · Tap red to stop";
+  if (invert) return "Dark codes · Slide up to keep scanning";
+  return "Normal codes · Slide up to keep scanning";
+}
+function camUi() {
+  const flash = !!$("phCam").dataset.flash;
+  const laser = flash ? "#43A047" : invert ? "#FB8C00" : "#E53935";
+  $("phCam").style.borderColor = held ? laser : "#BDBDBD";
+  $("phLaser").style.setProperty("--laser", laser);
+  $("phLaser").hidden = !held; $("phStatus").hidden = !held; $("phStatus").textContent = statusText();
+  const ov = $("phOverlay");
+  if (held) ov.hidden = true;
+  else if (paused) { ov.hidden = false; ov.className = "overlay paused"; ov.textContent = "⏸\nPaused"; }
+  else if (stream) { ov.hidden = false; ov.className = "overlay"; ov.textContent = "Hold red for normal codes\nHold black for dark codes\nSlide a button up to keep scanning"; }
+  $("phTorch").classList.toggle("on", torchArmed);
+  $("phTorch").innerHTML = torchArmed ? ICON_FLASH_ON : ICON_FLASH_OFF;
+  const red = $("phRed"), black = $("phBlack");
+  if (red) {
+    red.classList.toggle("held", held && !invert); red.classList.toggle("locked", locked && !invert);
+    red.textContent = locked && !invert ? "🔒" : "▣";
+    black.classList.toggle("held", held && invert); black.classList.toggle("locked", locked && invert);
+    black.textContent = locked && invert ? "🔒" : "☾";
+  }
+}
+function buildBar() {
+  const bar = $("phBar"); bar.innerHTML = ""; bar.hidden = false;
+  const red = el("button", "trig red"); red.id = "phRed"; red.setAttribute("aria-label", "Scan normal codes");
+  const black = el("button", "trig black"); black.id = "phBlack"; black.setAttribute("aria-label", "Scan dark codes");
+  const move = el("button", "move", "⇄"); move.title = "Move buttons";
+  move.onclick = () => { align = { right: "center", center: "left", left: "right" }[align]; rstore.set(ALIGN_KEY, align); buildBar(); };
+  bindTrigger(red, false); bindTrigger(black, true);
+  const sp = () => el("span", "sp");
+  if (align === "right") bar.append(move, sp(), black, red);
+  else if (align === "left") bar.append(red, black, sp(), move);
+  else { const pad = el("span"); pad.style.width = "48px"; bar.append(move, sp(), black, red, sp(), pad); }
+  camUi();
+}
+document.addEventListener("visibilitychange", () => {
+  if (!IS_PHONE) return;
+  if (document.hidden) { torchArmed = false; if (held) stopTrigger(); stopCamera(); camUi(); }
+  else if (!paused) startCamera().then(() => { resetIdle(); camUi(); });
+});
+
+// ----- start -----
+if (IS_PHONE) {
+  document.body.classList.add("phone");
+  $("phoneApp").hidden = false;
+  $("phTorch").onclick = () => { torchArmed = !torchArmed; camUi(); applyTorch(); };
+  $("phConnect").onclick = () => { phQrOpen = true; relayCreate(); };
+  $("phQrClose").onclick = () => { phQrOpen = false; phoneUi(); };
+  $("phClear").onclick = () => { if (confirm("Clear this list on the phone? (Nothing is removed from the computer.)")) { phItems = []; phSave(); phoneRender(); } };
+  buildBar(); phoneRender(); phoneUi();
+  relayRestore();
+  initDecoder().catch(() => toast("Could not load the QR reader. Check the internet connection."))
+    .then(() => startCamera()).then((ok) => { if (ok) { resetIdle(); camUi(); } });
+} else {
+  $("connectBtn").onclick = relayCreate;
+  $("disconnectBtn").onclick = () => relayEnd("Phone disconnected.");
+  relayUi();
+  relayRestore();
+}
+</script>
+
 </body>
 </html>
