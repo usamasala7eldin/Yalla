@@ -272,7 +272,7 @@
         <div class="overlay" id="phOverlay">Starting camera…</div>
         <div class="laser" id="phLaser" hidden></div>
         <div class="status" id="phStatus" hidden></div>
-        <button class="torch" id="phTorch" aria-label="Flash"></button>
+
       </div>
     </div>
     <div class="ph-head"><span id="phCount">Reconciliations: 0</span><button id="phClear">Clear list</button></div>
@@ -1241,28 +1241,23 @@ function camUi() {
   const ov = $("phOverlay");
   if (held) ov.hidden = true;
   else if (paused) { ov.hidden = false; ov.className = "overlay paused"; ov.textContent = "⏸\nPaused"; }
-  else if (stream) { ov.hidden = false; ov.className = "overlay"; ov.textContent = "Hold red for normal codes\nHold black for dark codes\nSlide a button up to keep scanning"; }
-  $("phTorch").classList.toggle("on", torchArmed);
-  $("phTorch").innerHTML = torchArmed ? ICON_FLASH_ON : ICON_FLASH_OFF;
-  const red = $("phRed"), black = $("phBlack");
+  else if (stream) { ov.hidden = false; ov.className = "overlay"; ov.textContent = "Hold red to scan\nSlide it up to keep scanning"; }
+  const red = $("phRed");
   if (red) {
     red.classList.toggle("held", held && !invert); red.classList.toggle("locked", locked && !invert);
     red.textContent = locked && !invert ? "🔒" : "▣";
-    black.classList.toggle("held", held && invert); black.classList.toggle("locked", locked && invert);
-    black.textContent = locked && invert ? "🔒" : "☾";
   }
 }
 function buildBar() {
   const bar = $("phBar"); bar.innerHTML = ""; bar.hidden = false;
   const red = el("button", "trig red"); red.id = "phRed"; red.setAttribute("aria-label", "Scan normal codes");
-  const black = el("button", "trig black"); black.id = "phBlack"; black.setAttribute("aria-label", "Scan dark codes");
   const move = el("button", "move", "⇄"); move.title = "Move buttons";
   move.onclick = () => { align = { right: "center", center: "left", left: "right" }[align]; rstore.set(ALIGN_KEY, align); buildBar(); };
-  bindTrigger(red, false); bindTrigger(black, true);
+   bindTrigger(red, false);
   const sp = () => el("span", "sp");
-  if (align === "right") bar.append(move, sp(), black, red);
-  else if (align === "left") bar.append(red, black, sp(), move);
-  else { const pad = el("span"); pad.style.width = "48px"; bar.append(move, sp(), black, red, sp(), pad); }
+   if (align === "right") bar.append(move, sp(), red);
+  else if (align === "left") bar.append(red, sp(), move);
+  else { const pad = el("span"); pad.style.width = "48px"; bar.append(move, sp(), red, sp(), pad); }
   camUi();
 }
 document.addEventListener("visibilitychange", () => {
@@ -1275,7 +1270,6 @@ document.addEventListener("visibilitychange", () => {
 if (IS_PHONE) {
   document.body.classList.add("phone");
   $("phoneApp").hidden = false;
-  $("phTorch").onclick = () => { torchArmed = !torchArmed; camUi(); applyTorch(); };
   $("phConnect").onclick = () => { phQrOpen = true; relayCreate(); };
   $("phQrClose").onclick = () => { phQrOpen = false; phoneUi(); };
   $("phClear").onclick = () => { if (confirm("Clear this list on the phone? (Nothing is removed from the computer.)")) { phItems = []; phSave(); phoneRender(); } };
