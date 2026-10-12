@@ -89,6 +89,20 @@
     font-size: 1.2rem; letter-spacing: .03em; border-bottom: 1px solid var(--line); word-break: break-all; gap: 12px; }
   .row.recent { background: var(--recent); }
   .row b { font-size: 1.4rem; }
+  .row-r { display: flex; align-items: center; gap: 6px; flex: none; }
+  .copy { border: 0; background: none; color: var(--muted); min-height: 36px; min-width: 36px; padding: 4px;
+    display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+  .copy:hover { color: var(--brand); }
+  .copy svg, .chip .qr-btn svg { width: 20px; height: 20px; display: block; }
+  .appbar .icon svg { width: 24px; height: 24px; display: block; margin: auto; }
+  .qr-btn { min-height: 32px; min-width: 32px; padding: 4px; display: inline-flex; align-items: center; justify-content: center; }
+  /* QR popup on the computer: opens on hover, or pinned with a click */
+  .qr-wrap { position: relative; display: inline-flex; }
+  .qr-pop { display: none; position: absolute; top: 100%; right: 0; z-index: 30; margin-top: 4px; width: max-content; text-align: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 10px; }
+  .qr-wrap:hover .qr-pop, .qr-wrap.open .qr-pop { display: block; }
+  .qr-pop img { width: 220px; height: 220px; display: block; background: #fff; padding: 6px; border-radius: 6px; image-rendering: pixelated; }
+  .qr-pop small { display: block; margin-top: 6px; color: var(--muted); font-size: .8rem; font-weight: 400; }
   .edit { display: flex; gap: 8px; align-items: center; padding: 10px 18px 14px; border-bottom: 1px solid var(--line); background: var(--bg); flex-wrap: wrap; }
   .edit input { font: inherit; width: 90px; text-align: center; padding: 8px; border: 1px solid var(--line); border-radius: 8px;
     background: var(--surface); color: var(--ink); font-size: 1.1rem; }
@@ -139,8 +153,7 @@
   </span>
   <span id="phoneActions" hidden>
     <button id="sendBtn">Send to PC</button>
-    <button class="icon" id="phoneReset" aria-label="Reset" title="Reset">↺</button>
-    <button class="icon" id="phoneExport" aria-label="Export CSV" title="Export CSV">⬇</button>
+    <button class="icon" id="phoneExport" aria-label="Export CSV" title="Export CSV"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg></button>
   </span>
 </header>
 
@@ -161,7 +174,12 @@
       </div>
     </div>
 
-    <div class="chip" id="pcChip" hidden>🔗 Shared with phone · both devices can scan · Reset ends it</div>
+    <div class="chip" id="pcChip" hidden>🔗 Shared with phone · both devices can scan · Reset ends it
+      <span class="qr-wrap" id="pcQrWrap">
+        <button class="qr-btn" id="pcQrBtn" aria-label="Show QR code" title="Show QR code"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm4 0h2v2h-2zm2-4h2v2h-2zm0 4h2v4h-4v-2h2zm-4 2h2v2h-2z"/></svg></button>
+        <span class="qr-pop"><img id="pcQrImg" alt="QR code to connect a phone"><small>Scan with the phone camera</small></span>
+      </span>
+    </div>
   </section>
 
   <!-- Phone mode -->
@@ -181,10 +199,6 @@
   <!-- Shared list -->
   <section class="card" id="listCard" style="padding:14px 0 0">
     <div class="totals num"><span id="itemsTotal">Items: 0</span><span id="qtyTotal">Quantity: 0</span></div>
-    <div class="seg" role="group" aria-label="Sort">
-      <button id="sortRecent" aria-pressed="true">Recent</button>
-      <button id="sortNo" aria-pressed="false">No.</button>
-    </div>
     <ul class="list" id="list"></ul>
     <p class="empty" id="empty">No barcodes yet.</p>
   </section>
@@ -352,7 +366,6 @@ function acceptTyped(raw) {
 // =====================================================================
 let items = tabStore.get(LOCAL_KEY, {});   // { code: { c: count, t: lastTime } }
 let sess = null;                        // { id, owner, unsub, data }
-let sortMode = store.get(SORT_KEY, "recent");
 let openCode = null, qrOpen = false;
 
 function saveLocal() { tabStore.set(LOCAL_KEY, items); }
@@ -391,7 +404,6 @@ function setCount(code, n) {
 // =====================================================================
 function sorted() {
   const e = Object.entries(items);
-  if (sortMode === "no") return e.sort((a, b) => a[0].localeCompare(b[0], "en", { numeric: true }));
   return e.sort((a, b) => b[1].t - a[1].t);
 }
 
@@ -408,11 +420,26 @@ function render() {
     li.className = "row num" + (latest && latest[0] === code ? " recent" : "");
     const s = document.createElement("span"); s.textContent = code;
     const b = document.createElement("b"); b.textContent = v.c;
-    li.append(s, b);
+    const right = document.createElement("span"); right.className = "row-r";
+    const cp = document.createElement("button"); cp.className = "copy"; cp.innerHTML = ICON_COPY;
+    cp.setAttribute("aria-label", `Copy ${code}`); cp.title = "Copy barcode";
+    cp.onclick = (e) => { e.stopPropagation(); copyBarcode(code, cp); };
+    right.append(b, cp);
+    li.append(s, right);
     li.onclick = () => { openCode = openCode === code ? null : code; render(); };
     list.append(li);
     if (openCode === code) list.append(editRow(code, v.c));
   }
+}
+
+const ICON_COPY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+async function copyBarcode(code, btn) {
+  try { await navigator.clipboard.writeText(code); }
+  catch { const t = document.createElement("textarea"); t.value = code; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
+  toast(`Copied ${code}`);
+  btn.innerHTML = ICON_CHECK;
+  setTimeout(() => { btn.innerHTML = ICON_COPY; }, 1200);
 }
 
 function editRow(code, count) {
@@ -434,14 +461,6 @@ function editRow(code, count) {
   return li;
 }
 
-function setSort(m) {
-  sortMode = m; store.set(SORT_KEY, m);
-  $("sortRecent").setAttribute("aria-pressed", String(m === "recent"));
-  $("sortNo").setAttribute("aria-pressed", String(m === "no"));
-  render();
-}
-$("sortRecent").onclick = () => setSort("recent");
-$("sortNo").onclick = () => setSort("no");
 
 // =====================================================================
 // Export (tag file: 1-TAG,barcode,count — no header)
@@ -505,6 +524,9 @@ async function joinSession(id) {
 
 function attach(id, owner) {
   sess = { id, owner, data: null, unsub: null };
+  $("qrImg").src = qrSrc(sessionUrl(id), 5);
+  $("phoneQr").src = qrSrc(sessionUrl(id), 6);
+  $("pcQrImg").src = qrSrc(sessionUrl(id), 5);
   tabStore.set(SESSION_KEY, { id, owner });
   ui();
   sess.unsub = onSnapshot(sref(id), (s) => {
@@ -544,7 +566,6 @@ async function reset() {
   refocus();
 }
 $("resetBtn").onclick = reset;
-$("phoneReset").onclick = reset;
 
 setInterval(() => {
   if (sess && sess.data && sess.data.expiresAt && sess.data.expiresAt.toMillis() < Date.now())
@@ -563,20 +584,34 @@ function ui() {
   const waiting = !!(sess && sess.owner && !(sess.data && sess.data.phoneJoined));
   if (IS_PHONE) {
     $("sendBtn").hidden = !!sess;
-    $("qrModal").hidden = !(waiting && qrOpen);
+    $("qrModal").hidden = !(sess && qrOpen);
     const chip = $("phoneChip");
     chip.hidden = !sess; chip.innerHTML = "";
     if (sess && waiting) {
       chip.append("Waiting for the computer… ");
       const b = document.createElement("button"); b.textContent = "Show QR";
       b.onclick = () => { qrOpen = true; ui(); }; chip.append(b);
-    } else if (sess) chip.textContent = "🔗 Shared with computer · both devices can scan";
+    } else if (sess) {
+      chip.append("🔗 Shared with computer ");
+      const b = document.createElement("button"); b.className = "qr-btn"; b.innerHTML = QR_ICON;
+      b.setAttribute("aria-label", "Show QR code"); b.title = "Show QR code";
+      b.onclick = () => { qrOpen = true; ui(); }; chip.append(b);
+    }
   } else {
     $("waitCard").hidden = !waiting;
     $("pcChip").hidden = !sess || waiting;
+    if (!sess) $("pcQrWrap").classList.remove("open");
     $("mobileBtn").hidden = !!sess;
   }
 }
+const QR_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm4 0h2v2h-2zm2-4h2v2h-2zm0 4h2v4h-4v-2h2zm-4 2h2v2h-2z"/></svg>';
+// computer: a click pins the QR popup; a click elsewhere or Esc closes it
+document.addEventListener("click", (e) => {
+  const w = $("pcQrWrap");
+  if (e.target.closest("#pcQrBtn")) w.classList.toggle("open");
+  else if (!e.target.closest(".qr-pop")) w.classList.remove("open");
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("pcQrWrap").classList.remove("open"); });
 $("sendBtn").onclick = startSession;
 $("mobileBtn").onclick = startSession;
 $("cancelBtn").onclick = () => endSession("");
@@ -651,7 +686,7 @@ document.addEventListener("click", (e) => {
 });
 
 function initPc() {
-  render(); setSort(sortMode); ui(); refocus();
+  render(); ui(); refocus();
   restore();
 }
 
@@ -913,7 +948,7 @@ async function initPhone() {
   document.body.classList.add("phone");
   $("pcView").hidden = true; $("pcActions").hidden = true;
   $("phoneView").hidden = false; $("phoneActions").hidden = false;
-  render(); setSort(sortMode); buildBar(); ui();
+  render(); buildBar(); ui();
   restore();
   try { await initDecoder(); } catch { toast("Could not load the barcode reader. Check the internet connection."); }
   if (await startCamera()) { resetIdle(); camUi(); }
