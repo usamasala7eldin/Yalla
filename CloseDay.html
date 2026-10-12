@@ -421,8 +421,9 @@ function parseNearpay(raw) {
 }
 
 async function parseNetwork(input) {
-  const s = input.trim();
+  let s = input.trim();
   if (/^https?:\/\//i.test(s)) {
+    s = s.replace(/\s+/g, "");   // Geidea QR codes split the link across lines
     if (/geidea/i.test(s)) return parseGeidea(s);
     throw new Error("This is not a Geidea link.");
   }
@@ -1045,7 +1046,8 @@ async function phoneSend(it) {
 function phoneFlush() { phItems.filter((it) => it.status === "pending").forEach(phoneSend); }
 
 async function phoneHandleQr(text) {
-  const t = text.trim();
+  let t = text.trim();
+  if (/^https?:\/\//i.test(t)) t = t.replace(/\s+/g, "");   // Geidea QR codes split the link across lines
   if (LINK_RE.test(t) && t.startsWith(location.origin)) { stopTrigger(); relayJoin(t.match(LINK_RE)[1]); return; }
   if (/nearpay/i.test(t)) { beep(true); toast("NearPay: add it on the computer."); return; }
   if (!/geidea/i.test(t) || !/details=/.test(t)) { beep(true); toast("This is not a Geidea reconciliation QR."); return; }
