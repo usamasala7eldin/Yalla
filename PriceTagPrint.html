@@ -292,8 +292,12 @@ function gs1Gtin(raw) {
   while (i < v.length) {
     if (v[i] === "|") { i++; continue; }
     const ai = v.substr(i, 2);
-    if (ai === "01" && /^\d{14}$/.test(v.substr(i + 2, 14))) { gtin = v.substr(i + 2, 14); i += 16; continue; }
-    if (ai === "17" && /^\d{6}$/.test(v.substr(i + 2, 6))) { i += 8; continue; }
+    if (ai === "01" && /^\d{14}$/.test(v.substr(i + 2, 14))) {
+      if (!gtin) gtin = v.substr(i + 2, 14);   // keep the first product number only
+      i += 16; continue;
+    }
+    // 11 = production date, 17 = expiry date (6 digits each)
+    if ((ai === "11" || ai === "17") && /^\d{6}$/.test(v.substr(i + 2, 6))) { i += 8; continue; }
     if (ai === "10" || ai === "21") {
       const sep = v.indexOf("|", i + 2);
       i = sep !== -1 ? sep + 1 : Math.min(v.length, i + 22);   // variable length, max 20
@@ -304,11 +308,10 @@ function gs1Gtin(raw) {
   return gtin;
 }
 
-// Valid GTIN-14 only; a leading zero is dropped so it matches the normal 13-digit barcode
+// Valid GTIN-14 only, kept exactly as encoded (14 digits, leading zero included)
 function productCode(raw) {
   const g = gs1Gtin(raw);
-  if (!g || !gs1Ok(g)) return null;
-  return g[0] === "0" ? g.slice(1) : g;
+  return g && gs1Ok(g) ? g : null;
 }
 
 // Camera reads: same acceptance rules as Scanaria, per barcode type
