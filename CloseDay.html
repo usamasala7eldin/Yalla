@@ -1049,12 +1049,16 @@ async function phoneHandleQr(text) {
   if (LINK_RE.test(t) && t.startsWith(location.origin)) { stopTrigger(); relayJoin(t.match(LINK_RE)[1]); return; }
   if (/nearpay/i.test(t)) { beep(true); toast("NearPay: add it on the computer."); return; }
   if (!/geidea/i.test(t) || !/details=/.test(t)) { beep(true); toast("This is not a Geidea reconciliation QR."); return; }
-  let r;
-  try { r = await parseGeidea(t); } catch (e) { beep(true); toast(e.message || "Could not read this QR."); return; }
-  const key = `${r.terminal}|${r.date}|${r.time}`;
-  if (phItems.some((x) => x.key === key)) { beep(true); toast("Duplicated link"); return; }
+  if (phItems.some((x) => x.text === t)) { beep(true); toast("Duplicated link"); return; }
+  // The computer reads and calculates the link. Reading it here is only for the preview,
+  // so a failure on the phone never stops the link from being sent.
+  let r = null;
+  try { r = await parseGeidea(t); } catch {}
+  const key = r ? `${r.terminal}|${r.date}|${r.time}` : null;
+  if (key && phItems.some((x) => x.key === key)) { beep(true); toast("Duplicated link"); return; }
   showFlash(); beep();
-  const it = { key, text: t, terminal: r.terminal, date: r.date, time: r.time, total: sumBrands(r.brands), status: "pending", mid: null };
+  const it = { key, text: t, terminal: r ? r.terminal : "", date: r ? r.date : "", time: r ? r.time : "",
+    total: r ? sumBrands(r.brands) : null, status: "pending", mid: null };
   phItems.unshift(it); phSave(); phoneRender();
   if (rel) phoneSend(it); else toast("Saved. Connect to the computer to send it.");
 }
@@ -1065,14 +1069,14 @@ const STATUS = { pending: ["Not sent · connect to the computer", "st-pending"],
 function phoneRender() {
   const list = $("phList"); list.innerHTML = "";
   const no = {}; let n = 0;
-  [...phItems].reverse().forEach((it) => { if (!(it.terminal in no)) no[it.terminal] = ++n; });
+  [...phItems].reverse().forEach((it) => { if (it.terminal && !(it.terminal in no)) no[it.terminal] = ++n; });
   $("phCount").textContent = `Reconciliations: ${phItems.length}`;
   $("phEmpty").hidden = phItems.length > 0;
   phItems.forEach((it, i) => {
     const li = el("li", "ph-row" + (i === 0 ? " recent" : ""));
     const left = el("div");
-    left.append(el("div", "ph-t", `Terminal ${no[it.terminal]} (${it.terminal || "?"})`),
-      el("div", "ph-m num", `${it.date} ${it.time.slice(0, 5)} · ${money(it.total)}`));
+    left.append(el("div", "ph-t", it.terminal ? `Terminal ${no[it.terminal]} (${it.terminal})` : "Geidea reconciliation"),
+      el("div", "ph-m num", it.date ? `${it.date} ${it.time.slice(0, 5)} · ${money(it.total)}` : "Details show on the computer"));
     const [label, cls] = STATUS[it.status] || STATUS.pending;
     const right = el("div", "ph-r");
     right.append(el("span", "ph-st " + cls, label));
