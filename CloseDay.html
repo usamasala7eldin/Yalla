@@ -138,12 +138,20 @@
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 
   /* Phone link (computer side) */
-  .relay { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
-  .relay-st { font-weight: 600; }
-  .relay-qr { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-  .relay-qr img { width: 190px; height: 190px; background: #fff; padding: 6px; border-radius: 8px; image-rendering: pixelated; }
-  .relay-qr p { flex: 1; min-width: 200px; margin: 0; color: var(--muted); font-size: .9rem; }
-  .secure { font-size: .82rem; color: var(--muted); margin: 6px 0 0; }
+  .relay { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .relay .sm { min-height: 32px; padding: 4px 10px; font-size: .85rem; }
+  .relay-st { font-size: .85rem; font-weight: 600; color: var(--muted); }
+  .icon-btn { min-height: 32px; min-width: 32px; padding: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; line-height: 1; }
+  .icon-btn svg { width: 18px; height: 18px; }
+  /* Small popups: open on hover, or pinned with a click/tap */
+  .qr-wrap, .tip { position: relative; display: inline-flex; }
+  .pop { display: none; position: absolute; top: 100%; left: 0; z-index: 30; margin-top: 4px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 10px; }
+  .qr-wrap:hover .pop, .qr-wrap.open .pop, .tip:hover .pop, .tip.open .pop { display: block; }
+  .qr-pop { width: max-content; text-align: center; }
+  .qr-pop img { width: 220px; height: 220px; display: block; background: #fff; padding: 6px; border-radius: 6px; image-rendering: pixelated; }
+  .qr-pop small { display: block; margin-top: 6px; color: var(--muted); font-size: .8rem; }
+  .tip-pop { width: 270px; font-size: .82rem; font-weight: 400; line-height: 1.45; text-align: left; }
 
   /* Phone mode */
   body.phone .wrap { display: none; }
@@ -156,6 +164,9 @@
   .chip { display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; background: var(--accent-soft);
     border-radius: 10px; padding: 8px 12px; margin-bottom: 6px; font-size: .9rem; font-weight: 600; text-align: center; }
   .chip button { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
+  .chip { position: relative; }
+  .chip .tip { position: static; }
+  .chip .tip-pop { left: 8px; right: 8px; width: auto; text-align: center; }
   .cam { border: 3px solid #BDBDBD; border-radius: 12px; padding: 3px; margin: 10px 0 12px; }
   .cam-in { position: relative; height: 220px; border-radius: 10px; overflow: hidden; background: #000; }
   .cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -224,16 +235,20 @@
         Open the NearPay reconciliation link, press Ctrl+A to select the whole page, then Ctrl+C (or right-click and choose Copy), and paste it into a terminal box. It is detected automatically.
       </div>
       <div class="relay">
-        <div class="bar" style="margin-bottom:8px">
-          <button id="connectBtn">📱 Connect phone</button>
-          <span class="relay-st grow" id="relaySt"></span>
-          <button id="disconnectBtn" hidden>Disconnect</button>
-        </div>
-        <div class="relay-qr" id="relayQr" hidden>
-          <img id="relayQrImg" alt="QR code to connect the phone">
-          <p>Scan this with the phone camera. Or tap <b>Connect to PC</b> on the phone and scan its code into any terminal box with the scanner.</p>
-        </div>
-        <p class="secure">🔒 Phone link: data is encrypted on the device before it is sent, and nobody can read it, not even the site owner. It passes through for a moment and is deleted as soon as it reaches the computer. Nothing is stored. Without a phone, nothing leaves this computer.</p>
+        <button class="sm" id="connectBtn">📱 Connect phone</button>
+        <span class="qr-wrap" id="qrWrap" hidden>
+          <button class="icon-btn" id="qrBtn" aria-label="Show QR code" title="Show QR code"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm4 0h2v2h-2zm2-4h2v2h-2zm0 4h2v4h-4v-2h2zm-4 2h2v2h-2z"/></svg></button>
+          <div class="pop qr-pop" role="dialog" aria-label="QR code to connect the phone">
+            <img id="relayQrImg" alt="QR code to connect the phone">
+            <small>Scan with the phone camera</small>
+          </div>
+        </span>
+        <span class="relay-st" id="relaySt"></span>
+        <span class="tip">
+          <button class="icon-btn" aria-label="Privacy">🔒</button>
+          <span class="pop tip-pop" role="tooltip">Phone link: data is encrypted on the phone before it is sent, and nobody can read it, not even the site owner. It passes through for a moment and is deleted as soon as it reaches the computer. Nothing is stored. Without a phone, nothing leaves this computer. You can also tap Connect to PC on the phone and scan its code into any terminal box.</span>
+        </span>
+        <button class="sm" id="disconnectBtn" hidden>Disconnect</button>
       </div>
     </div>
   </section>
@@ -265,7 +280,6 @@
   </header>
   <div class="ph-wrap">
     <div class="chip" id="phChip"></div>
-    <p class="secure" style="text-align:center">🔒 Encrypted on this phone before sending. Deleted as soon as the computer receives it. Nothing is stored.</p>
     <div class="cam" id="phCam">
       <div class="cam-in">
         <video id="phVideo" playsinline muted></video>
@@ -992,9 +1006,10 @@ function relayUi() {
   const waiting = !!(rel && rel.owner && !(rel.data && rel.data.joined));
   $("connectBtn").hidden = !!rel;
   $("disconnectBtn").hidden = !rel;
-  $("relayQr").hidden = !waiting;
+  $("qrWrap").hidden = !waiting;
   if (waiting) $("relayQrImg").src = qrData(linkUrl(rel.secret), 5);
-  $("relaySt").textContent = !rel ? "" : waiting ? "Waiting for the phone…" : "📱 Phone connected · encrypted";
+  else $("qrWrap").classList.remove("open");
+  $("relaySt").textContent = !rel ? "" : waiting ? "Waiting for the phone…" : "📱 Phone connected";
 }
 
 // =====================================================================
@@ -1073,7 +1088,7 @@ function phoneUi() {
   $("phConnect").hidden = !!rel;
   $("phQrModal").hidden = !(waiting && phQrOpen);
   if (waiting) $("phQrImg").src = qrData(linkUrl(rel.secret), 6);
-  const chip = $("phChip"); chip.innerHTML = "";
+  const chip = $("phChip"); chip.innerHTML = ""; chip.append(lockTip());
   if (!rel) chip.append("Not connected · scan the computer's QR or tap Connect to PC");
   else if (waiting) {
     chip.append("Waiting for the computer… ");
@@ -1084,6 +1099,25 @@ function phoneUi() {
   }
 }
 let phQrOpen = false;
+
+// 🔒 icon with the privacy note (tap to show)
+function lockTip() {
+  const t = el("span", "tip"), b = el("button", "icon-btn", "🔒");
+  b.setAttribute("aria-label", "Privacy");
+  t.append(b, el("span", "pop tip-pop", "Encrypted on this phone before sending. Nobody can read it, not even the site owner. Deleted as soon as the computer receives it. Nothing is stored."));
+  return t;
+}
+
+// Popups: a click/tap pins them open; a click elsewhere or Esc closes them
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".tip > button, #qrBtn");
+  document.querySelectorAll(".tip.open, .qr-wrap.open").forEach((x) => { if (!btn || !x.contains(btn)) x.classList.remove("open"); });
+  if (btn) btn.parentElement.classList.toggle("open");
+  else if (e.target.closest(".pop")) e.target.closest(".tip, .qr-wrap")?.classList.add("open");
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") document.querySelectorAll(".tip.open, .qr-wrap.open").forEach((x) => x.classList.remove("open"));
+});
 
 // ----- camera (same behaviour as Scanaria) -----
 const REQUIRED_MATCHES = 3, SAME_CODE_GAP = 1500, LOCK_SWIPE = 40, IDLE_TIMEOUT = 30000;
@@ -1278,7 +1312,8 @@ if (IS_PHONE) {
   initDecoder().catch(() => toast("Could not load the QR reader. Check the internet connection."))
     .then(() => startCamera()).then((ok) => { if (ok) { resetIdle(); camUi(); } });
 } else {
-  $("connectBtn").onclick = relayCreate;
+  // the QR pops up right away so it can be scanned
+  $("connectBtn").onclick = async () => { await relayCreate(); if (rel && rel.owner) $("qrWrap").classList.add("open"); };
   $("disconnectBtn").onclick = () => relayEnd("Phone disconnected.");
   relayUi();
   relayRestore();
