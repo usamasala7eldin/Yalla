@@ -241,6 +241,13 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   del(k) { try { localStorage.removeItem(k); } catch {} }
 };
+// Each browser tab keeps its own list and session (survives a refresh, a new tab starts empty)
+const tabStore = {
+  get(k, d) { try { const v = sessionStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { sessionStorage.removeItem(k); } catch {} }
+};
+store.del("tagscan:items"); store.del("tagscan:session2");   // clean up the old shared storage
 function qrSrc(text, cell) {
   try { const qr = qrcode(0, "M"); qr.addData(text); qr.make(); return qr.createDataURL(cell, 2); } catch { return ""; }
 }
@@ -343,12 +350,12 @@ function acceptTyped(raw) {
 // =====================================================================
 // Items: always kept on this device; mirrored from the shared session when connected
 // =====================================================================
-let items = store.get(LOCAL_KEY, {});   // { code: { c: count, t: lastTime } }
+let items = tabStore.get(LOCAL_KEY, {});   // { code: { c: count, t: lastTime } }
 let sess = null;                        // { id, owner, unsub, data }
 let sortMode = store.get(SORT_KEY, "recent");
 let openCode = null, qrOpen = false;
 
-function saveLocal() { store.set(LOCAL_KEY, items); }
+function saveLocal() { tabStore.set(LOCAL_KEY, items); }
 
 function onWriteError(e) {
   if (e && e.code === "permission-denied") endSession("The session expired. The list stays on this device.");
@@ -484,27 +491,21 @@ async function joinSession(id) {
   catch (e) { toast(e && e.code === "permission-denied" ? "This session has expired." : "Could not connect. Check the internet connection."); return; }
   if (!snap.exists()) { toast("This session has ended."); return; }
 
-  const own = Object.entries(items);
-  if (own.length && !confirm(`This device already has ${own.length} scanned items.\n\nOK: add them to the shared list and connect.\nCancel: do not connect.`)) return;
+  // Lists are never merged: joining shows only the shared list
+  const own = Object.keys(items).length;
+  if (own && !confirm(`This page has ${own} scanned items.\n\nOK: clear them and join.\nCancel: stay on this list.`)) return;
   if (sess) endSession("", sess.owner);
+  items = {}; openCode = null; saveLocal(); render();
 
-  try {
-    await updateDoc(sref(id), { phoneJoined: true, expiresAt: expiry() });
-    // add this device's items in chunks (Firestore limits field changes per write)
-    for (let i = 0; i < own.length; i += 200) {
-      const args = [];
-      own.slice(i, i + 200).forEach(([code, v]) => args.push(
-        new FieldPath("items", code, "c"), increment(v.c), new FieldPath("items", code, "t"), v.t || Date.now()));
-      await updateDoc(sref(id), ...args);
-    }
-  } catch (e) { onWriteError(e); return; }
+  try { await updateDoc(sref(id), { phoneJoined: true, expiresAt: expiry() }); }
+  catch (e) { onWriteError(e); return; }
   attach(id, false);
   toast("Connected. Both devices can scan now.");
 }
 
 function attach(id, owner) {
   sess = { id, owner, data: null, unsub: null };
-  store.set(SESSION_KEY, { id, owner });
+  tabStore.set(SESSION_KEY, { id, owner });
   ui();
   sess.unsub = onSnapshot(sref(id), (s) => {
     if (!sess || sess.id !== id) return;
@@ -524,7 +525,7 @@ function endSession(msg, del = true) {
   const id = sess.id;
   if (sess.unsub) sess.unsub();
   sess = null; qrOpen = false;
-  store.del(SESSION_KEY);
+  tabStore.del(SESSION_KEY);
   if (del) deleteDoc(sref(id)).catch(() => {});
   saveLocal(); render(); ui();
   if (msg) toast(msg);
@@ -584,7 +585,7 @@ $("qrClose").onclick = () => { qrOpen = false; ui(); };
 async function restore() {
   const hashId = (location.hash.match(SESSION_RE) || [])[1];
   if (hashId) history.replaceState(null, "", location.pathname + location.search);
-  const saved = store.get(SESSION_KEY, null);
+  const saved = tabStore.get(SESSION_KEY, null);
   if (saved && saved.id && saved.id !== hashId) {
     try {
       const s = await getDoc(sref(saved.id));
@@ -592,8 +593,8 @@ async function restore() {
         attach(saved.id, saved.owner);
         $("qrImg").src = qrSrc(sessionUrl(saved.id), 5);
         $("phoneQr").src = qrSrc(sessionUrl(saved.id), 6);
-      } else store.del(SESSION_KEY);
-    } catch { store.del(SESSION_KEY); }
+      } else tabStore.del(SESSION_KEY);
+    } catch { tabStore.del(SESSION_KEY); }
   } else if (saved && saved.id === hashId) {
     attach(saved.id, saved.owner);
   }
@@ -917,6 +918,11 @@ async function initPhone() {
   try { await initDecoder(); } catch { toast("Could not load the barcode reader. Check the internet connection."); }
   if (await startCamera()) { resetIdle(); camUi(); }
 }
+
+// Warn before closing a tab that still has a list (each tab's list lives only in that tab)
+window.addEventListener("beforeunload", (e) => {
+  if (Object.keys(items).length) { e.preventDefault(); e.returnValue = ""; }
+});
 
 if (IS_PHONE) initPhone(); else initPc();
 </script>
