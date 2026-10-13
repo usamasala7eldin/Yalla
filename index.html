@@ -3,105 +3,260 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f8f7e">
 <title>Osama Elzeiny</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💊</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  /* ===== Design tokens (shared across all pages) ===== */
   :root {
-    --bg: #F1F4F2; --surface: #FFFFFF; --ink: #16211C; --muted: #5E6B64; --line: #D6DDD8;
-    --accent: #0F6B4F; --accent-soft: #E3F1EB;
-    --font: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+    --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+    --brand: #0f8f7e;      /* main teal */
+    --brand-2: #22b07d;    /* green for gradients */
+    --bg: #f3f7f6;
+    --surface: #ffffff;
+    --ink: #13261f;
+    --muted: #5d7069;
+    --line: #dfe8e5;
+    --success: #1fa463;
+    --warning: #e3a008;
+    --danger: #e5534b;
+
+    /* Accent colors for tool icons */
+    --c-teal: #0f8f7e;
+    --c-blue: #3b7ddd;
+    --c-amber: #e08a00;
+    --c-coral: #e5604f;
+    --c-violet: #7c5cd6;
+    --c-pink: #d6458a;
+    --c-green: #1f9d55;
+
+    --radius: 16px;
+    --shadow: 0 2px 12px rgba(16, 60, 52, .08);
+    --shadow-hover: 0 8px 24px rgba(16, 60, 52, .14);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #111714; --surface: #19211D; --ink: #E5ECE8; --muted: #93A19A; --line: #2B3530;
-      --accent: #4FC39A; --accent-soft: #1C3229; }
+    :root {
+      --brand: #0c7a6c; --brand-2: #1b9466;
+      --bg: #0e1615; --surface: #17211e; --ink: #e6f1ee; --muted: #8ea69f; --line: #26332f;
+      --c-teal: #2bc0aa; --c-blue: #6aa2f0; --c-amber: #f2b13c; --c-coral: #f2836f;
+      --c-violet: #a58cf0; --c-pink: #ec7ab0; --c-green: #4cc583;
+      --shadow: 0 2px 12px rgba(0, 0, 0, .35); --shadow-hover: 0 8px 24px rgba(0, 0, 0, .45);
+    }
   }
+
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); }
-  body { line-height: 1.5; }
-  .wrap { max-width: 900px; margin: 0 auto; padding: 48px 16px 40px; }
+  body { line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+  a { color: inherit; text-decoration: none; }
 
-  header { margin-bottom: 32px; }
-  header h1 { margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -.01em; }
-  header p { margin: 4px 0 0; color: var(--muted); }
+  /* Header */
+  .hero {
+    position: relative; overflow: hidden; color: #fff; padding: 28px 16px 84px;
+    background:
+      radial-gradient(circle at 85% 15%, rgba(255, 255, 255, .18) 0 90px, transparent 91px),
+      radial-gradient(circle at 10% 110%, rgba(255, 255, 255, .12) 0 120px, transparent 121px),
+      linear-gradient(135deg, var(--brand), var(--brand-2));
+  }
+  .hero-inner { max-width: 900px; margin: 0 auto; }
+  .owner { font-size: 14px; font-weight: 600; opacity: .9; }
+  .greeting { margin: 18px 0 2px; font-size: 30px; font-weight: 800; letter-spacing: -.01em; }
+  .date { font-size: 16px; opacity: .92; }
 
-  section { margin-bottom: 28px; }
-  section h2 { margin: 0 0 10px; font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .wrap { max-width: 900px; margin: -56px auto 0; padding: 0 16px 40px; position: relative; }
 
-  .tool { display: flex; gap: 14px; align-items: flex-start; padding: 16px; min-height: 84px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-    color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
-  .tool:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .icon { flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
-    display: flex; align-items: center; justify-content: center; }
-  .icon svg { width: 24px; height: 24px; }
-  .tool b { display: block; font-size: 1.05rem; font-weight: 600; }
-  .tool span { display: block; color: var(--muted); font-size: .9rem; margin-top: 2px; }
-  @media (prefers-reduced-motion: reduce) { .tool { transition: none; } .tool:hover { transform: none; } }
+  /* Featured checklist card */
+  .featured {
+    display: flex; align-items: center; gap: 18px; padding: 20px;
+    background: var(--surface); border-radius: 20px; box-shadow: var(--shadow);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .featured:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+  .featured:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+  .ring { position: relative; width: 84px; height: 84px; flex: none; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: var(--line); stroke-width: 10; }
+  .ring-bar { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .6s ease, stroke .3s; }
+  .ring-pct { position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; font-weight: 800; }
+  .featured-body { flex: 1; min-width: 0; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+  .featured h2 { margin: 2px 0; font-size: 21px; font-weight: 800; }
+  .featured p { margin: 0; color: var(--muted); font-size: 15px; }
+  .go {
+    width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; color: #fff;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  }
+
+  /* Tools grid */
+  .sec-title { margin: 30px 4px 12px; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+
+  .tool {
+    --c: var(--c-teal);
+    display: flex; flex-direction: column; gap: 10px; padding: 16px;
+    background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .tool:hover { box-shadow: var(--shadow-hover); transform: translateY(-3px); }
+  .tool:focus-visible { outline: 3px solid var(--c); outline-offset: 3px; }
+  .icon {
+    width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
+    color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
+  }
+  .icon svg { width: 26px; height: 26px; }
+  .tool b { display: block; font-size: 16px; font-weight: 700; line-height: 1.3; }
+  .tool span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 28px 16px 8px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .featured, .tool, .ring-bar { transition: none; }
+    .featured:hover, .tool:hover { transform: none; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Osama Elzeiny</h1>
-    <p>Pharmacy tools</p>
-  </header>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="owner">💊 Osama Elzeiny · Pharmacy tools</div>
+    <div class="greeting" id="greeting">Hello</div>
+    <div class="date" id="date"></div>
+  </div>
+</header>
 
-  <section>
-    <h2>Cash</h2>
-    <div class="grid">
-      <a class="tool" href="CloseDay.html">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg></div>
-        <div><b>Close Day</b><span>Expected cash from tender and terminal reconciliations</span></div>
-      </a>
+<main class="wrap">
+  <a class="featured" href="DailyCheckList.html">
+    <div class="ring" aria-hidden="true">
+      <svg viewBox="0 0 100 100">
+        <circle class="ring-track" cx="50" cy="50" r="42"/>
+        <circle class="ring-bar" id="ring" cx="50" cy="50" r="42"/>
+      </svg>
+      <span class="ring-pct" id="pct">0%</span>
     </div>
-  </section>
+    <div class="featured-body">
+      <span class="tag">Today</span>
+      <h2>Daily Checklist</h2>
+      <p id="progressText">Your daily tasks, one tap away.</p>
+    </div>
+    <div class="go" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </div>
+  </a>
 
-  <section>
-    <h2>Price tags</h2>
-    <div class="grid">
-      <a class="tool" href="ItemCheck.html">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2 2 4-4"/><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 17h8"/></svg></div>
-        <div><b>Item Check</b><span>Price-change list: pick the items to tag and export the print file</span></div>
-      </a>
-      <a class="tool" href="PriceTagPrint.html">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>
-        <div><b>Price Tag Print</b><span>Scan barcodes with the scanner or phone to build the tag file</span></div>
-      </a>
-    </div>
-  </section>
+  <div class="sec-title">Tools</div>
+  <div class="grid">
+    <a class="tool" href="CloseDay.html" style="--c: var(--c-green)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg></div>
+      <div><b>Close Day</b><span>Cash to deposit</span></div>
+    </a>
+    <a class="tool" href="ItemCheck.html" style="--c: var(--c-blue)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2 2 4-4"/><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 17h8"/></svg></div>
+      <div><b>Item Check</b><span>Pick items to tag</span></div>
+    </a>
+    <a class="tool" href="PriceTagPrint.html" style="--c: var(--c-amber)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>
+      <div><b>Price Tag Print</b><span>Scan to build tags</span></div>
+    </a>
+    <a class="tool" href="QRgenerator.html" style="--c: var(--c-teal)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.4A8.5 8.5 0 1 1 21 12z"/></svg></div>
+      <div><b>WhatsApp Messages</b><span>Welcome &amp; refill QR codes</span></div>
+    </a>
+    <a class="tool" href="dosage-printer.html" style="--c: var(--c-coral)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5a5 5 0 0 1-7-7l6-6a5 5 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/></svg></div>
+      <div><b>Dosage Printer</b><span>Medicine labels</span></div>
+    </a>
+    <a class="tool" href="Printer.html" style="--c: var(--c-violet)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg></div>
+      <div><b>Printer</b><span>Text, QR or barcode</span></div>
+    </a>
+    <a class="tool" href="sync.html" style="--c: var(--c-pink)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.5"/><path d="M4 20v-4.5h4.5"/></svg></div>
+      <div><b>Sync</b><span>Phone ↔ computer</span></div>
+    </a>
+  </div>
 
-  <section>
-    <h2>Printing</h2>
-    <div class="grid">
-      <a class="tool" href="dosage-printer.html">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5a5 5 0 0 1-7-7l6-6a5 5 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/></svg></div>
-        <div><b>Dosage Printer</b><span>Print medicine dosage labels</span></div>
-      </a>
-      <a class="tool" href="Printer.html">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg></div>
-        <div><b>Printer</b><span>Print text, a QR code or a barcode on the dosage printer</span></div>
-      </a>
-    </div>
-  </section>
+  <footer>Made by Osama Elzeiny</footer>
+</main>
 
-  <section>
-    <h2>Tools</h2>
-    <div class="grid">
-      <a class="tool" href="QRgenerator.html">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.4A8.5 8.5 0 1 1 21 12z"/></svg></div>
-        <div><b>WhatsApp Messages</b><span>QR codes for welcome and medicine refill messages</span></div>
-      </a>
-      <a class="tool" href="sync.html">
-        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.5"/><path d="M4 20v-4.5h4.5"/></svg></div>
-        <div><b>Sync</b><span>Move text and images between phone and computer</span></div>
-      </a>
-    </div>
-  </section>
-</div>
+<script>
+  const RING_LENGTH = 2 * Math.PI * 42;
+
+  function readJSON(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch (e) { return fallback; }
+  }
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  // Reads the Daily Checklist data saved in this browser (same keys as DailyCheckList.html).
+  function checklistProgress() {
+    const cache = readJSON('dc_sheet_cache', []);
+    const hidden = readJSON('dc_hidden', []);
+    const custom = readJSON('dc_custom', []);
+    const progress = readJSON('dc_progress', null);
+
+    const sheet = (Array.isArray(cache) ? cache : [])
+      .map(x => typeof x === 'string' ? x : x && x.name)
+      .filter(n => n && !(Array.isArray(hidden) && hidden.includes(n)))
+      .map(n => ({ key: 's:' + n, type: 'check' }));
+    const personal = (Array.isArray(custom) ? custom : [])
+      .map(t => ({ key: 'c:' + t.id, type: t.type, target: t.target }));
+    const tasks = sheet.concat(personal);
+    if (!tasks.length) return null;
+
+    const done = progress && progress.date === todayKey() ? progress.done || {} : {};
+    let sum = 0, finished = 0;
+    tasks.forEach(t => {
+      const v = done[t.key];
+      const s = t.type === 'count' ? Math.min((Number(v) || 0) / (t.target || 1), 1) : (v ? 1 : 0);
+      sum += s;
+      if (s >= 1) finished++;
+    });
+    return { pct: Math.round(sum / tasks.length * 100), finished, total: tasks.length };
+  }
+
+  function ringColor(pct) {
+    if (pct >= 80) return 'var(--success)';
+    if (pct >= 40) return 'var(--warning)';
+    return '#f08a3c';
+  }
+
+  function render() {
+    const now = new Date();
+    const h = now.getHours();
+    document.getElementById('greeting').textContent =
+      h < 12 ? 'Good morning ☀️' : h < 18 ? 'Good afternoon 🌤️' : 'Good evening 🌙';
+    document.getElementById('date').textContent =
+      now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    const p = checklistProgress();
+    const pct = p ? p.pct : 0;
+    const ring = document.getElementById('ring');
+    ring.style.strokeDasharray = RING_LENGTH;
+    ring.style.strokeDashoffset = RING_LENGTH * (1 - pct / 100);
+    ring.style.stroke = ringColor(pct);
+    document.getElementById('pct').textContent = pct + '%';
+
+    let text = 'Your daily tasks, one tap away.';
+    if (p) {
+      if (p.pct === 100) text = 'All done for today. Great work! 🎉';
+      else if (p.finished === 0 && p.pct === 0) text = p.total + ' tasks waiting for you today.';
+      else text = p.finished + ' of ' + p.total + ' tasks done. Keep going!';
+    }
+    document.getElementById('progressText').textContent = text;
+  }
+
+  // Refresh when coming back from another page or tab.
+  window.addEventListener('pageshow', render);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') render(); });
+  render();
+</script>
 </body>
 </html>
