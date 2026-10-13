@@ -3,100 +3,167 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f9b8e">
 <title>Daily Checklist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f6f8; --card: #ffffff; --text: #1d2329; --muted: #6b7580;
-    --line: #e3e7eb; --accent: #0f8a6c; --danger: #d64545;
+    --bg: #eef4f3; --card: #ffffff; --text: #14302b; --muted: #5f7a75; --line: #dde8e6;
+    --brand: #0f9b8e; --brand2: #2bb673; --accent: #14a37f; --danger: #e04f4f;
+    --check-border: #b9cbc7; --shadow: 0 2px 12px rgba(16, 60, 52, .08);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #121619; --card: #1c2226; --text: #e8ecef; --muted: #93a0aa;
-      --line: #2b3338; --accent: #2fbf98; --danger: #ef6b6b;
+      --bg: #0e1716; --card: #17221f; --text: #e6f2ef; --muted: #8fa9a3; --line: #26332f;
+      --brand: #0c7f74; --brand2: #1f9a5f; --accent: #26b98f; --danger: #f06a6a;
+      --check-border: #4a5f5a; --shadow: 0 2px 12px rgba(0, 0, 0, .35);
     }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
-  .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+  body {
+    margin: 0; font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent;
+  }
+  button, input, select { font-family: inherit; }
 
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  h1 { font-size: 20px; margin: 0; }
-  .date { color: var(--muted); font-size: 13px; margin-top: 2px; }
-  .icon-btn { background: none; border: none; color: var(--text); cursor: pointer; padding: 8px; border-radius: 10px; line-height: 0; }
-  .icon-btn:hover { background: var(--line); }
+  /* Header */
+  .hero { background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; padding: 24px 16px 68px; }
+  .hero-inner { max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .eyebrow { font-size: 14px; font-weight: 500; opacity: .9; }
+  h1 { margin: 4px 0 0; font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+  .icon-btn {
+    width: 42px; height: 42px; flex: none; display: grid; place-items: center; padding: 0;
+    border: none; border-radius: 12px; background: none; color: var(--text); cursor: pointer; text-decoration: none;
+  }
+  .hero .icon-btn { color: #fff; background: rgba(255, 255, 255, .18); }
+  .hero .icon-btn:hover { background: rgba(255, 255, 255, .28); }
 
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; }
-  .progress { padding: 14px; }
-  .progress-top { display: flex; justify-content: space-between; align-items: baseline; }
-  .pct { font-size: 28px; font-weight: 700; }
-  .summary { color: var(--muted); font-size: 13px; }
-  .bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 8px; }
-  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  .wrap { max-width: 600px; margin: -46px auto 0; padding: 0 16px 48px; }
 
-  .sec-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 18px 4px 6px; }
-  .status { font-size: 13px; color: var(--muted); margin: 8px 4px 0; }
+  /* Progress card */
+  .summary-card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 18px; display: flex; align-items: center; gap: 18px; }
+  .ring-wrap { position: relative; width: 96px; height: 96px; flex: none; }
+  .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: var(--line); stroke-width: 10; }
+  .ring-bar { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .5s ease, stroke .3s; }
+  .ring-pct { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; font-weight: 800; }
+  .sum-label { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .sum-count { font-size: 20px; font-weight: 700; margin: 4px 0; }
+  .sum-note { font-size: 15px; color: var(--muted); }
+
+  .status { font-size: 14px; color: var(--muted); margin: 12px 4px 0; }
   .status:empty { display: none; }
-  .empty { color: var(--muted); text-align: center; padding: 16px 8px; font-size: 14px; }
 
-  .task { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-  .task:last-child { border-bottom: none; }
-  .check { width: 26px; height: 26px; flex: none; border-radius: 50%; border: 2px solid var(--muted); background: none; color: transparent; display: grid; place-items: center; padding: 0; cursor: pointer; }
+  /* Sections */
+  .sec-title, .sec-toggle {
+    font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 26px 4px 10px;
+  }
+  .sec-toggle { display: flex; width: calc(100% - 8px); justify-content: space-between; align-items: center; background: none; border: none; padding: 0; cursor: pointer; }
+  .sec-toggle svg { transition: transform .2s; }
+  .sec-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .list { display: flex; flex-direction: column; gap: 10px; }
+
+  /* Task cards */
+  .task { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px; display: flex; align-items: center; gap: 12px; }
+  .task.done { opacity: .78; }
+  .check {
+    width: 30px; height: 30px; flex: none; border-radius: 50%; border: 2.5px solid var(--check-border);
+    background: none; color: transparent; display: grid; place-items: center; padding: 0; cursor: pointer;
+    transition: background .2s, border-color .2s;
+  }
   .check.static { cursor: default; }
   .task.done .check { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .name { flex: 1; font-size: 15px; word-break: break-word; cursor: pointer; }
-  .name.static { cursor: default; }
-  .task.done .name { color: var(--muted); text-decoration: line-through; }
-  .stepper { display: flex; align-items: center; gap: 6px; }
-  .stepper button { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 18px; cursor: pointer; }
-  .count { min-width: 46px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
-  .del { opacity: .4; color: var(--text); }
-  .del:hover { opacity: 1; color: var(--danger); background: none; }
+  .check.pop { animation: pop .3s ease; }
+  @keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .body { flex: 1; min-width: 0; }
+  .task.is-check .body { cursor: pointer; }
+  .name { font-size: 17px; font-weight: 600; line-height: 1.35; word-break: break-word; }
+  .task.done .name { text-decoration: line-through; color: var(--muted); }
+  .counter { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .counter button {
+    width: 36px; height: 36px; flex: none; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size: 20px; font-weight: 600; cursor: pointer;
+  }
+  .mini { flex: 1; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .mini > div { height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+  .count { min-width: 46px; text-align: center; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .actions { display: flex; align-items: center; gap: 4px; flex: none; }
+  .link-btn { color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); }
+  .del { color: var(--muted); }
+  .del:hover { color: var(--danger); }
 
-  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .empty { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 22px; text-align: center; color: var(--muted); font-size: 16px; }
+  .empty.celebrate { color: var(--text); font-size: 18px; font-weight: 700; }
+
+  /* Settings */
+  .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
   .overlay.open { display: flex; }
-  .modal { background: var(--card); width: 100%; max-width: 560px; max-height: 85vh; overflow: auto; border-radius: 16px 16px 0 0; padding: 16px; }
-  @media (min-width: 600px) { .overlay { align-items: center; } .modal { border-radius: 16px; } }
+  .modal { background: var(--card); width: 100%; max-width: 600px; max-height: 88vh; overflow: auto; border-radius: 20px 20px 0 0; padding: 18px; }
+  @media (min-width: 640px) { .overlay { align-items: center; } .modal { border-radius: 20px; } }
   .modal-head { display: flex; justify-content: space-between; align-items: center; }
-  .modal h2 { font-size: 18px; margin: 0; }
-  .modal h3 { font-size: 14px; margin: 18px 0 8px; color: var(--muted); }
-  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 14px; }
-  input, select { font: inherit; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
-  .primary { width: 100%; padding: 11px; border: none; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
-  .msg { font-size: 13px; min-height: 18px; margin-top: 6px; }
+  .modal h2 { font-size: 20px; margin: 0; }
+  .modal h3 { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 22px 0 10px; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 15px; font-weight: 600; }
+  .field small { font-weight: 400; color: var(--muted); }
+  input, select { font-size: 16px; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .primary { width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .msg { font-size: 14px; min-height: 20px; margin-top: 8px; }
   .msg.err { color: var(--danger); }
   .msg.ok { color: var(--accent); }
-  .hidden-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .hidden-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
   .hidden-row:last-child { border-bottom: none; }
-  .small-btn { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; flex: none; }
+  .small-btn { flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 10px; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .modal .empty { box-shadow: none; background: var(--bg); padding: 16px; font-size: 15px; }
+
+  /* Celebration */
+  .confetti { position: fixed; top: -16px; width: 8px; height: 14px; border-radius: 2px; z-index: 20; pointer-events: none; animation: fall 2.4s linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: .7; } }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
+<header class="hero">
+  <div class="hero-inner">
     <div>
+      <div class="eyebrow" id="date"></div>
       <h1>Daily Checklist</h1>
-      <div class="date" id="date"></div>
     </div>
     <button class="icon-btn" id="openSettings" aria-label="Settings">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
-  </header>
-
-  <div class="card progress">
-    <div class="progress-top">
-      <span class="pct" id="pct">0%</span>
-      <span class="summary" id="summary"></span>
-    </div>
-    <div class="bar"><div id="barFill"></div></div>
   </div>
+</header>
+
+<main class="wrap">
+  <section class="summary-card">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="ring-track" cx="50" cy="50" r="42"/>
+        <circle class="ring-bar" id="ring" cx="50" cy="50" r="42"/>
+      </svg>
+      <span class="ring-pct" id="pct">0%</span>
+    </div>
+    <div>
+      <div class="sum-label">Today's progress</div>
+      <div class="sum-count" id="summary"></div>
+      <div class="sum-note" id="note"></div>
+    </div>
+  </section>
   <div class="status" id="status"></div>
 
   <div class="sec-title" id="todoTitle">To do</div>
-  <div class="card" id="todoList"></div>
+  <div class="list" id="todoList"></div>
 
-  <div class="sec-title" id="doneTitle">Done</div>
-  <div class="card" id="doneList"></div>
-</div>
+  <button class="sec-toggle" id="doneToggle" aria-expanded="false" aria-controls="doneList">
+    <span id="doneTitle">Done</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+  <div class="list" id="doneList" hidden></div>
+</main>
 
 <div class="overlay" id="overlay">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -121,6 +188,9 @@
       <label class="field" id="targetField" hidden>Target number
         <input id="newTarget" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 10">
       </label>
+      <label class="field">Link <small>(optional)</small>
+        <input id="newLink" type="text" inputmode="url" placeholder="e.g. example.com/page">
+      </label>
       <button class="primary" type="submit">Add task</button>
       <div class="msg" id="addMsg"></div>
     </form>
@@ -131,14 +201,16 @@
 </div>
 
 <script>
-  // Paste the published Google Sheet CSV link here.
-  // Sheet format: column A, first row is a header, one task per row below it.
-  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/15WxgVKbUrr5ya4-XSllV9a548DTTQ0URRfWM41zoNQw/gviz/tq?tqx=out:csv';
+  // Paste the Google Sheet CSV link here.
+  // Sheet format: first row is a header. Column A = task name, column B = link (optional).
+  const SHEET_CSV_URL = 'PASTE_YOUR_PUBLISHED_CSV_LINK_HERE';
 
-  const KEYS = { hidden: 'dc_hidden', custom: 'dc_custom', progress: 'dc_progress', cache: 'dc_sheet_cache' };
+  const KEYS = { hidden: 'dc_hidden', custom: 'dc_custom', progress: 'dc_progress', cache: 'dc_sheet_cache', doneOpen: 'dc_done_open' };
+  const RING_LENGTH = 2 * Math.PI * 42;
 
-  const CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  const TRASH_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>';
+  const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const TRASH_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>';
+  const LINK_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
   function load(key, fallback) {
     try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -152,10 +224,34 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  let sheetTasks = load(KEYS.cache, []);
+  // Accept only http/https links; add https:// when the scheme is missing.
+  function safeLink(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    let url = s;
+    if (!/^https?:\/\//i.test(s)) {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return '';
+      url = 'https://' + s;
+    }
+    try {
+      const u = new URL(url);
+      return (u.protocol === 'http:' || u.protocol === 'https:') && u.hostname.includes('.') ? u.href : '';
+    } catch (e) { return ''; }
+  }
+
+  function normalizeSheet(list) {
+    return (Array.isArray(list) ? list : [])
+      .map(x => typeof x === 'string' ? { name: x, link: '' } : { name: String(x.name || ''), link: String(x.link || '') })
+      .filter(x => x.name);
+  }
+
+  let sheetTasks = normalizeSheet(load(KEYS.cache, []));
   let hidden = load(KEYS.hidden, []);
   let custom = load(KEYS.custom, []);
   let progress = load(KEYS.progress, { date: today(), done: {} });
+  let doneOpen = load(KEYS.doneOpen, false);
+  let justToggled = null;
+  let lastPct = null;
 
   const $ = id => document.getElementById(id);
 
@@ -197,15 +293,15 @@
       const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const rows = parseCSV(await res.text());
-      const names = [];
+      const tasks = [];
       rows.slice(1).forEach(r => {
-        const n = (r[0] || '').trim();
-        if (n && !names.includes(n)) names.push(n);
+        const name = (r[0] || '').trim();
+        if (name && !tasks.some(t => t.name === name)) tasks.push({ name, link: safeLink(r[1]) });
       });
-      sheetTasks = names;
-      save(KEYS.cache, names);
+      sheetTasks = tasks;
+      save(KEYS.cache, tasks);
       // Forget hidden tasks that were removed from the sheet.
-      hidden = hidden.filter(h => names.includes(h));
+      hidden = hidden.filter(h => tasks.some(t => t.name === h));
       save(KEYS.hidden, hidden);
       setStatus('');
     } catch (e) {
@@ -218,9 +314,9 @@
 
   function allTasks() {
     const fromSheet = sheetTasks
-      .filter(n => !hidden.includes(n))
-      .map(n => ({ key: 's:' + n, name: n, type: 'check', source: 'sheet' }));
-    const personal = custom.map(t => ({ key: 'c:' + t.id, id: t.id, name: t.name, type: t.type, target: t.target, source: 'custom' }));
+      .filter(t => !hidden.includes(t.name))
+      .map(t => ({ key: 's:' + t.name, name: t.name, link: t.link, type: 'check', source: 'sheet' }));
+    const personal = custom.map(t => ({ key: 'c:' + t.id, id: t.id, name: t.name, link: t.link || '', type: t.type, target: t.target, source: 'custom' }));
     return fromSheet.concat(personal);
   }
 
@@ -231,16 +327,18 @@
   function toggle(t) {
     ensureToday();
     if (progress.done[t.key]) delete progress.done[t.key];
-    else progress.done[t.key] = true;
+    else { progress.done[t.key] = true; justToggled = t.key; }
     save(KEYS.progress, progress);
     render();
   }
 
   function step(t, delta) {
     ensureToday();
+    const before = isDone(t);
     const v = Math.max(0, countOf(t) + delta);
     if (v === 0) delete progress.done[t.key];
     else progress.done[t.key] = v;
+    if (!before && isDone(t)) justToggled = t.key;
     save(KEYS.progress, progress);
     render();
   }
@@ -261,61 +359,95 @@
     renderHidden();
   }
 
-  function taskRow(t) {
-    const row = document.createElement('div');
-    row.className = 'task' + (isDone(t) ? ' done' : '');
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
 
-    const name = document.createElement('span');
-    name.className = 'name';
-    name.textContent = t.name;
+  function taskRow(t) {
+    const done = isDone(t);
+    const row = el('div', 'task ' + (t.type === 'check' ? 'is-check' : 'is-count') + (done ? ' done' : ''));
+    const popClass = t.key === justToggled ? ' pop' : '';
+
+    const body = el('div', 'body');
+    body.append(el('div', 'name', t.name));
 
     if (t.type === 'check') {
-      const btn = document.createElement('button');
-      btn.className = 'check';
+      const btn = el('button', 'check' + popClass);
       btn.innerHTML = CHECK_SVG;
-      btn.setAttribute('aria-label', isDone(t) ? 'Mark as not done' : 'Mark as done');
+      btn.setAttribute('aria-label', done ? 'Mark as not done' : 'Mark as done');
       btn.onclick = () => toggle(t);
-      name.onclick = () => toggle(t);
-      row.append(btn, name);
+      body.onclick = () => toggle(t);
+      row.append(btn, body);
     } else {
-      const mark = document.createElement('span');
-      mark.className = 'check static';
+      const mark = el('span', 'check static' + popClass);
       mark.innerHTML = CHECK_SVG;
-      name.classList.add('static');
 
-      const stepper = document.createElement('div');
-      stepper.className = 'stepper';
-      const minus = document.createElement('button');
-      minus.textContent = '−';
+      const counter = el('div', 'counter');
+      const minus = el('button', '', '−');
       minus.setAttribute('aria-label', 'Decrease');
       minus.onclick = () => step(t, -1);
-      const count = document.createElement('span');
-      count.className = 'count';
-      count.textContent = countOf(t) + '/' + t.target;
-      const plus = document.createElement('button');
-      plus.textContent = '+';
+      const mini = el('div', 'mini');
+      const fill = el('div');
+      fill.style.width = Math.min(countOf(t) / t.target, 1) * 100 + '%';
+      mini.append(fill);
+      const count = el('span', 'count', countOf(t) + '/' + t.target);
+      const plus = el('button', '', '+');
       plus.setAttribute('aria-label', 'Increase');
       plus.onclick = () => step(t, 1);
-      stepper.append(minus, count, plus);
+      counter.append(minus, mini, count, plus);
+      body.append(counter);
 
-      row.append(mark, name, stepper);
+      row.append(mark, body);
     }
 
-    const del = document.createElement('button');
-    del.className = 'icon-btn del';
+    const actions = el('div', 'actions');
+    if (t.link) {
+      const a = el('a', 'icon-btn link-btn');
+      a.href = t.link;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.innerHTML = LINK_SVG;
+      a.setAttribute('aria-label', 'Open link');
+      actions.append(a);
+    }
+    const del = el('button', 'icon-btn del');
     del.innerHTML = TRASH_SVG;
     del.setAttribute('aria-label', 'Remove task');
     del.onclick = () => removeTask(t);
-    row.append(del);
+    actions.append(del);
+    row.append(actions);
 
     return row;
   }
 
-  function emptyNote(text) {
-    const d = document.createElement('div');
-    d.className = 'empty';
-    d.textContent = text;
-    return d;
+  function ringColor(pct) {
+    if (pct >= 80) return '#22a565';
+    if (pct >= 40) return '#e0a800';
+    return '#f08a3c';
+  }
+
+  function noteFor(pct, total) {
+    if (!total) return 'Add tasks from Settings.';
+    if (pct === 0) return "Let's get started.";
+    if (pct < 50) return 'Good start, keep going.';
+    if (pct < 100) return 'Almost there!';
+    return 'All done. Great work!';
+  }
+
+  function celebrate() {
+    const colors = ['#0f9b8e', '#2bb673', '#f08a3c', '#e0a800', '#4a90e2', '#e04f4f'];
+    for (let i = 0; i < 40; i++) {
+      const p = el('span', 'confetti');
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.background = colors[i % colors.length];
+      p.style.animationDelay = Math.random() * 0.6 + 's';
+      p.style.animationDuration = 2 + Math.random() * 1.2 + 's';
+      document.body.append(p);
+      setTimeout(() => p.remove(), 4000);
+    }
   }
 
   function render() {
@@ -328,56 +460,66 @@
     const total = tasks.length;
     const pct = total ? Math.round(tasks.reduce((sum, t) => sum + score(t), 0) / total * 100) : 0;
 
+    const ring = $('ring');
+    ring.style.strokeDasharray = RING_LENGTH;
+    ring.style.strokeDashoffset = RING_LENGTH * (1 - pct / 100);
+    ring.style.stroke = ringColor(pct);
     $('pct').textContent = pct + '%';
-    $('barFill').style.width = pct + '%';
-    $('summary').textContent = done.length + ' of ' + total + ' done';
+    $('summary').textContent = done.length + ' of ' + total + ' tasks done';
+    $('note').textContent = noteFor(pct, total);
     $('todoTitle').textContent = 'To do (' + todo.length + ')';
     $('doneTitle').textContent = 'Done (' + done.length + ')';
 
     const todoList = $('todoList');
     todoList.replaceChildren();
-    if (!total) todoList.append(emptyNote('No tasks yet. Add one from Settings.'));
-    else if (!todo.length) todoList.append(emptyNote('All done for today. Great work!'));
+    if (!total) todoList.append(el('div', 'empty', 'No tasks yet. Add one from Settings.'));
+    else if (!todo.length) todoList.append(el('div', 'empty celebrate', '🎉 All done for today. Great work!'));
     else todo.forEach(t => todoList.append(taskRow(t)));
 
     const doneList = $('doneList');
     doneList.replaceChildren();
-    if (!done.length) doneList.append(emptyNote('Nothing finished yet.'));
+    if (!done.length) doneList.append(el('div', 'empty', 'Nothing finished yet.'));
     else done.forEach(t => doneList.append(taskRow(t)));
+    doneList.hidden = !doneOpen;
+    $('doneToggle').setAttribute('aria-expanded', String(doneOpen));
+
+    if (lastPct !== null && lastPct < 100 && pct === 100 && justToggled) celebrate();
+    lastPct = pct;
+    justToggled = null;
   }
 
   function renderHidden() {
     const list = $('hiddenList');
     list.replaceChildren();
     if (!hidden.length) {
-      list.append(emptyNote('No hidden tasks.'));
+      list.append(el('div', 'empty', 'No hidden tasks.'));
       return;
     }
     hidden.forEach(n => {
-      const row = document.createElement('div');
-      row.className = 'hidden-row';
-      const label = document.createElement('span');
-      label.textContent = n;
-      const btn = document.createElement('button');
-      btn.className = 'small-btn';
-      btn.textContent = 'Restore';
+      const row = el('div', 'hidden-row');
+      const btn = el('button', 'small-btn', 'Restore');
       btn.onclick = () => {
         hidden = hidden.filter(h => h !== n);
         save(KEYS.hidden, hidden);
         renderHidden();
         render();
       };
-      row.append(label, btn);
+      row.append(el('span', '', n), btn);
       list.append(row);
     });
   }
+
+  $('doneToggle').onclick = () => {
+    doneOpen = !doneOpen;
+    save(KEYS.doneOpen, doneOpen);
+    render();
+  };
 
   // Settings modal
   function openSettings() {
     renderHidden();
     $('addMsg').textContent = '';
     $('overlay').classList.add('open');
-    $('newName').focus();
   }
   function closeSettings() { $('overlay').classList.remove('open'); }
 
@@ -399,13 +541,15 @@
     const name = $('newName').value.trim();
     const type = $('newType').value;
     const target = parseInt($('newTarget').value, 10);
+    const linkRaw = $('newLink').value.trim();
+    const link = linkRaw ? safeLink(linkRaw) : '';
 
     if (!name) return showMsg('Please enter a task name.', false);
-    const exists = allTasks().some(t => t.name.toLowerCase() === name.toLowerCase());
-    if (exists) return showMsg('This task is already on your list.', false);
+    if (allTasks().some(t => t.name.toLowerCase() === name.toLowerCase())) return showMsg('This task is already on your list.', false);
     if (type === 'count' && !(target >= 1)) return showMsg('Please enter a target of 1 or more.', false);
+    if (linkRaw && !link) return showMsg('Please enter a valid web link.', false);
 
-    custom.push({ id: Date.now().toString(36), name, type, target: type === 'count' ? target : null });
+    custom.push({ id: Date.now().toString(36), name, type, target: type === 'count' ? target : null, link });
     save(KEYS.custom, custom);
     $('addForm').reset();
     $('targetField').hidden = true;
