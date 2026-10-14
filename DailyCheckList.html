@@ -66,6 +66,7 @@
   .sec-toggle svg { transition: transform .2s; }
   .sec-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
   .list { display: flex; flex-direction: column; gap: 10px; }
+  .list[hidden] { display: none; }
 
   /* Task cards */
   .task { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px; display: flex; align-items: center; gap: 12px; transition: opacity .3s; }
@@ -136,13 +137,13 @@
   .item-row { display: flex; align-items: center; gap: 8px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
   .item-row.excluded .item-info, .item-row.excluded .qty { opacity: .4; }
   .item-row.missing { background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: 10px; }
-  .item-info { flex: 1; min-width: 0; }
+  .item-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
   .code-btn {
     display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line);
-    background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;
+    background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; flex: none;
   }
   .code-btn svg { color: var(--brand); }
-  .item-name { font-size: 15px; font-weight: 600; margin-top: 4px; word-break: break-word; }
+  .item-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; word-break: break-word; }
   .badge { display: inline-block; font-size: 11px; font-weight: 700; color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
   .qty { width: 92px; text-align: center; font-weight: 700; padding: 10px 6px; }
   .mini-btn { width: 36px; height: 36px; }
@@ -153,6 +154,7 @@
   .sticky-foot { position: sticky; bottom: -18px; margin: 16px -18px -18px; padding: 14px 18px 18px; background: var(--card); border-top: 1px solid var(--line); }
   .two-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .done-btn { width: 100%; margin-bottom: 10px; }
+  .export-box { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 
   /* Review table */
   .review-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -311,7 +313,10 @@
     </form>
     <div class="msg" id="itemMsg"></div>
 
-    <div class="sticky-foot">
+    <div class="export-box">
+      <label class="field">Checked by
+        <input id="checkedBy" type="text" maxlength="60" placeholder="Your name" autocomplete="off">
+      </label>
       <button class="secondary done-btn" id="markDoneBtn" hidden>Mark task as done</button>
       <div class="two-btns">
         <button class="secondary" id="printBtn">Print</button>
@@ -367,11 +372,11 @@
   ];
 
   const KEYS = {
-    hidden: 'dc_hidden', custom: 'dc_custom', progress: 'dc_progress', cache: 'dc_sheet_cache', doneOpen: 'dc_done_open',
+    hidden: 'dc_hidden', custom: 'dc_custom', progress: 'dc_progress', cache: 'dc_sheet_cache',
     itemsCache: 'dc_items_cache', myItems: 'dc_my_items', stock: 'dc_stock', excluded: 'dc_excluded'
   };
   const RING_LENGTH = 2 * Math.PI * 42;
-  const SETTLE_MS = 1500;   // how long a card stays in place after being checked
+  const SETTLE_MS = 500;    // how long a card stays in place after being checked
   const TAP_GUARD_MS = 350; // ignores accidental double clicks
   const UNDO_MS = 6000;
 
@@ -427,7 +432,7 @@
   let hidden = load(KEYS.hidden, []);
   let custom = load(KEYS.custom, []);
   let progress = load(KEYS.progress, { date: today(), done: {} });
-  let doneOpen = load(KEYS.doneOpen, false);
+  let doneOpen = false; // the Done list always starts collapsed
   let sheetItems = asObject(load(KEYS.itemsCache, {}));   // { taskName: [{code, name}] }
   let myItems = asObject(load(KEYS.myItems, {}));         // { taskName: [{code, name}] }
   let stock = asObject(load(KEYS.stock, {}));             // { taskName: { values: {code: int}, updated: ms } }
@@ -442,6 +447,7 @@
   let openTask = null;   // task name whose item list is open
   let reviewMode = null; // 'print' | 'pdf'
   let reviewRows = [];
+  let checkedByName = '';
 
   const $ = id => document.getElementById(id);
 
@@ -847,7 +853,6 @@
 
   $('doneToggle').onclick = () => {
     doneOpen = !doneOpen;
-    save(KEYS.doneOpen, doneOpen);
     render();
   };
 
@@ -927,6 +932,8 @@
     openTask = name;
     $('itemMsg').textContent = '';
     $('exportMsg').textContent = '';
+    $('checkedBy').value = '';
+    $('checkedBy').classList.remove('bad');
     renderItems();
     openOverlay('itemsOverlay');
   }
@@ -1111,6 +1118,14 @@
     const name = openTask;
     const items = includedItems(name);
     $('exportMsg').textContent = '';
+    const by = $('checkedBy').value.trim();
+    if (!by) {
+      $('checkedBy').classList.add('bad');
+      $('exportMsg').textContent = 'Please enter your name before exporting.';
+      $('checkedBy').focus();
+      return;
+    }
+    checkedByName = by;
     if (!items.length) {
       $('exportMsg').textContent = 'There are no items to export.';
       return;
@@ -1149,6 +1164,12 @@
     openOverlay('reviewOverlay');
   }
 
+  $('checkedBy').addEventListener('input', () => {
+    if ($('checkedBy').value.trim()) {
+      $('checkedBy').classList.remove('bad');
+      if ($('exportMsg').textContent.startsWith('Please enter your name')) $('exportMsg').textContent = '';
+    }
+  });
   $('printBtn').onclick = () => startExport('print');
   $('pdfBtn').onclick = () => startExport('pdf');
 
@@ -1291,7 +1312,7 @@
     });
     table.append(thead, tbody);
     const sign = el('div', 'sign');
-    sign.append(el('div', '', 'Checked by: ________________________'), el('div', '', 'Signature: ________________________'));
+    sign.append(el('div', '', 'Checked by: ' + checkedByName), el('div', '', 'Signature: ________________________'));
     area.append(table, sign);
 
     closeOverlay('reviewOverlay');
@@ -1356,8 +1377,7 @@
       let y = doc.lastAutoTable.finalY + 44;
       if (y > pageH - 50) { doc.addPage(); y = 70; }
       doc.setFontSize(11);
-      doc.text('Checked by: ________________________', 40, y);
-      doc.text('Signature: ________________________', pageW / 2 + 10, y);
+      doc.text('Checked by: ' + checkedByName, 40, y);
 
       doc.save('Stock-Check-' + today() + '.pdf');
       closeOverlay('reviewOverlay');
