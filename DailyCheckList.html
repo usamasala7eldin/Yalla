@@ -11,13 +11,13 @@
 <style>
   :root {
     --bg: #eef4f3; --card: #ffffff; --text: #14302b; --muted: #5f7a75; --line: #dde8e6;
-    --brand: #0f9b8e; --brand2: #2bb673; --accent: #14a37f; --danger: #e04f4f;
+    --brand: #0f9b8e; --brand2: #2bb673; --accent: #14a37f; --danger: #e04f4f; --plus: #1f9d55;
     --check-border: #b9cbc7; --shadow: 0 2px 12px rgba(16, 60, 52, .08);
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0e1716; --card: #17221f; --text: #e6f2ef; --muted: #8fa9a3; --line: #26332f;
-      --brand: #0c7f74; --brand2: #1f9a5f; --accent: #26b98f; --danger: #f06a6a;
+      --brand: #0c7f74; --brand2: #1f9a5f; --accent: #26b98f; --danger: #f06a6a; --plus: #4cc583;
       --check-border: #4a5f5a; --shadow: 0 2px 12px rgba(0, 0, 0, .35);
     }
   }
@@ -26,7 +26,9 @@
     margin: 0; font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 16px; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent;
   }
+  body.locked { overflow: hidden; }
   button, input, select { font-family: inherit; }
+  #printArea { display: none; }
 
   /* Header */
   .hero { background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; padding: 24px 16px 68px; }
@@ -66,23 +68,24 @@
   .list { display: flex; flex-direction: column; gap: 10px; }
 
   /* Task cards */
-  .task { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px; display: flex; align-items: center; gap: 12px; }
+  .task { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px; display: flex; align-items: center; gap: 12px; transition: opacity .3s; }
   .task.done { opacity: .78; }
   .check {
-    width: 30px; height: 30px; flex: none; border-radius: 50%; border: 2.5px solid var(--check-border);
+    position: relative; width: 30px; height: 30px; flex: none; border-radius: 50%; border: 2.5px solid var(--check-border);
     background: none; color: transparent; display: grid; place-items: center; padding: 0; cursor: pointer;
     transition: background .2s, border-color .2s;
   }
+  .check::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; } /* larger tap area */
   .check.static { cursor: default; }
+  .check.static::before { display: none; }
   .task.done .check { background: var(--accent); border-color: var(--accent); color: #fff; }
   .check.pop { animation: pop .3s ease; }
   @keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
   .body { flex: 1; min-width: 0; }
-  .task.is-check .body { cursor: pointer; }
   .name { font-size: 17px; font-weight: 600; line-height: 1.35; word-break: break-word; }
   .task.done .name { text-decoration: line-through; color: var(--muted); }
   .counter { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-  .counter button {
+  .counter button, .stepper button {
     width: 36px; height: 36px; flex: none; border-radius: 10px; border: 1px solid var(--line);
     background: var(--bg); color: var(--text); font-size: 20px; font-weight: 600; cursor: pointer;
   }
@@ -90,39 +93,118 @@
   .mini > div { height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
   .count { min-width: 46px; text-align: center; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .actions { display: flex; align-items: center; gap: 4px; flex: none; }
-  .link-btn { color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); }
+  .link-btn, .items-btn { color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); }
   .del { color: var(--muted); }
   .del:hover { color: var(--danger); }
 
   .empty { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 22px; text-align: center; color: var(--muted); font-size: 16px; }
   .empty.celebrate { color: var(--text); font-size: 18px; font-weight: 700; }
 
-  /* Settings */
+  /* Modals */
   .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
   .overlay.open { display: flex; }
-  .modal { background: var(--card); width: 100%; max-width: 600px; max-height: 88vh; overflow: auto; border-radius: 20px 20px 0 0; padding: 18px; }
+  .modal { background: var(--card); width: 100%; max-width: 600px; max-height: 90vh; overflow: auto; border-radius: 20px 20px 0 0; padding: 18px; }
+  .modal.wide { max-width: 720px; }
   @media (min-width: 640px) { .overlay { align-items: center; } .modal { border-radius: 20px; } }
-  .modal-head { display: flex; justify-content: space-between; align-items: center; }
-  .modal h2 { font-size: 20px; margin: 0; }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .modal h2 { font-size: 20px; margin: 0; word-break: break-word; }
   .modal h3 { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 22px 0 10px; }
   .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 15px; font-weight: 600; }
   .field small { font-weight: 400; color: var(--muted); }
-  input, select { font-size: 16px; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  input, select { font-size: 16px; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); min-width: 0; }
   input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
-  .primary { width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+  input.bad { border-color: var(--danger); outline-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--bg)); }
+  .primary, .secondary {
+    padding: 13px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none;
+  }
+  .primary { border: none; background: linear-gradient(135deg, var(--brand), var(--brand2)); color: #fff; }
+  .secondary { border: 1.5px solid var(--brand); background: var(--card); color: var(--brand); }
+  form .primary { width: 100%; }
   .msg { font-size: 14px; min-height: 20px; margin-top: 8px; }
   .msg.err { color: var(--danger); }
   .msg.ok { color: var(--accent); }
   .hidden-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
   .hidden-row:last-child { border-bottom: none; }
-  .small-btn { flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 10px; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .small-btn { flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 10px; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
   .modal .empty { box-shadow: none; background: var(--bg); padding: 16px; font-size: 15px; }
+
+  /* Items modal */
+  .items-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; margin: 14px 0 4px; font-size: 14px; color: var(--muted); }
+  .items-meta b { color: var(--text); }
+  .tools-row { display: flex; gap: 8px; margin-top: 12px; }
+  .list-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 2px 6px; margin-top: 14px; border-bottom: 1px solid var(--line); }
+  .item-row { display: flex; align-items: center; gap: 8px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .item-row.excluded .item-info, .item-row.excluded .qty { opacity: .4; }
+  .item-row.missing { background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: 10px; }
+  .item-info { flex: 1; min-width: 0; }
+  .code-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;
+  }
+  .code-btn svg { color: var(--brand); }
+  .item-name { font-size: 15px; font-weight: 600; margin-top: 4px; word-break: break-word; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+  .qty { width: 92px; text-align: center; font-weight: 700; padding: 10px 6px; }
+  .mini-btn { width: 36px; height: 36px; }
+  .mini-btn.on { color: var(--danger); }
+  .add-item { display: grid; grid-template-columns: 1fr 1.6fr auto; gap: 8px; margin-top: 12px; }
+  .add-item .primary { padding: 12px 16px; }
+  @media (max-width: 480px) { .add-item { grid-template-columns: 1fr 1fr; } .add-item .primary { grid-column: 1 / -1; } }
+  .sticky-foot { position: sticky; bottom: -18px; margin: 16px -18px -18px; padding: 14px 18px 18px; background: var(--card); border-top: 1px solid var(--line); }
+  .two-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .done-btn { width: 100%; margin-bottom: 10px; }
+
+  /* Review table */
+  .review-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .rv { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
+  .rv th { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .rv td { padding: 10px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .rv .num { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rv tr.missing td { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+  .rv .code { font-size: 13px; color: var(--muted); font-weight: 700; }
+  .rv .iname { font-weight: 600; word-break: break-word; }
+  .stepper { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .stepper button { width: 32px; height: 32px; font-size: 18px; }
+  .stepper input { width: 64px; padding: 8px 4px; text-align: center; font-weight: 700; }
+  .diff-pos { color: var(--plus); }
+  .diff-neg { color: var(--danger); }
+
+  /* Toast */
+  .toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, calc(100% + 40px)); z-index: 30;
+    display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+    background: #1d2b28; color: #fff; padding: 12px 16px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+    font-size: 15px; visibility: hidden; transition: transform .25s ease, visibility 0s .25s;
+  }
+  .toast.show { transform: translate(-50%, 0); visibility: visible; transition: transform .25s ease; }
+  .toast button { border: none; background: none; color: #6fe3c4; font-size: 15px; font-weight: 800; cursor: pointer; padding: 4px; }
 
   /* Celebration */
   .confetti { position: fixed; top: -16px; width: 8px; height: 14px; border-radius: 2px; z-index: 20; pointer-events: none; animation: fall 2.4s linear forwards; }
   @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: .7; } }
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* Print sheet */
+  @media print {
+    @page { size: A4; margin: 14mm; }
+    body { background: #fff; color: #000; }
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block !important; font-family: Arial, Helvetica, sans-serif; color: #000; }
+    #printArea h1 { font-size: 20px; margin: 0 0 4px; }
+    #printArea .pdate { font-size: 12px; margin-bottom: 12px; }
+    #printArea table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    #printArea th, #printArea td { border: 1px solid #555; padding: 7px 6px; text-align: left; }
+    #printArea th { background: #e8f3f1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #printArea td { height: 30px; }
+    #printArea .n { text-align: center; width: 36px; }
+    #printArea .q { text-align: right; width: 80px; }
+    #printArea .wide-q { width: 100px; }
+    #printArea .neg { color: #c62828; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #printArea .pos { color: #1b7f45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #printArea tr { page-break-inside: avoid; }
+    #printArea .sign { display: flex; gap: 40px; margin-top: 36px; font-size: 13px; }
+  }
 </style>
 </head>
 <body>
@@ -165,11 +247,12 @@
   <div class="list" id="doneList" hidden></div>
 </main>
 
-<div class="overlay" id="overlay">
+<!-- Settings -->
+<div class="overlay" id="settingsOverlay">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <div class="modal-head">
       <h2 id="settingsTitle">Settings</h2>
-      <button class="icon-btn" id="closeSettings" aria-label="Close">
+      <button class="icon-btn" data-close aria-label="Close">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
@@ -200,18 +283,109 @@
   </div>
 </div>
 
+<!-- Item list -->
+<div class="overlay" id="itemsOverlay">
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="itemsTitle">
+    <div class="modal-head">
+      <h2 id="itemsTitle">Items</h2>
+      <button class="icon-btn" data-close aria-label="Close">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="tools-row" id="itemsTools"></div>
+    <div class="items-meta">
+      <span id="itemsCount"></span>
+      <span id="itemsUpdated"></span>
+    </div>
+
+    <div class="list-head"><span>Item</span><span>System QTY</span></div>
+    <div id="itemsList"></div>
+
+    <h3>My items</h3>
+    <div id="myItemsList"></div>
+    <form class="add-item" id="addItemForm" autocomplete="off">
+      <input id="newItemCode" type="text" maxlength="30" placeholder="Item code" aria-label="Item code">
+      <input id="newItemName" type="text" maxlength="80" placeholder="Item name" aria-label="Item name">
+      <button class="primary" type="submit">Add</button>
+    </form>
+    <div class="msg" id="itemMsg"></div>
+
+    <div class="sticky-foot">
+      <button class="secondary done-btn" id="markDoneBtn" hidden>Mark task as done</button>
+      <div class="two-btns">
+        <button class="secondary" id="printBtn">Print</button>
+        <button class="primary" id="pdfBtn">Save as PDF</button>
+      </div>
+      <div class="msg err" id="exportMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Review before export -->
+<div class="overlay" id="reviewOverlay">
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+    <div class="modal-head">
+      <h2 id="reviewTitle">Review</h2>
+      <button class="icon-btn" data-close aria-label="Close">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="review-tools">
+      <button class="small-btn" id="resetActualBtn">Reset to system</button>
+      <button class="small-btn" id="clearActualBtn">Clear all</button>
+    </div>
+    <table class="rv">
+      <thead><tr><th>Item</th><th class="num">System</th><th class="num">Actual SOH</th><th class="num">Diff</th></tr></thead>
+      <tbody id="reviewBody"></tbody>
+    </table>
+    <div class="sticky-foot">
+      <div class="two-btns">
+        <button class="secondary" data-close>Cancel</button>
+        <button class="primary" id="confirmExportBtn">Print</button>
+      </div>
+      <div class="msg err" id="reviewMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastUndo" hidden>Undo</button></div>
+
+<div id="printArea"></div>
+
 <script>
-  // Paste the Google Sheet CSV link here.
-  // Sheet format: first row is a header. Column A = task name, column B = link (optional).
+  // Google Sheet CSV link.
+  // First sheet: column A = task name, column B = link (optional). First row is a header.
   const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/15WxgVKbUrr5ya4-XSllV9a548DTTQ0URRfWM41zoNQw/gviz/tq?tqx=out:csv';
+  // Second sheet named "Items": columns Task | Code | Name. First row is a header.
+  const ITEMS_SHEET_NAME = 'Items';
+  const ITEMS_CSV_URL = SHEET_CSV_URL + '&sheet=' + encodeURIComponent(ITEMS_SHEET_NAME);
 
-  const KEYS = { hidden: 'dc_hidden', custom: 'dc_custom', progress: 'dc_progress', cache: 'dc_sheet_cache', doneOpen: 'dc_done_open' };
+  const PDF_LIBS = [
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'
+  ];
+
+  const KEYS = {
+    hidden: 'dc_hidden', custom: 'dc_custom', progress: 'dc_progress', cache: 'dc_sheet_cache', doneOpen: 'dc_done_open',
+    itemsCache: 'dc_items_cache', myItems: 'dc_my_items', stock: 'dc_stock', excluded: 'dc_excluded'
+  };
   const RING_LENGTH = 2 * Math.PI * 42;
+  const SETTLE_MS = 1500;   // how long a card stays in place after being checked
+  const TAP_GUARD_MS = 350; // ignores accidental double clicks
+  const UNDO_MS = 6000;
 
-  const CHECK_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  const TRASH_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>';
-  const LINK_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+  const ICON = {
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    trash: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+    link: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
+    list: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h6"/></svg>',
+    copy: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    eye: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeOff: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
+  };
 
+  /* ---------- Storage helpers ---------- */
   function load(key, fallback) {
     try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
     catch (e) { return fallback; }
@@ -223,6 +397,8 @@
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  // Ask the browser not to clear this site's data automatically.
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
 
   // Accept only http/https links; add https:// when the scheme is missing.
   function safeLink(raw) {
@@ -244,27 +420,48 @@
       .map(x => typeof x === 'string' ? { name: x, link: '' } : { name: String(x.name || ''), link: String(x.link || '') })
       .filter(x => x.name);
   }
+  function asObject(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
 
+  /* ---------- State ---------- */
   let sheetTasks = normalizeSheet(load(KEYS.cache, []));
   let hidden = load(KEYS.hidden, []);
   let custom = load(KEYS.custom, []);
   let progress = load(KEYS.progress, { date: today(), done: {} });
   let doneOpen = load(KEYS.doneOpen, false);
+  let sheetItems = asObject(load(KEYS.itemsCache, {}));   // { taskName: [{code, name}] }
+  let myItems = asObject(load(KEYS.myItems, {}));         // { taskName: [{code, name}] }
+  let stock = asObject(load(KEYS.stock, {}));             // { taskName: { values: {code: int}, updated: ms } }
+  let excluded = load(KEYS.excluded, { date: today(), map: {} }); // reset daily
+
   let justToggled = null;
   let lastPct = null;
+  let lastTap = 0;
+  const settling = new Map(); // key -> 'todo' | 'done'
+  const settleTimers = new Map();
+
+  let openTask = null;   // task name whose item list is open
+  let reviewMode = null; // 'print' | 'pdf'
+  let reviewRows = [];
 
   const $ = id => document.getElementById(id);
 
-  // Reset daily progress when the date changes.
+  // Reset daily progress and exclusions when the date changes.
   function ensureToday() {
+    let changed = false;
     if (progress.date !== today()) {
       progress = { date: today(), done: {} };
       save(KEYS.progress, progress);
-      return true;
+      changed = true;
     }
-    return false;
+    if (!excluded || excluded.date !== today()) {
+      excluded = { date: today(), map: {} };
+      save(KEYS.excluded, excluded);
+      changed = true;
+    }
+    return changed;
   }
 
+  /* ---------- Sheet loading ---------- */
   function parseCSV(text) {
     const rows = []; let row = [], cell = '', inQuotes = false;
     for (let i = 0; i < text.length; i++) {
@@ -283,35 +480,61 @@
 
   function setStatus(text) { $('status').textContent = text; }
 
+  async function fetchCSV(url) {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return parseCSV(await res.text());
+  }
+
   async function fetchSheet() {
     if (!SHEET_CSV_URL || SHEET_CSV_URL.startsWith('PASTE')) {
       setStatus('The task sheet link is not set yet.');
       render();
       return;
     }
-    try {
-      const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const rows = parseCSV(await res.text());
+    const [tasksResult, itemsResult] = await Promise.allSettled([fetchCSV(SHEET_CSV_URL), fetchCSV(ITEMS_CSV_URL)]);
+
+    if (tasksResult.status === 'fulfilled') {
       const tasks = [];
-      rows.slice(1).forEach(r => {
+      tasksResult.value.slice(1).forEach(r => {
         const name = (r[0] || '').trim();
         if (name && !tasks.some(t => t.name === name)) tasks.push({ name, link: safeLink(r[1]) });
       });
       sheetTasks = tasks;
       save(KEYS.cache, tasks);
-      // Forget hidden tasks that were removed from the sheet.
       hidden = hidden.filter(h => tasks.some(t => t.name === h));
       save(KEYS.hidden, hidden);
       setStatus('');
-    } catch (e) {
+    } else {
       setStatus(sheetTasks.length
         ? 'You are offline. Showing the last saved list.'
         : 'Could not load the task list. Check your connection.');
     }
+
+    if (itemsResult.status === 'fulfilled') {
+      const rows = itemsResult.value;
+      const head = (rows[0] || []).map(h => String(h).trim().toLowerCase());
+      // Only accept the Items sheet if its headers match, so another sheet is never read by mistake.
+      if (head[0] === 'task' && head[1] === 'code') {
+        const map = {};
+        rows.slice(1).forEach(r => {
+          const task = (r[0] || '').trim(), code = (r[1] || '').trim(), name = (r[2] || '').trim();
+          if (!task || !code) return;
+          if (!map[task]) map[task] = [];
+          if (!map[task].some(i => i.code === code)) map[task].push({ code, name });
+        });
+        sheetItems = map;
+      } else {
+        sheetItems = {};
+      }
+      save(KEYS.itemsCache, sheetItems);
+    }
+
     render();
+    if (openTask) renderItems();
   }
 
+  /* ---------- Tasks ---------- */
   function allTasks() {
     const fromSheet = sheetTasks
       .filter(t => !hidden.includes(t.name))
@@ -323,37 +546,86 @@
   function countOf(t) { return Number(progress.done[t.key]) || 0; }
   function isDone(t) { return t.type === 'check' ? !!progress.done[t.key] : countOf(t) >= t.target; }
   function score(t) { return t.type === 'check' ? (isDone(t) ? 1 : 0) : Math.min(countOf(t) / t.target, 1); }
+  function listOf(t) { return settling.get(t.key) || (isDone(t) ? 'done' : 'todo'); }
+
+  // Keep the card where it is for a moment, so the next card does not jump under the pointer.
+  function settle(key, list) {
+    clearTimeout(settleTimers.get(key));
+    settling.set(key, list);
+    settleTimers.set(key, setTimeout(() => {
+      settling.delete(key);
+      settleTimers.delete(key);
+      render();
+    }, SETTLE_MS));
+  }
 
   function toggle(t) {
+    const now = Date.now();
+    if (now - lastTap < TAP_GUARD_MS) return;
+    lastTap = now;
     ensureToday();
+    const list = listOf(t);
     if (progress.done[t.key]) delete progress.done[t.key];
     else { progress.done[t.key] = true; justToggled = t.key; }
     save(KEYS.progress, progress);
+    settle(t.key, list);
     render();
   }
 
   function step(t, delta) {
     ensureToday();
+    const list = listOf(t);
     const before = isDone(t);
     const v = Math.max(0, countOf(t) + delta);
     if (v === 0) delete progress.done[t.key];
     else progress.done[t.key] = v;
-    if (!before && isDone(t)) justToggled = t.key;
+    if (before !== isDone(t)) {
+      if (!before) justToggled = t.key;
+      settle(t.key, list);
+    }
+    save(KEYS.progress, progress);
+    render();
+  }
+
+  function markDoneByName(name) {
+    const t = allTasks().find(x => x.source === 'sheet' && x.name === name);
+    if (!t || isDone(t)) return;
+    ensureToday();
+    progress.done[t.key] = true;
+    justToggled = t.key;
     save(KEYS.progress, progress);
     render();
   }
 
   function removeTask(t) {
     if (t.source === 'sheet') {
-      if (!confirm('Hide "' + t.name + '"?\nYou can bring it back from Settings.')) return;
       hidden.push(t.name);
       save(KEYS.hidden, hidden);
+      showToast('Task hidden', () => {
+        hidden = hidden.filter(h => h !== t.name);
+        save(KEYS.hidden, hidden);
+        render();
+        renderHidden();
+      });
     } else {
-      if (!confirm('Delete "' + t.name + '" permanently?')) return;
-      custom = custom.filter(c => c.id !== t.id);
+      const idx = custom.findIndex(c => c.id === t.id);
+      if (idx < 0) return;
+      const removed = custom[idx];
+      const savedProgress = progress.done[t.key];
+      const savedDate = progress.date;
+      custom.splice(idx, 1);
       save(KEYS.custom, custom);
       delete progress.done[t.key];
       save(KEYS.progress, progress);
+      showToast('Task deleted', () => {
+        custom.splice(Math.min(idx, custom.length), 0, removed);
+        save(KEYS.custom, custom);
+        if (savedProgress !== undefined && progress.date === savedDate) {
+          progress.done[t.key] = savedProgress;
+          save(KEYS.progress, progress);
+        }
+        render();
+      });
     }
     render();
     renderHidden();
@@ -365,10 +637,23 @@
     if (text !== undefined) e.textContent = text;
     return e;
   }
+  function iconButton(cls, icon, label, onClick) {
+    const b = el('button', 'icon-btn ' + cls);
+    b.type = 'button';
+    b.innerHTML = icon;
+    b.setAttribute('aria-label', label);
+    b.title = label;
+    if (onClick) b.onclick = onClick;
+    return b;
+  }
+
+  function hasItems(name) {
+    return (sheetItems[name] && sheetItems[name].length) || (myItems[name] && myItems[name].length);
+  }
 
   function taskRow(t) {
     const done = isDone(t);
-    const row = el('div', 'task ' + (t.type === 'check' ? 'is-check' : 'is-count') + (done ? ' done' : ''));
+    const row = el('div', 'task' + (done ? ' done' : ''));
     const popClass = t.key === justToggled ? ' pop' : '';
 
     const body = el('div', 'body');
@@ -376,17 +661,18 @@
 
     if (t.type === 'check') {
       const btn = el('button', 'check' + popClass);
-      btn.innerHTML = CHECK_SVG;
+      btn.type = 'button';
+      btn.innerHTML = ICON.check;
       btn.setAttribute('aria-label', done ? 'Mark as not done' : 'Mark as done');
       btn.onclick = () => toggle(t);
-      body.onclick = () => toggle(t);
       row.append(btn, body);
     } else {
       const mark = el('span', 'check static' + popClass);
-      mark.innerHTML = CHECK_SVG;
+      mark.innerHTML = ICON.check;
 
       const counter = el('div', 'counter');
       const minus = el('button', '', '−');
+      minus.type = 'button';
       minus.setAttribute('aria-label', 'Decrease');
       minus.onclick = () => step(t, -1);
       const mini = el('div', 'mini');
@@ -395,6 +681,7 @@
       mini.append(fill);
       const count = el('span', 'count', countOf(t) + '/' + t.target);
       const plus = el('button', '', '+');
+      plus.type = 'button';
       plus.setAttribute('aria-label', 'Increase');
       plus.onclick = () => step(t, 1);
       counter.append(minus, mini, count, plus);
@@ -404,20 +691,20 @@
     }
 
     const actions = el('div', 'actions');
+    if (t.source === 'sheet' && hasItems(t.name)) {
+      actions.append(iconButton('items-btn', ICON.list, 'Open item list', () => openItems(t.name)));
+    }
     if (t.link) {
       const a = el('a', 'icon-btn link-btn');
       a.href = t.link;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.innerHTML = LINK_SVG;
+      a.innerHTML = ICON.link;
       a.setAttribute('aria-label', 'Open link');
+      a.title = 'Open link';
       actions.append(a);
     }
-    const del = el('button', 'icon-btn del');
-    del.innerHTML = TRASH_SVG;
-    del.setAttribute('aria-label', 'Remove task');
-    del.onclick = () => removeTask(t);
-    actions.append(del);
+    actions.append(iconButton('del', ICON.trash, 'Remove task', () => removeTask(t)));
     row.append(actions);
 
     return row;
@@ -455,8 +742,9 @@
     $('date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
     const tasks = allTasks();
-    const todo = tasks.filter(t => !isDone(t));
-    const done = tasks.filter(isDone);
+    const todo = tasks.filter(t => listOf(t) === 'todo');
+    const done = tasks.filter(t => listOf(t) === 'done');
+    const doneCount = tasks.filter(isDone).length;
     const total = tasks.length;
     const pct = total ? Math.round(tasks.reduce((sum, t) => sum + score(t), 0) / total * 100) : 0;
 
@@ -465,10 +753,10 @@
     ring.style.strokeDashoffset = RING_LENGTH * (1 - pct / 100);
     ring.style.stroke = ringColor(pct);
     $('pct').textContent = pct + '%';
-    $('summary').textContent = done.length + ' of ' + total + ' tasks done';
+    $('summary').textContent = doneCount + ' of ' + total + ' tasks done';
     $('note').textContent = noteFor(pct, total);
-    $('todoTitle').textContent = 'To do (' + todo.length + ')';
-    $('doneTitle').textContent = 'Done (' + done.length + ')';
+    $('todoTitle').textContent = 'To do (' + (total - doneCount) + ')';
+    $('doneTitle').textContent = 'Done (' + doneCount + ')';
 
     const todoList = $('todoList');
     todoList.replaceChildren();
@@ -509,29 +797,64 @@
     });
   }
 
+  /* ---------- Toast ---------- */
+  let toastTimer = null;
+  function showToast(text, undoFn, ms) {
+    const toast = $('toast');
+    const undo = $('toastUndo');
+    $('toastText').textContent = text;
+    undo.hidden = !undoFn;
+    undo.onclick = () => {
+      hideToast();
+      if (undoFn) undoFn();
+    };
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, ms || (undoFn ? UNDO_MS : 1800));
+  }
+  function hideToast() {
+    clearTimeout(toastTimer);
+    $('toast').classList.remove('show');
+  }
+
+  /* ---------- Modals ---------- */
+  const overlays = ['settingsOverlay', 'itemsOverlay', 'reviewOverlay'];
+  function openOverlay(id) {
+    $(id).classList.add('open');
+    document.body.classList.add('locked');
+  }
+  function closeOverlay(id) {
+    $(id).classList.remove('open');
+    if (id === 'itemsOverlay') openTask = null;
+    if (!overlays.some(o => $(o).classList.contains('open'))) document.body.classList.remove('locked');
+  }
+  overlays.forEach(id => {
+    const ov = $(id);
+    ov.addEventListener('click', e => { if (e.target === ov) closeOverlay(id); });
+    ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeOverlay(id)));
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const top = overlays.slice().reverse().find(o => $(o).classList.contains('open'));
+    if (top) closeOverlay(top);
+  });
+
+  $('openSettings').onclick = () => {
+    renderHidden();
+    $('addMsg').textContent = '';
+    openOverlay('settingsOverlay');
+  };
+
   $('doneToggle').onclick = () => {
     doneOpen = !doneOpen;
     save(KEYS.doneOpen, doneOpen);
     render();
   };
 
-  // Settings modal
-  function openSettings() {
-    renderHidden();
-    $('addMsg').textContent = '';
-    $('overlay').classList.add('open');
-  }
-  function closeSettings() { $('overlay').classList.remove('open'); }
-
-  $('openSettings').onclick = openSettings;
-  $('closeSettings').onclick = closeSettings;
-  $('overlay').addEventListener('click', e => { if (e.target === $('overlay')) closeSettings(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
-
   $('newType').onchange = () => { $('targetField').hidden = $('newType').value !== 'count'; };
 
-  function showMsg(text, ok) {
-    const m = $('addMsg');
+  function showMsg(id, text, ok) {
+    const m = $(id);
     m.textContent = text;
     m.className = 'msg ' + (ok ? 'ok' : 'err');
   }
@@ -544,24 +867,517 @@
     const linkRaw = $('newLink').value.trim();
     const link = linkRaw ? safeLink(linkRaw) : '';
 
-    if (!name) return showMsg('Please enter a task name.', false);
-    if (allTasks().some(t => t.name.toLowerCase() === name.toLowerCase())) return showMsg('This task is already on your list.', false);
-    if (type === 'count' && !(target >= 1)) return showMsg('Please enter a target of 1 or more.', false);
-    if (linkRaw && !link) return showMsg('Please enter a valid web link.', false);
+    if (!name) return showMsg('addMsg', 'Please enter a task name.', false);
+    if (allTasks().some(t => t.name.toLowerCase() === name.toLowerCase())) return showMsg('addMsg', 'This task is already on your list.', false);
+    if (type === 'count' && !(target >= 1)) return showMsg('addMsg', 'Please enter a target of 1 or more.', false);
+    if (linkRaw && !link) return showMsg('addMsg', 'Please enter a valid web link.', false);
 
     custom.push({ id: Date.now().toString(36), name, type, target: type === 'count' ? target : null, link });
     save(KEYS.custom, custom);
     $('addForm').reset();
     $('targetField').hidden = true;
-    showMsg('Task added.', true);
+    showMsg('addMsg', 'Task added.', true);
     render();
   });
 
+  /* ---------- Item list ---------- */
+  function fixedItems(name) { return sheetItems[name] || []; }
+  function ownItems(name) { return Array.isArray(myItems[name]) ? myItems[name] : []; }
+  function allItems(name) {
+    return fixedItems(name).map(i => ({ ...i, mine: false })).concat(ownItems(name).map(i => ({ ...i, mine: true })));
+  }
+  function stockOf(name) {
+    const s = asObject(stock[name]);
+    return { values: asObject(s.values), updated: s.updated || null };
+  }
+  function excludedList(name) {
+    ensureToday();
+    return Array.isArray(excluded.map[name]) ? excluded.map[name] : [];
+  }
+  function isExcluded(name, code) { return excludedList(name).includes(code); }
+
+  function parseIntStrict(str, allowNegative) {
+    const s = String(str).trim();
+    const re = allowNegative ? /^-?\d+$/ : /^\d+$/;
+    return re.test(s) ? parseInt(s, 10) : null;
+  }
+
+  function formatStamp(ms) {
+    return new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
+  function copyText(text) {
+    const done = () => showToast('Copied ' + text);
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    } else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.append(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('Could not copy'); }
+    ta.remove();
+  }
+
+  function openItems(name) {
+    openTask = name;
+    $('itemMsg').textContent = '';
+    $('exportMsg').textContent = '';
+    renderItems();
+    openOverlay('itemsOverlay');
+  }
+
+  function itemRow(name, item) {
+    const values = stockOf(name).values;
+    const excl = isExcluded(name, item.code);
+    const row = el('div', 'item-row' + (excl ? ' excluded' : ''));
+    row.dataset.code = item.code;
+
+    const info = el('div', 'item-info');
+    const codeBtn = el('button', 'code-btn');
+    codeBtn.type = 'button';
+    codeBtn.title = 'Copy item code';
+    codeBtn.append(el('span', '', item.code));
+    codeBtn.insertAdjacentHTML('beforeend', ICON.copy);
+    codeBtn.onclick = () => copyText(item.code);
+    info.append(codeBtn);
+    const nm = el('div', 'item-name', item.name || '—');
+    if (item.mine) nm.append(el('span', 'badge', 'Mine'));
+    info.append(nm);
+
+    const input = el('input', 'qty');
+    input.type = 'number';
+    input.step = '1';
+    input.placeholder = '—';
+    input.setAttribute('aria-label', 'System QTY for ' + item.code);
+    input.value = values[item.code] !== undefined ? values[item.code] : '';
+    input.disabled = excl;
+    input.addEventListener('input', () => onStockInput(name, item.code, input));
+
+    const exclBtn = iconButton('mini-btn' + (excl ? ' on' : ''), excl ? ICON.eyeOff : ICON.eye,
+      excl ? 'Include in today\'s count' : 'Exclude from today\'s count', () => toggleExclude(name, item.code));
+
+    row.append(info, input, exclBtn);
+    if (item.mine) row.append(iconButton('mini-btn del', ICON.trash, 'Delete item', () => deleteMyItem(name, item.code)));
+    return row;
+  }
+
+  function renderItems() {
+    const name = openTask;
+    if (!name) return;
+    $('itemsTitle').textContent = name;
+
+    const tools = $('itemsTools');
+    tools.replaceChildren();
+    const task = sheetTasks.find(t => t.name === name);
+    if (task && task.link) {
+      const a = el('a', 'small-btn', 'Open search site ↗');
+      a.href = task.link;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      tools.append(a);
+    }
+
+    const fixed = $('itemsList');
+    fixed.replaceChildren();
+    const fx = fixedItems(name);
+    if (!fx.length) fixed.append(el('div', 'empty', 'No items in the sheet for this task.'));
+    else fx.forEach(i => fixed.append(itemRow(name, { ...i, mine: false })));
+
+    const mine = $('myItemsList');
+    mine.replaceChildren();
+    const own = ownItems(name);
+    if (!own.length) mine.append(el('div', 'empty', 'Add items you want to check yourself.'));
+    else own.forEach(i => mine.append(itemRow(name, { ...i, mine: true })));
+
+    updateItemsMeta();
+  }
+
+  function updateItemsMeta() {
+    const name = openTask;
+    if (!name) return;
+    const values = stockOf(name).values;
+    const items = allItems(name);
+    const included = items.filter(i => !isExcluded(name, i.code));
+    const entered = included.filter(i => values[i.code] !== undefined).length;
+    const exclCount = items.length - included.length;
+
+    $('itemsCount').innerHTML = '';
+    const b = el('b', '', entered + ' of ' + included.length);
+    $('itemsCount').append(b, document.createTextNode(' entered' + (exclCount ? ' · ' + exclCount + ' excluded today' : '')));
+
+    const upd = stockOf(name).updated;
+    $('itemsUpdated').textContent = upd
+      ? 'Last stock entered in this browser: ' + formatStamp(upd)
+      : 'No stock entered in this browser yet.';
+
+    const task = allTasks().find(t => t.source === 'sheet' && t.name === name);
+    $('markDoneBtn').hidden = !(task && !isDone(task) && included.length && entered === included.length);
+  }
+
+  function onStockInput(name, code, input) {
+    const raw = input.value;
+    const s = stockOf(name);
+    const row = input.closest('.item-row');
+    if (raw === '' && !input.validity.badInput) {
+      delete s.values[code];
+      input.classList.remove('bad');
+    } else {
+      const n = parseIntStrict(raw, true);
+      if (n === null) { input.classList.add('bad'); return; }
+      input.classList.remove('bad');
+      s.values[code] = n;
+      if (row) row.classList.remove('missing');
+    }
+    stock[name] = { values: s.values, updated: Date.now() };
+    save(KEYS.stock, stock);
+    updateItemsMeta();
+  }
+
+  function toggleExclude(name, code) {
+    ensureToday();
+    const list = excludedList(name).slice();
+    const i = list.indexOf(code);
+    if (i >= 0) list.splice(i, 1); else list.push(code);
+    excluded.map[name] = list;
+    save(KEYS.excluded, excluded);
+    renderItems();
+  }
+
+  function deleteMyItem(name, code) {
+    const list = ownItems(name).slice();
+    const idx = list.findIndex(i => i.code === code);
+    if (idx < 0) return;
+    const removed = list[idx];
+    const s = stockOf(name);
+    const savedQty = s.values[code];
+    list.splice(idx, 1);
+    myItems[name] = list;
+    save(KEYS.myItems, myItems);
+    delete s.values[code];
+    stock[name] = { values: s.values, updated: s.updated };
+    save(KEYS.stock, stock);
+    renderItems();
+    render();
+    showToast('Item deleted', () => {
+      const cur = ownItems(name).slice();
+      cur.splice(Math.min(idx, cur.length), 0, removed);
+      myItems[name] = cur;
+      save(KEYS.myItems, myItems);
+      if (savedQty !== undefined) {
+        const s2 = stockOf(name);
+        s2.values[code] = savedQty;
+        stock[name] = { values: s2.values, updated: s2.updated };
+        save(KEYS.stock, stock);
+      }
+      if (openTask === name) renderItems();
+      render();
+    });
+  }
+
+  $('addItemForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = openTask;
+    const code = $('newItemCode').value.trim();
+    const itemName = $('newItemName').value.trim();
+    if (!code) return showMsg('itemMsg', 'Please enter the item code.', false);
+    if (!itemName) return showMsg('itemMsg', 'Please enter the item name.', false);
+    if (allItems(name).some(i => i.code === code)) return showMsg('itemMsg', 'This item code is already on the list.', false);
+    myItems[name] = ownItems(name).concat({ code, name: itemName });
+    save(KEYS.myItems, myItems);
+    $('addItemForm').reset();
+    showMsg('itemMsg', 'Item added.', true);
+    renderItems();
+    render();
+    $('newItemCode').focus();
+  });
+
+  $('markDoneBtn').onclick = () => {
+    markDoneByName(openTask);
+    updateItemsMeta();
+    showToast('Task marked as done');
+  };
+
+  /* ---------- Export: checks and review ---------- */
+  function includedItems(name) {
+    return allItems(name).filter(i => !isExcluded(name, i.code));
+  }
+
+  function startExport(mode) {
+    const name = openTask;
+    const items = includedItems(name);
+    $('exportMsg').textContent = '';
+    if (!items.length) {
+      $('exportMsg').textContent = 'There are no items to export.';
+      return;
+    }
+    const values = stockOf(name).values;
+    const missing = items.filter(i => values[i.code] === undefined);
+    document.querySelectorAll('#itemsOverlay .item-row').forEach(r => r.classList.remove('missing'));
+    if (missing.length) {
+      let first = null;
+      missing.forEach(i => {
+        document.querySelectorAll('#itemsOverlay .item-row').forEach(r => {
+          if (r.dataset.code === i.code) { r.classList.add('missing'); if (!first) first = r; }
+        });
+      });
+      $('exportMsg').textContent = missing.length === 1
+        ? '1 item has no System QTY. Enter it or exclude the item.'
+        : missing.length + ' items have no System QTY. Enter them or exclude those items.';
+      if (first) {
+        first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const inp = first.querySelector('.qty');
+        if (inp) setTimeout(() => inp.focus(), 300);
+      }
+      return;
+    }
+
+    reviewMode = mode;
+    reviewRows = items.map(i => ({
+      code: i.code, name: i.name, system: values[i.code],
+      actual: String(Math.max(values[i.code], 0))
+    }));
+    $('reviewTitle').textContent = mode === 'print' ? 'Review before printing' : 'Review before saving PDF';
+    $('confirmExportBtn').textContent = mode === 'print' ? 'Print' : 'Save PDF';
+    $('clearActualBtn').hidden = mode !== 'print';
+    $('reviewMsg').textContent = '';
+    renderReview();
+    openOverlay('reviewOverlay');
+  }
+
+  $('printBtn').onclick = () => startExport('print');
+  $('pdfBtn').onclick = () => startExport('pdf');
+
+  function diffOf(row) {
+    const a = parseIntStrict(row.actual, false);
+    return a === null ? null : a - row.system;
+  }
+  function diffText(d) { return d === null ? '' : (d > 0 ? '+' + d : String(d)); }
+  function paintDiff(cell, d) {
+    cell.textContent = diffText(d);
+    cell.className = 'num' + (d > 0 ? ' diff-pos' : d < 0 ? ' diff-neg' : '');
+  }
+
+  function renderReview() {
+    const body = $('reviewBody');
+    body.replaceChildren();
+    reviewRows.forEach((row, idx) => {
+      const tr = el('tr');
+      tr.dataset.idx = idx;
+
+      const tdItem = el('td');
+      tdItem.append(el('div', 'code', row.code), el('div', 'iname', row.name || '—'));
+      const tdSys = el('td', 'num', String(row.system));
+
+      const tdAct = el('td');
+      const stepper = el('div', 'stepper');
+      const minus = el('button', '', '−');
+      minus.type = 'button';
+      minus.setAttribute('aria-label', 'Decrease');
+      const input = el('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = '1';
+      input.inputMode = 'numeric';
+      input.value = row.actual;
+      input.setAttribute('aria-label', 'Actual SOH for ' + row.code);
+      const plus = el('button', '', '+');
+      plus.type = 'button';
+      plus.setAttribute('aria-label', 'Increase');
+      stepper.append(minus, input, plus);
+      tdAct.append(stepper);
+
+      const tdDiff = el('td', 'num');
+      paintDiff(tdDiff, diffOf(row));
+
+      const commit = () => {
+        row.actual = input.value.trim();
+        const ok = row.actual === '' || parseIntStrict(row.actual, false) !== null;
+        input.classList.toggle('bad', !ok || input.validity.badInput);
+        if (row.actual !== '') tr.classList.remove('missing');
+        paintDiff(tdDiff, diffOf(row));
+      };
+      input.addEventListener('input', commit);
+      minus.onclick = () => {
+        const cur = parseIntStrict(input.value, false);
+        input.value = String(Math.max((cur === null ? 0 : cur) - 1, 0));
+        commit();
+      };
+      plus.onclick = () => {
+        const cur = parseIntStrict(input.value, false);
+        input.value = String((cur === null ? 0 : cur) + 1);
+        commit();
+      };
+
+      tr.append(tdItem, tdSys, tdAct, tdDiff);
+      body.append(tr);
+    });
+  }
+
+  $('resetActualBtn').onclick = () => {
+    reviewRows.forEach(r => { r.actual = String(Math.max(r.system, 0)); });
+    $('reviewMsg').textContent = '';
+    renderReview();
+  };
+  $('clearActualBtn').onclick = () => {
+    reviewRows.forEach(r => { r.actual = ''; });
+    $('reviewMsg').textContent = '';
+    renderReview();
+  };
+
+  function markReviewRows(test) {
+    let first = null;
+    document.querySelectorAll('#reviewBody tr').forEach(tr => {
+      const bad = test(reviewRows[Number(tr.dataset.idx)]);
+      tr.classList.toggle('missing', bad);
+      if (bad && !first) first = tr;
+    });
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  $('confirmExportBtn').onclick = () => {
+    const invalid = reviewRows.filter(r => r.actual !== '' && parseIntStrict(r.actual, false) === null);
+    if (invalid.length) {
+      markReviewRows(r => r.actual !== '' && parseIntStrict(r.actual, false) === null);
+      $('reviewMsg').textContent = 'Actual SOH must be a whole number of 0 or more.';
+      return;
+    }
+    const empty = reviewRows.filter(r => r.actual === '');
+    if (reviewMode === 'pdf' && empty.length) {
+      markReviewRows(r => r.actual === '');
+      $('reviewMsg').textContent = 'Every item needs an Actual SOH to save the PDF (0 is allowed).';
+      return;
+    }
+    if (reviewMode === 'print' && empty.length && empty.length < reviewRows.length) {
+      markReviewRows(r => r.actual === '');
+      $('reviewMsg').textContent = 'Fill in the remaining items, or use "Clear all" to print a blank column.';
+      return;
+    }
+    $('reviewMsg').textContent = '';
+    if (reviewMode === 'print') doPrint(); else doPdf();
+  };
+
+  function exportRows() {
+    return reviewRows.map((r, i) => {
+      const d = diffOf(r);
+      return { n: i + 1, code: r.code, name: r.name || '', system: String(r.system), actual: r.actual, diff: diffText(d), d };
+    });
+  }
+  function printedStamp() {
+    return new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function doPrint() {
+    const area = $('printArea');
+    area.replaceChildren();
+    area.append(el('h1', '', openTask), el('div', 'pdate', 'Printed: ' + printedStamp()));
+    const table = el('table');
+    const thead = el('thead');
+    const hr = el('tr');
+    [['#', 'n'], ['Item Code', ''], ['Item Name', ''], ['System QTY', 'q'], ['Actual SOH', 'q wide-q'], ['Variance', 'q']]
+      .forEach(([t, c]) => hr.append(el('th', c, t)));
+    thead.append(hr);
+    const tbody = el('tbody');
+    exportRows().forEach(r => {
+      const tr = el('tr');
+      tr.append(el('td', 'n', String(r.n)), el('td', '', r.code), el('td', '', r.name),
+        el('td', 'q', r.system), el('td', 'q', r.actual),
+        el('td', 'q' + (r.d > 0 ? ' pos' : r.d < 0 ? ' neg' : ''), r.diff));
+      tbody.append(tr);
+    });
+    table.append(thead, tbody);
+    const sign = el('div', 'sign');
+    sign.append(el('div', '', 'Checked by: ________________________'), el('div', '', 'Signature: ________________________'));
+    area.append(table, sign);
+
+    closeOverlay('reviewOverlay');
+    setTimeout(() => window.print(), 50);
+  }
+
+  const scriptPromises = {};
+  function loadScript(src) {
+    if (!scriptPromises[src]) {
+      scriptPromises[src] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => { delete scriptPromises[src]; reject(new Error('load failed')); };
+        document.head.append(s);
+      });
+    }
+    return scriptPromises[src];
+  }
+
+  async function doPdf() {
+    const btn = $('confirmExportBtn');
+    btn.disabled = true;
+    btn.textContent = 'Preparing…';
+    try {
+      for (const src of PDF_LIBS) await loadScript(src);
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text(openTask, 40, 50, { maxWidth: pageW - 80 });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Printed: ' + printedStamp(), 40, 68);
+
+      const rows = exportRows();
+      doc.autoTable({
+        startY: 82,
+        head: [['#', 'Item Code', 'Item Name', 'System QTY', 'Actual SOH', 'Variance']],
+        body: rows.map(r => [r.n, r.code, r.name, r.system, r.actual, r.diff]),
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 6, lineColor: [180, 190, 188] },
+        headStyles: { fillColor: [15, 155, 142], textColor: 255, fontStyle: 'bold' },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 28 },
+          3: { halign: 'right', cellWidth: 70 },
+          4: { halign: 'right', cellWidth: 70 },
+          5: { halign: 'right', cellWidth: 60 }
+        },
+        didParseCell: data => {
+          if (data.section !== 'body' || data.column.index !== 5) return;
+          const d = rows[data.row.index].d;
+          if (d > 0) data.cell.styles.textColor = [27, 127, 69];
+          if (d < 0) data.cell.styles.textColor = [198, 40, 40];
+          if (d) data.cell.styles.fontStyle = 'bold';
+        }
+      });
+
+      let y = doc.lastAutoTable.finalY + 44;
+      if (y > pageH - 50) { doc.addPage(); y = 70; }
+      doc.setFontSize(11);
+      doc.text('Checked by: ________________________', 40, y);
+      doc.text('Signature: ________________________', pageW / 2 + 10, y);
+
+      doc.save('Stock-Check-' + today() + '.pdf');
+      closeOverlay('reviewOverlay');
+      showToast('PDF saved');
+    } catch (e) {
+      $('reviewMsg').textContent = 'Could not create the PDF. Check your internet connection and try again.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save PDF';
+    }
+  }
+
+  /* ---------- Start ---------- */
   // Refresh when the user comes back to the page, and check for a new day every minute.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') { render(); fetchSheet(); }
   });
-  setInterval(() => { if (ensureToday()) render(); }, 60000);
+  setInterval(() => {
+    if (ensureToday()) { render(); if (openTask) renderItems(); }
+  }, 60000);
 
   render();
   fetchSheet();
