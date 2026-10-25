@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com; style-src 'unsafe-inline'; img-src blob: data:; font-src data: blob:; connect-src https://firestore.googleapis.com https://*.googleapis.com; worker-src blob: https://cdnjs.cloudflare.com; frame-src about: blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>الوصفة</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
@@ -61,6 +63,7 @@ const MAX_BYTES = 640_000;          // حجم الصورة بعد الضغط
 const MAX_PAGES = 8;                // أقصى عدد صور/صفحات في الرفعة الواحدة
 const PDF_PAGES = 5;                // أقصى عدد صفحات من الـ PDF الواحد
 const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+const MAX_PIXELS = 12_000_000, MAX_PRINT = 30, MAX_PENDING = 3;
 const $ = (id) => document.getElementById(id);
 
 // ----- التشفير (المفتاح في الرابط بعد # ولا يصل للخادم) -----
@@ -99,7 +102,7 @@ hash ? runSender(hash) : runSeller();
 // ================= جهاز البيع =================
 function runSeller() {
   $("seller").hidden = false;
-  let unsub = null, creating = false, seen = new Set(), groups = new Map(), queue = Promise.resolve();
+  let unsub = null, creating = false, seen = new Set(), groups = new Map(), queue = Promise.resolve(), printed = 0;
 
   async function deletePage(id) {
     try {
@@ -114,7 +117,7 @@ function runSeller() {
   async function create() {
     creating = true;
     if (unsub) { unsub(); unsub = null; }
-    groups.forEach((g) => clearTimeout(g.t)); groups.clear(); seen.clear();
+    groups.forEach((g) => clearTimeout(g.t)); groups.clear(); seen.clear(); printed = 0;
     await useSecret(toB64u(crypto.getRandomValues(new Uint8Array(32))));
     expiresAt = Date.now() + TTL;
     try {
@@ -131,15 +134,55 @@ function runSeller() {
     await create();
   }
 
+  // فحص أن البيانات JPEG حقيقي وقراءة أبعاده من الترويسة قبل فك الضغط
+  function jpegSize(b) {
+    if (b.length < 4 || b.length > MAX_BYTES + 1024 || b[0] !== 0xFF || b[1] !== 0xD8 || b[2] !== 0xFF) return null;
+    if (b[b.length - 2] !== 0xFF || b[b.length - 1] !== 0xD9) return null;
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xFF) return null;
+      const m = b[i + 1];
+      if (m === 0xFF) { i++; continue; }
+      if ((m >= 0xD0 && m <= 0xD7) || m === 0x01) { i += 2; continue; }
+      if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC)
+        return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8] };
+      if (m === 0xDA) return null;
+      i += 2 + ((b[i + 2] << 8) | b[i + 3]);
+    }
+    return null;
+  }
+  // إعادة إنشاء الصورة عندك: ما يُطبع صورة JPEG جديدة تمامًا، لا الملف الواصل
+  async function sanitize(bytes) {
+    const sz = jpegSize(bytes);
+    if (!sz || !sz.w || !sz.h || sz.w * sz.h > MAX_PIXELS) throw new Error("bad-image");
+    const bmp = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" }));
+    const k = Math.min(1, 3000 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+    const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+    x.drawImage(bmp, 0, 0, c.width, c.height); bmp.close();
+    const out = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.92));
+    if (!out) throw new Error("bad-image");
+    return out;
+  }
+  const reject = (ref) => deleteDoc(ref).catch(() => {});
+
   function onImgs(snap) {
     snap.docChanges().forEach((ch) => {
       if (ch.type !== "added" || seen.has(ch.doc.id)) return;
       seen.add(ch.doc.id);
-      const d = ch.doc.data(), gid = d.gid || ch.doc.id;
+      const d = ch.doc.data(), gid = d.gid;
+      // لا يُقبل إلا الشكل المتوقع بالضبط، وأي شيء آخر يُتجاهل ويُحذف
+      if (typeof d.data !== "string" || d.data.length >= 1_000_000 || typeof gid !== "string" || gid.length > 40
+        || !Number.isInteger(d.total) || d.total < 1 || d.total > MAX_PAGES
+        || !Number.isInteger(d.idx) || d.idx < 0 || d.idx >= d.total) return reject(ch.doc.ref);
       let g = groups.get(gid);
-      if (!g) { g = { items: [], total: 1, t: 0 }; groups.set(gid, g); }
-      g.items.push({ idx: d.idx || 0, ref: ch.doc.ref, data: d.data });
-      g.total = d.total || 1;
+      if (!g) {
+        if (groups.size >= MAX_PENDING) return reject(ch.doc.ref);
+        g = { items: [], total: d.total, t: 0 }; groups.set(gid, g);
+      }
+      if (d.total !== g.total || g.items.some((it) => it.idx === d.idx)) return reject(ch.doc.ref);
+      g.items.push({ idx: d.idx, ref: ch.doc.ref, data: d.data });
       clearTimeout(g.t);
       if (g.items.length >= g.total) flush(gid);
       else g.t = setTimeout(() => flush(gid), 20000);   // طباعة ما وصل إن تعذّر وصول الباقي
@@ -150,14 +193,14 @@ function runSeller() {
     const g = groups.get(gid); if (!g) return;
     groups.delete(gid); clearTimeout(g.t);
     g.items.sort((a, b) => a.idx - b.idx);
+    if (printed + g.items.length > MAX_PRINT) { g.items.forEach((it) => reject(it.ref)); return; }
     const urls = [];
     for (const it of g.items) {
-      try {
-        urls.push(URL.createObjectURL(new Blob([await decBytes(it.data)], { type: "image/jpeg" })));
-        deleteDoc(it.ref).catch(() => {});   // لا نُبقي الصورة بعد استلامها
-      } catch {}
+      try { urls.push(URL.createObjectURL(await sanitize(await decBytes(it.data)))); } catch {}
+      reject(it.ref);   // لا نُبقي شيئًا في قاعدة البيانات بعد الاستلام
     }
     if (!urls.length) return;
+    printed += urls.length;
     queue = queue.then(() => printA4(urls)).catch(() => {});
   }
 
@@ -166,6 +209,7 @@ function runSeller() {
     return new Promise((done) => {
       $("st").textContent = "جارٍ الطباعة…";
       const f = document.createElement("iframe");
+      f.setAttribute("sandbox", "allow-same-origin allow-modals");   // لا سكربتات داخل الإطار
       f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
       const clean = () => { f.remove(); urls.forEach((u) => URL.revokeObjectURL(u)); };
       f.onload = async () => {
