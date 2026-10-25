@@ -67,6 +67,8 @@
   .grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
   .card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; cursor: zoom-in; }
+  .fileicon { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 8px; word-break: break-all; font-size: .85rem; direction: ltr; }
   .card .acts { display: flex; gap: 4px; padding: 6px; }
   .card .acts button { flex: 1; min-height: 36px; padding: 4px; font-size: .85rem; }
   .card .acts .danger { color: var(--danger); }
@@ -108,12 +110,12 @@
 
       <section class="panel" style="margin-top:16px" id="imgsPanel">
         <div class="imgs-bar">
-          <button class="primary" id="addImg">إضافة صور</button>
-          <span class="hint">أو الصق صورة بـ Ctrl+V، أو اسحبها إلى هنا.</span>
+          <button class="primary" id="addImg">إضافة ملفات</button>
+          <span class="hint">صور أو ملفات Excel وOpenOffice وPDF (xlsx, xls, csv, ods, odt, odp, pdf). الصق صورة بـ Ctrl+V أو اسحب الملفات إلى هنا.</span>
         </div>
-        <input type="file" id="imgInput" accept="image/*" multiple hidden>
+        <input type="file" id="imgInput" accept="image/*,.xlsx,.xls,.csv,.ods,.ots,.odt,.odp,.pdf,application/pdf" multiple hidden>
         <ul class="grid" id="grid"></ul>
-        <p class="empty" id="imgEmpty">لا توجد صور.</p>
+        <p class="empty" id="imgEmpty">لا توجد ملفات.</p>
       </section>
     </div>
 
@@ -131,7 +133,7 @@
 <div class="overlay" id="expired" hidden>
   <div class="box">
     <h2>انتهت صلاحية الصفحة</h2>
-    <p>حُذف كل ما فيها من نص وصور، أو أن الرابط غير صالح.</p>
+    <p>حُذف كل ما فيها من نص وملفات، أو أن الرابط غير صالح.</p>
     <button class="primary" id="newBtn2">صفحة جديدة</button>
   </div>
 </div>
@@ -164,6 +166,8 @@ const firebaseConfig = {
 
 const db = getFirestore(initializeApp(firebaseConfig));
 const TTL = 5 * 60 * 1000, MAX_IMAGES = 6, MAX_IMG_BYTES = 640_000, KEY = "temp-page:secret";
+const DOC_EXT = /\.(xlsx|xls|csv|ods|ots|odt|odp|pdf)$/i;
+const isOk = (f) => f.type.startsWith("image/") || DOC_EXT.test(f.name);
 const $ = (id) => document.getElementById(id);
 
 // ----- Encryption (the secret lives only in the URL fragment, never sent to any server) -----
@@ -206,7 +210,7 @@ const decText = async (s) => s ? td.decode(await decBytes(s)) : "";
 // ----- State -----
 let secret = null, pageId = null, cryptoKey = null, expiresAt = 0, unsubs = [], images = [], expired = true;
 let uploading = 0, lastLocal = 0, saveTimer = null, textSeq = 0, imgSeq = 0;
-const imgCache = new Map(); // doc id -> { url, blob }
+const imgCache = new Map(); // doc id -> { url, blob, file?, name? }
 
 function toast(msg) {
   const t = $("toast"); t.textContent = msg; t.classList.add("show");
@@ -294,12 +298,18 @@ function start() {
   }, () => {}));
   unsubs.push(onSnapshot(query(imgCol(), orderBy("createdAt")), async (s) => {
     const seq = ++imgSeq;
-    const docs = s.docs.map((d) => ({ id: d.id, ref: d.ref, data: d.data().data }));
+    const docs = s.docs.map((d) => ({ id: d.id, ref: d.ref, ...d.data() }));
     await Promise.all(docs.map(async (d) => {
       if (imgCache.has(d.id)) return;
       try {
-        const blob = new Blob([await decBytes(d.data)], { type: "image/jpeg" });
-        imgCache.set(d.id, { blob, url: URL.createObjectURL(blob) });
+        const bytes = await decBytes(d.data);
+        if (d.kind === "file") {
+          const blob = new Blob([bytes], { type: "application/octet-stream" });
+          imgCache.set(d.id, { blob, url: URL.createObjectURL(blob), file: true, name: await decText(d.name) });
+        } else {
+          const blob = new Blob([bytes], { type: "image/jpeg" });
+          imgCache.set(d.id, { blob, url: URL.createObjectURL(blob) });
+        }
       } catch {}
     }));
     if (seq !== imgSeq) return;
@@ -377,7 +387,7 @@ async function copyText(text, msg) {
   toast(msg);
 }
 
-// ----- Images -----
+// ----- Images & files -----
 async function compress(file) {
   const bmp = await createImageBitmap(file);
   const c = document.createElement("canvas"), ctx = c.getContext("2d");
@@ -396,52 +406,65 @@ async function compress(file) {
 
 async function upload(files) {
   if (expired) return;
-  files = [...files].filter((f) => f.type.startsWith("image/"));
+  files = [...files].filter(isOk);
   if (!files.length) return;
   const room = MAX_IMAGES - images.length - uploading;
-  if (room <= 0) { toast(`الحد الأقصى ${MAX_IMAGES} صور لكل صفحة.`); return; }
-  if (files.length > room) { toast(`سيُرفع ${room} فقط؛ الحد الأقصى ${MAX_IMAGES} صور.`); files = files.slice(0, room); }
+  if (room <= 0) { toast(`الحد الأقصى ${MAX_IMAGES} ملفات لكل صفحة.`); return; }
+  if (files.length > room) { toast(`سيُرفع ${room} فقط؛ الحد الأقصى ${MAX_IMAGES} ملفات.`); files = files.slice(0, room); }
   const id = pageId;
   uploading += files.length; renderImages();
   let failed = 0;
   for (const f of files) {
     try {
-      const data = await encBytes(await compress(f));
+      let fields;
+      if (f.type.startsWith("image/")) {
+        fields = { data: await encBytes(await compress(f)) };
+      } else {
+        if (f.size > MAX_IMG_BYTES) throw new Error("too-large");
+        fields = { kind: "file", name: await encText(f.name),
+          data: await encBytes(new Uint8Array(await f.arrayBuffer())) };
+      }
       if (expired || id !== pageId) break;
-      await addDoc(imgCol(id), { data, createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
+      await addDoc(imgCol(id), { ...fields, createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
     } catch { failed++; }
     uploading = Math.max(0, uploading - 1); renderImages();
   }
   uploading = 0; renderImages();
-  if (failed) toast("تعذّر رفع بعض الصور.");
+  if (failed) toast("تعذّر رفع بعض الملفات (الحد 640 ك.ب للملف).");
 }
 
 function renderImages() {
   const grid = $("grid"); grid.innerHTML = "";
   $("imgEmpty").hidden = images.length > 0 || uploading > 0;
-  $("addImg").textContent = uploading ? "جارٍ الرفع…" : `إضافة صور (${images.length}/${MAX_IMAGES})`;
+  $("addImg").textContent = uploading ? "جارٍ الرفع…" : `إضافة ملفات (${images.length}/${MAX_IMAGES})`;
   $("addImg").disabled = images.length + uploading >= MAX_IMAGES || expired;
   images.forEach((im, i) => {
     const c = imgCache.get(im.id); if (!c) return;
     const li = document.createElement("li"); li.className = "card";
-    const img = document.createElement("img"); img.src = c.url; img.alt = `صورة ${i + 1}`;
-    img.onclick = () => { $("viewer").querySelector("img").src = c.url; $("viewer").hidden = false; };
+    let img;
+    if (c.file) {
+      img = document.createElement("div"); img.className = "fileicon"; img.textContent = "📄 " + c.name;
+    } else {
+      img = document.createElement("img"); img.src = c.url; img.alt = `صورة ${i + 1}`;
+      img.onclick = () => { $("viewer").querySelector("img").src = c.url; $("viewer").hidden = false; };
+    }
     const acts = document.createElement("div"); acts.className = "acts";
     const btn = (label, fn, cls) => { const b = document.createElement("button"); b.textContent = label; b.onclick = fn; if (cls) b.className = cls; return b; };
-    acts.append(btn("تنزيل", () => downloadImg(c, i)), btn("نسخ", () => copyImg(c)),
-      btn("حذف", () => deleteImg(im), "danger"));
+    acts.append(btn("تنزيل", () => downloadImg(c, i)));
+    if (!c.file) acts.append(btn("نسخ", () => copyImg(c)));
+    acts.append(btn("حذف", () => deleteImg(im), "danger"));
     li.append(img, acts); grid.append(li);
   });
 }
 
 async function deleteImg(im) {
-  try { await deleteDoc(im.ref); toast("حُذفت الصورة"); }
-  catch { toast("تعذّر حذف الصورة"); }
+  try { await deleteDoc(im.ref); toast("حُذف الملف"); }
+  catch { toast("تعذّر الحذف"); }
 }
 
 function downloadImg(c, i) {
   const a = document.createElement("a");
-  a.href = c.url; a.download = `image-${i + 1}.jpg`;
+  a.href = c.url; a.download = c.name || `image-${i + 1}.jpg`;
   document.body.append(a); a.click(); a.remove();
 }
 
@@ -460,7 +483,7 @@ async function copyImg(c) {
 $("addImg").onclick = () => $("imgInput").click();
 $("imgInput").onchange = (e) => { upload(e.target.files); e.target.value = ""; };
 document.addEventListener("paste", (e) => {
-  const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/"));
+  const files = [...(e.clipboardData?.files || [])].filter(isOk);
   if (files.length) { e.preventDefault(); upload(files); }
 });
 const panel = $("imgsPanel");
