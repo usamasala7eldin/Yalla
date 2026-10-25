@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>الوصفة</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root { --bg:#EEF1F4; --surface:#fff; --ink:#1B2430; --muted:#6B7684; --line:#D5DBE2; --accent:#1F6F78; --accent-ink:#fff;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12171D; --surface:#1A2129; --ink:#E6EAEE; --muted:#8C97A4; --line:#2A333D; --accent:#5FB3BC; --accent-ink:#0E1418; } }
+  *,*::before,*::after { box-sizing:inherit; }
+  html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:Tahoma,"Segoe UI",Arial,sans-serif; }
+  [hidden] { display:none !important; }
+  main { max-width:420px; margin:0 auto; padding:48px 20px; text-align:center; display:flex; flex-direction:column; gap:14px; }
+  h1 { margin:0 0 8px; font-size:1.5rem; }
+  p { margin:0; color:var(--muted); }
+  .num { direction:ltr; unicode-bidi:isolate; font-variant-numeric:tabular-nums; }
+  button { font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:12px; padding:12px 16px; min-height:48px; }
+  button.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  button.big { min-height:64px; font-size:1.2rem; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+</style>
+</head>
+<body>
+<main id="seller" hidden>
+  <h1>استقبال الوصفات</h1>
+  <p id="st">بانتظار الوصفة</p>
+  <p class="num" id="left"></p>
+  <button class="primary" id="qrBtn">طباعة QR</button>
+  <button id="newBtn">رمز جديد</button>
+</main>
+
+<main id="sender" hidden>
+  <h1>أرفق الوصفة</h1>
+  <button class="primary big" id="add">إضافة صورة</button>
+  <input type="file" id="inp" accept="image/*,application/pdf,.pdf" multiple hidden>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, collection, setDoc, getDoc, getDocs, addDoc, deleteDoc, onSnapshot,
+  serverTimestamp, Timestamp, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD-QSolp7uoEr0z_0NkOBIeEFAgllmi0ro",
+  authDomain: "sync-df6ca.firebaseapp.com",
+  projectId: "sync-df6ca",
+  storageBucket: "sync-df6ca.firebasestorage.app",
+  messagingSenderId: "1091721719210",
+  appId: "1:1091721719210:web:567cd4ce4056bfce45cfd3"
+};
+const db = getFirestore(initializeApp(firebaseConfig));
+
+const TTL = 8 * 60 * 1000;          // مدة صلاحية الرمز
+const MAX_BYTES = 640_000;          // حجم الصورة بعد الضغط
+const MAX_PAGES = 8;                // أقصى عدد صور/صفحات في الرفعة الواحدة
+const PDF_PAGES = 5;                // أقصى عدد صفحات من الـ PDF الواحد
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+const $ = (id) => document.getElementById(id);
+
+// ----- التشفير (المفتاح في الرابط بعد # ولا يصل للخادم) -----
+const te = new TextEncoder();
+function toB64(b) { let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+function fromB64(s) { const t = atob(s), a = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) a[i] = t.charCodeAt(i); return a; }
+const toB64u = (b) => toB64(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const fromB64u = (s) => fromB64(s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - s.length % 4) % 4));
+
+let key = null, pageId = null, secret = null, expiresAt = 0;
+async function useSecret(s) {
+  const raw = fromB64u(s);
+  if (raw.length !== 32) throw new Error("bad-secret");
+  const base = await crypto.subtle.importKey("raw", raw, "HKDF", false, ["deriveBits", "deriveKey"]);
+  const salt = te.encode("temp-page-v1");
+  const idb = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: te.encode("page-id") }, base, 128);
+  key = await crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: te.encode("content-key") },
+    base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  pageId = toB64u(new Uint8Array(idb)); secret = s;
+}
+async function encBytes(bytes) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, bytes);
+  return toB64(iv) + "." + toB64(new Uint8Array(ct));
+}
+async function decBytes(str) {
+  const [iv, ct] = str.split(".");
+  return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(iv) }, key, fromB64(ct)));
+}
+const pageRef = (id = pageId) => doc(db, "pages", id);
+const imgCol = (id = pageId) => collection(db, "pages", id, "images");
+
+const hash = location.hash.slice(1);
+hash ? runSender(hash) : runSeller();
+
+// ================= جهاز البيع =================
+function runSeller() {
+  $("seller").hidden = false;
+  let unsub = null, creating = false, seen = new Set(), groups = new Map(), queue = Promise.resolve();
+
+  async function deletePage(id) {
+    try {
+      const snap = await getDocs(imgCol(id));
+      const b = writeBatch(db);
+      snap.forEach((d) => b.delete(d.ref));
+      b.delete(pageRef(id));
+      await b.commit();
+    } catch { await deleteDoc(pageRef(id)).catch(() => {}); }
+  }
+
+  async function create() {
+    creating = true;
+    if (unsub) { unsub(); unsub = null; }
+    groups.forEach((g) => clearTimeout(g.t)); groups.clear(); seen.clear();
+    await useSecret(toB64u(crypto.getRandomValues(new Uint8Array(32))));
+    expiresAt = Date.now() + TTL;
+    try {
+      await setDoc(pageRef(), { text: "", createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
+      $("st").textContent = "بانتظار الوصفة";
+      unsub = onSnapshot(imgCol(), onImgs, () => {});
+    } catch { $("st").textContent = "تعذّر الاتصال"; expiresAt = Date.now() + 5000; }
+    creating = false;
+  }
+  async function renew() {
+    if (creating) return;
+    const old = pageId;
+    if (old) deletePage(old);
+    await create();
+  }
+
+  function onImgs(snap) {
+    snap.docChanges().forEach((ch) => {
+      if (ch.type !== "added" || seen.has(ch.doc.id)) return;
+      seen.add(ch.doc.id);
+      const d = ch.doc.data(), gid = d.gid || ch.doc.id;
+      let g = groups.get(gid);
+      if (!g) { g = { items: [], total: 1, t: 0 }; groups.set(gid, g); }
+      g.items.push({ idx: d.idx || 0, ref: ch.doc.ref, data: d.data });
+      g.total = d.total || 1;
+      clearTimeout(g.t);
+      if (g.items.length >= g.total) flush(gid);
+      else g.t = setTimeout(() => flush(gid), 20000);   // طباعة ما وصل إن تعذّر وصول الباقي
+    });
+  }
+
+  async function flush(gid) {
+    const g = groups.get(gid); if (!g) return;
+    groups.delete(gid); clearTimeout(g.t);
+    g.items.sort((a, b) => a.idx - b.idx);
+    const urls = [];
+    for (const it of g.items) {
+      try {
+        urls.push(URL.createObjectURL(new Blob([await decBytes(it.data)], { type: "image/jpeg" })));
+        deleteDoc(it.ref).catch(() => {});   // لا نُبقي الصورة بعد استلامها
+      } catch {}
+    }
+    if (!urls.length) return;
+    queue = queue.then(() => printA4(urls)).catch(() => {});
+  }
+
+  // طباعة الوصفة على A4 عبر إطار مخفي، دون عرضها على الشاشة
+  function printA4(urls) {
+    return new Promise((done) => {
+      $("st").textContent = "جارٍ الطباعة…";
+      const f = document.createElement("iframe");
+      f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+      const clean = () => { f.remove(); urls.forEach((u) => URL.revokeObjectURL(u)); };
+      f.onload = async () => {
+        try {
+          await Promise.all([...f.contentDocument.images].map((i) => i.decode().catch(() => {})));
+          f.contentWindow.onafterprint = clean;
+          f.contentWindow.focus(); f.contentWindow.print();
+          $("st").textContent = "تمت الطباعة";
+        } catch { $("st").textContent = "تعذّرت الطباعة"; }
+        setTimeout(clean, 60000);
+        setTimeout(done, 1500);
+      };
+      f.srcdoc = `<!doctype html><html><head><style>
+        @page{size:A4;margin:8mm}
+        html,body{margin:0}
+        .p{width:194mm;height:281mm;display:flex;align-items:center;justify-content:center;overflow:hidden;page-break-after:always}
+        .p:last-child{page-break-after:auto}
+        img{max-width:100%;max-height:100%;object-fit:contain}
+      </style></head><body>${urls.map((u) => `<div class="p"><img src="${u}"></div>`).join("")}</body></html>`;
+      document.body.append(f);
+    });
+  }
+
+  // طباعة رمز QR وحده على طابعة الجرعات (10×5 سم)
+  function qrSvg(text) {
+    const q = qrcode(0, "M"); q.addData(text); q.make();
+    const n = q.getModuleCount(), m = 2, t = n + 2 * m;
+    let d = "";
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c + m} ${r + m}h1v1h-1z`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${t} ${t}" width="4.4cm" height="4.4cm" shape-rendering="crispEdges"><rect width="${t}" height="${t}" fill="#fff"/><path d="${d}"/></svg>`;
+  }
+  $("qrBtn").onclick = () => {
+    if (!secret || Date.now() >= expiresAt) return;
+    const w = window.open("", "_blank"); if (!w) return;
+    w.document.write(`<!doctype html><html><head><style>
+      @page{size:10cm 5cm;margin:0}
+      html,body{margin:0;width:10cm;height:5cm;overflow:hidden;background:#fff}
+      body{display:flex;align-items:center;justify-content:center}
+    </style></head><body>${qrSvg(location.origin + location.pathname + "#" + secret)}</body></html>`);
+    w.document.close();
+    w.onafterprint = () => w.close();
+    setTimeout(() => { w.focus(); w.print(); }, 400);
+    setTimeout(() => { if (!w.closed) w.close(); }, 60000);
+  };
+  $("newBtn").onclick = renew;
+
+  setInterval(() => {
+    const left = expiresAt - Date.now();
+    if (left <= 0) { renew(); return; }
+    const s = Math.ceil(left / 1000);
+    $("left").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }, 1000);
+
+  create();
+}
+
+// ================= صفحة الشخص =================
+async function toJpeg(src, w, h) {
+  const c = document.createElement("canvas"), x = c.getContext("2d");
+  let max = 2000, q = 0.85;
+  for (let i = 0; i < 12; i++) {
+    const s = Math.min(1, max / Math.max(w, h));
+    c.width = Math.round(w * s); c.height = Math.round(h * s);
+    x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+    x.drawImage(src, 0, 0, c.width, c.height);
+    const b = await new Promise((r) => c.toBlob(r, "image/jpeg", q));
+    if (b && b.size <= MAX_BYTES) return new Uint8Array(await b.arrayBuffer());
+    if (q > 0.55) q -= 0.1; else max = Math.round(max * 0.8);
+  }
+  throw new Error("too-large");
+}
+const imgJpeg = async (f) => { const b = await createImageBitmap(f); return toJpeg(b, b.width, b.height); };
+
+// تحويل الـ PDF إلى صور داخل جهاز الشخص، فلا يصلك ملف PDF أبدًا
+async function pdfPages(f, pages) {
+  if (!window.pdfjsLib) {
+    await new Promise((ok, no) => {
+      const sc = document.createElement("script"); sc.src = PDFJS + "pdf.min.js"; sc.onload = ok; sc.onerror = no; document.head.append(sc);
+    });
+    pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.js";
+  }
+  const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+  const n = Math.min(pdf.numPages, PDF_PAGES, MAX_PAGES - pages.length);
+  for (let i = 1; i <= n; i++) {
+    const pg = await pdf.getPage(i);
+    const vp = pg.getViewport({ scale: Math.min(3, 1600 / pg.getViewport({ scale: 1 }).width) });
+    const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+    await pg.render({ canvasContext: x, viewport: vp }).promise;
+    pages.push(await toJpeg(c, c.width, c.height));
+  }
+}
+
+async function runSender(s) {
+  $("sender").hidden = false;
+  const b = $("add"), inp = $("inp");
+  const set = (t, dis) => { b.textContent = t; b.disabled = !!dis; };
+  try {
+    await useSecret(s);
+    expiresAt = (await getDoc(pageRef())).data().expiresAt.toMillis();
+    if (expiresAt <= Date.now()) throw new Error("expired");
+  } catch { set("انتهت الصلاحية", true); return; }
+
+  b.onclick = () => inp.click();
+  inp.onchange = async () => {
+    const files = [...inp.files]; inp.value = "";
+    if (!files.length) return;
+    set("جارٍ الرفع…", true);
+    try {
+      const pages = [];
+      for (const f of files) {
+        if (pages.length >= MAX_PAGES) break;
+        if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) await pdfPages(f, pages);
+        else if (f.type.startsWith("image/")) pages.push(await imgJpeg(f));
+      }
+      if (!pages.length) throw new Error("empty");
+      const gid = toB64u(crypto.getRandomValues(new Uint8Array(12))), total = pages.length;
+      for (let i = 0; i < total; i++) {
+        await addDoc(imgCol(), { data: await encBytes(pages[i]), gid, idx: i, total,
+          createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
+      }
+      set("تم ✓");
+      setTimeout(() => set("إضافة صورة"), 2500);
+    } catch {
+      const dead = Date.now() >= expiresAt;
+      set(dead ? "انتهت الصلاحية" : "أعد المحاولة", dead);
+      if (!dead) setTimeout(() => set("إضافة صورة"), 2500);
+    }
+  };
+}
+</script>
+</body>
+</html>
