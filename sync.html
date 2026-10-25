@@ -111,7 +111,7 @@
       <section class="panel" style="margin-top:16px" id="imgsPanel">
         <div class="imgs-bar">
           <button class="primary" id="addImg">إضافة ملفات</button>
-          <span class="hint">صور أو ملفات Excel وOpenOffice وPDF (xlsx, xls, csv, ods, odt, odp, pdf). الصق صورة بـ Ctrl+V أو اسحب الملفات إلى هنا.</span>
+          <span class="hint">صور أو ملفات Excel وOpenOffice وPDF (xlsx, xls, csv, ods, odt, odp, pdf). الحد 5 ميغابايت للملف. الصق صورة بـ Ctrl+V أو اسحب الملفات إلى هنا.</span>
         </div>
         <input type="file" id="imgInput" accept="image/*,.xlsx,.xls,.csv,.ods,.ots,.odt,.odp,.pdf,application/pdf" multiple hidden>
         <ul class="grid" id="grid"></ul>
@@ -166,6 +166,7 @@ const firebaseConfig = {
 
 const db = getFirestore(initializeApp(firebaseConfig));
 const TTL = 5 * 60 * 1000, MAX_IMAGES = 6, MAX_IMG_BYTES = 640_000, KEY = "temp-page:secret";
+const CHUNK = 640_000, MAX_FILE_BYTES = 5_000_000;
 const DOC_EXT = /\.(xlsx|xls|csv|ods|ots|odt|odp|pdf)$/i;
 const isOk = (f) => f.type.startsWith("image/") || DOC_EXT.test(f.name);
 const $ = (id) => document.getElementById(id);
@@ -298,24 +299,38 @@ function start() {
   }, () => {}));
   unsubs.push(onSnapshot(query(imgCol(), orderBy("createdAt")), async (s) => {
     const seq = ++imgSeq;
-    const docs = s.docs.map((d) => ({ id: d.id, ref: d.ref, ...d.data() }));
-    await Promise.all(docs.map(async (d) => {
-      if (imgCache.has(d.id)) return;
+    const raw = s.docs.map((d) => ({ id: d.id, ref: d.ref, ...d.data() }));
+    const items = [], groups = new Map();
+    for (const d of raw) {
+      if (d.kind === "file" && d.gid) {
+        let g = groups.get(d.gid);
+        if (!g) { g = { id: d.gid, kind: "file", parts: [] }; groups.set(d.gid, g); items.push(g); }
+        g.parts.push(d);
+      } else items.push({ id: d.id, kind: d.kind, parts: [d] });
+    }
+    for (const g of groups.values()) {
+      g.parts.sort((x, y) => x.idx - y.idx);
+      g.complete = g.parts.length === g.parts[0].total;
+    }
+    await Promise.all(items.map(async (it) => {
+      if (imgCache.has(it.id) || it.complete === false) return;
       try {
-        const bytes = await decBytes(d.data);
-        if (d.kind === "file") {
+        if (it.kind === "file") {
+          const chunks = await Promise.all(it.parts.map((p) => decBytes(p.data)));
+          const bytes = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+          let o = 0; for (const c of chunks) { bytes.set(c, o); o += c.length; }
           const blob = new Blob([bytes], { type: "application/octet-stream" });
-          imgCache.set(d.id, { blob, url: URL.createObjectURL(blob), file: true, name: await decText(d.name) });
+          imgCache.set(it.id, { blob, url: URL.createObjectURL(blob), file: true, name: await decText(it.parts[0].name) });
         } else {
-          const blob = new Blob([bytes], { type: "image/jpeg" });
-          imgCache.set(d.id, { blob, url: URL.createObjectURL(blob) });
+          const blob = new Blob([await decBytes(it.parts[0].data)], { type: "image/jpeg" });
+          imgCache.set(it.id, { blob, url: URL.createObjectURL(blob) });
         }
       } catch {}
     }));
     if (seq !== imgSeq) return;
-    const ids = new Set(docs.map((d) => d.id));
+    const ids = new Set(items.map((it) => it.id));
     imgCache.forEach((v, k) => { if (!ids.has(k)) { URL.revokeObjectURL(v.url); imgCache.delete(k); } });
-    images = docs.filter((d) => imgCache.has(d.id));
+    images = items.filter((it) => imgCache.has(it.id)).map((it) => ({ id: it.id, refs: it.parts.map((p) => p.ref) }));
     renderImages();
   }, () => {}));
 }
@@ -416,21 +431,34 @@ async function upload(files) {
   let failed = 0;
   for (const f of files) {
     try {
-      let fields;
       if (f.type.startsWith("image/")) {
-        fields = { data: await encBytes(await compress(f)) };
+        const data = await encBytes(await compress(f));
+        if (expired || id !== pageId) break;
+        await addDoc(imgCol(id), { data, createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
       } else {
-        if (f.size > MAX_IMG_BYTES) throw new Error("too-large");
-        fields = { kind: "file", name: await encText(f.name),
-          data: await encBytes(new Uint8Array(await f.arrayBuffer())) };
+        if (f.size > MAX_FILE_BYTES) throw new Error("too-large");
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        const name = await encText(f.name);
+        const gid = toB64u(crypto.getRandomValues(new Uint8Array(12)));
+        const total = Math.max(1, Math.ceil(bytes.length / CHUNK));
+        const added = [];
+        try {
+          for (let k = 0; k < total; k++) {
+            const data = await encBytes(bytes.subarray(k * CHUNK, (k + 1) * CHUNK));
+            if (expired || id !== pageId) throw new Error("gone");
+            added.push(await addDoc(imgCol(id), { kind: "file", gid, idx: k, total, name, data,
+              createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) }));
+          }
+        } catch (e) {
+          added.forEach((r) => deleteDoc(r).catch(() => {}));
+          throw e;
+        }
       }
-      if (expired || id !== pageId) break;
-      await addDoc(imgCol(id), { ...fields, createdAt: serverTimestamp(), expiresAt: Timestamp.fromMillis(expiresAt) });
     } catch { failed++; }
     uploading = Math.max(0, uploading - 1); renderImages();
   }
   uploading = 0; renderImages();
-  if (failed) toast("تعذّر رفع بعض الملفات (الحد 640 ك.ب للملف).");
+  if (failed) toast("تعذّر رفع بعض الملفات (الحد 5 ميغابايت للملف).");
 }
 
 function renderImages() {
@@ -458,7 +486,7 @@ function renderImages() {
 }
 
 async function deleteImg(im) {
-  try { await deleteDoc(im.ref); toast("حُذف الملف"); }
+  try { await Promise.all(im.refs.map((r) => deleteDoc(r))); toast("حُذف الملف"); }
   catch { toast("تعذّر الحذف"); }
 }
 
