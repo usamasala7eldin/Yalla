@@ -102,9 +102,11 @@
       <section class="panel" style="margin-top:16px" id="imgsPanel">
         <div class="imgs-bar">
           <button class="primary" id="addImg">إضافة صور</button>
+          <button id="camImg" hidden>📷 كاميرا</button>
           <span class="hint">أو الصق صورة بـ Ctrl+V، أو اسحبها إلى هنا.</span>
         </div>
         <input type="file" id="imgInput" accept="image/*" multiple hidden>
+        <input type="file" id="camInput" accept="image/*" capture="environment" hidden>
         <ul class="grid" id="grid"></ul>
         <p class="empty" id="imgEmpty">لا توجد صور.</p>
       </section>
@@ -452,7 +454,7 @@ function renderImages() {
   const grid = $("grid"); grid.innerHTML = "";
   $("imgEmpty").hidden = images.length > 0 || uploading > 0;
   $("addImg").textContent = uploading ? "جارٍ الرفع…" : `إضافة صور (${images.length}/${MAX_IMAGES})`;
-  $("addImg").disabled = images.length + uploading >= MAX_IMAGES || expired;
+  $("addImg").disabled = $("camImg").disabled = images.length + uploading >= MAX_IMAGES || expired;
   images.forEach((im, i) => {
     const c = imgCache.get(im.id); if (!c) return;
     const li = document.createElement("li"); li.className = "card";
@@ -490,6 +492,10 @@ async function copyImg(c) {
 }
 
 $("addImg").onclick = () => $("imgInput").click();
+// زر الكاميرا يظهر على الجوال فقط، ويفتح الكاميرا مباشرة
+if (matchMedia("(pointer: coarse)").matches) $("camImg").hidden = false;
+$("camImg").onclick = () => $("camInput").click();
+$("camInput").onchange = (e) => { upload(e.target.files); e.target.value = ""; };
 $("imgInput").onchange = (e) => { upload(e.target.files); e.target.value = ""; };
 document.addEventListener("paste", (e) => {
   const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/"));
