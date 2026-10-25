@@ -428,7 +428,7 @@ async function upload(files) {
   if (files.length > room) { toast(`سيُرفع ${room} فقط؛ الحد الأقصى ${MAX_IMAGES} ملفات.`); files = files.slice(0, room); }
   const id = pageId;
   uploading += files.length; renderImages();
-  let failed = 0;
+  let failed = 0, lastErr = null;
   for (const f of files) {
     try {
       if (f.type.startsWith("image/")) {
@@ -454,11 +454,11 @@ async function upload(files) {
           throw e;
         }
       }
-    } catch { failed++; }
+    } catch (e) { failed++; lastErr = e; console.error("upload failed", e); }
     uploading = Math.max(0, uploading - 1); renderImages();
   }
   uploading = 0; renderImages();
-  if (failed) toast("تعذّر رفع بعض الملفات (الحد 5 ميغابايت للملف).");
+  if (failed) toast(lastErr && lastErr.message === "too-large" ? "الملف أكبر من 5 ميغابايت." : "تعذّر الرفع: " + ((lastErr && (lastErr.code || lastErr.message)) || "خطأ غير معروف"));
 }
 
 function renderImages() {
