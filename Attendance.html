@@ -1,0 +1,672 @@
+<title>Attendance Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: single working column — inputs, summary band, then one row per business day (clock-out, clock-in, status). */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#f8faf9; --ink:#17201c; --muted:#5b6762; --line:#dde3e0;
+  --accent:#0c6a57; --accent-ink:#ffffff; --accent-soft:#e2efeb;
+  --ok:#1d7a4c; --ok-soft:#e5f3eb; --bad:#c32a2a; --bad-soft:#fcebea; --warn:#9a6200; --warn-soft:#fbf0d9;
+  --blk:#141716; --blk-ink:#ffffff; --blk-line:#141716; --pend:#7a8580;
+  --shadow:0 1px 2px rgba(20,32,28,.06),0 4px 14px rgba(20,32,28,.05);
+  --f-display:"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1211; --surface:#161b19; --surface-2:#1b211f; --ink:#e6ebe9; --muted:#9ba6a1; --line:#2a312e;
+  --accent:#4dbd9c; --accent-ink:#06231c; --accent-soft:#15302a;
+  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --warn:#e2a93b; --warn-soft:#2f240e;
+  --blk:#000000; --blk-ink:#ffffff; --blk-line:#6b7470; --pend:#87928d;
+  --shadow:none; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e1211; --surface:#161b19; --surface-2:#1b211f; --ink:#e6ebe9; --muted:#9ba6a1; --line:#2a312e;
+  --accent:#4dbd9c; --accent-ink:#06231c; --accent-soft:#15302a;
+  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --warn:#e2a93b; --warn-soft:#2f240e;
+  --blk:#000000; --blk-ink:#ffffff; --blk-line:#6b7470; --pend:#87928d;
+  --shadow:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Header */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.store{font-family:var(--f-mono);font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.icon{padding:7px 9px}
+.btn svg{width:16px;height:16px}
+
+/* Inputs */
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.paste{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;box-shadow:var(--shadow)}
+.paste-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.paste-head label{font-weight:700;font-size:14px}
+.paste-head .step{font-family:var(--f-mono);color:var(--accent);margin-right:6px}
+.hint{color:var(--muted);font-size:12.5px}
+textarea{width:100%;min-height:96px;max-height:220px;resize:vertical;border:1px dashed var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);
+  font-family:var(--f-mono);font-size:11.5px;padding:8px 10px;line-height:1.4}
+textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13px}
+.parse{font-size:12.5px;display:flex;align-items:center;gap:6px;min-height:18px}
+.parse.good{color:var(--ok)} .parse.bad{color:var(--bad)} .parse.idle{color:var(--muted)}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
+.linkbtn:hover{color:var(--ink)}
+
+/* Banners */
+.banner{border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:500}
+.banner svg{flex:none;width:18px;height:18px}
+.banner.sample{background:var(--accent-soft);color:var(--ink)}
+.banner.alert{background:var(--bad);color:#fff}
+.banner.alert b{font-weight:800}
+
+/* Month chips */
+.months{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.months .lbl{color:var(--muted);font-size:12px;margin-right:4px;text-transform:uppercase;letter-spacing:.06em}
+.chip-btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.chip-btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Summary */
+.summary{display:grid;grid-template-columns:1.1fr 1fr 1fr 1.3fr;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;box-shadow:var(--shadow)}
+.card .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.card .v{font-family:var(--f-display);font-weight:800;font-size:32px;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+.card .v small{font-size:15px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}
+.card .s{font-size:12.5px;color:var(--muted)}
+.card.is-bad .v{color:var(--bad)} .card.is-ok .v{color:var(--ok)}
+.meter-row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.meter-row .m{font-size:12.5px;color:var(--muted);min-width:64px}
+.meter{display:flex;gap:3px;flex:1;max-width:150px}
+.meter i{flex:1;height:10px;border-radius:2px;background:var(--line)}
+.meter.lv-ok i.on{background:var(--accent)} .meter.lv-warn i.on{background:var(--warn)} .meter.lv-bad i.on{background:var(--bad)}
+.meter-row .c{font-family:var(--f-mono);font-weight:600;font-size:13px;min-width:44px;text-align:right}
+.meter-row .c.lv-warn{color:var(--warn)} .meter-row .c.lv-bad{color:var(--bad)}
+.tiny{background:none;border:0;padding:0;color:var(--accent);font-size:12px;font-weight:600;text-transform:none;letter-spacing:0}
+
+.people{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.people .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px}
+.person{display:inline-flex;align-items:baseline;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.person b{font-weight:700}
+.person .id{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.person .mins{font-family:var(--f-mono);font-weight:600}
+.person.has .mins{color:var(--bad)} .person.zero .mins{color:var(--ok)}
+
+/* Day list */
+.list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.list-head h2{font-family:var(--f-display);font-size:17px;font-weight:700;margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
+.days{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.drow{display:grid;grid-template-columns:150px 1fr 1fr 150px;gap:14px;align-items:center;padding:11px 14px 11px 16px;border-top:1px solid var(--line);position:relative}
+.drow:first-child{border-top:0}
+.drow.colhead{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding-block:8px}
+.drow::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
+.drow.st-red{background:var(--bad-soft)} .drow.st-red::before{background:var(--bad)}
+.drow.st-black::before{background:var(--blk-line)}
+.date b{font-weight:700;display:block}
+.date .wd{color:var(--muted);font-size:12.5px}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;border-radius:4px;padding:1px 6px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.exc{border-color:var(--accent);color:var(--accent)}
+.tag.late{border-color:var(--warn);color:var(--warn)}
+.side{display:flex;flex-direction:column;gap:2px;min-width:0}
+.side .lab{display:none;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.side .times{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.side .times .sch{color:var(--muted)}
+.side .times .arr{color:var(--muted)}
+.side .who{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res{font-family:var(--f-mono);font-size:12px;font-weight:600;border-radius:5px;padding:1px 6px}
+.res.ok{color:var(--ok);background:var(--ok-soft)}
+.res.late,.res.missed{color:#fff;background:var(--bad)}
+.res.excused{color:var(--accent);background:var(--accent-soft)}
+.res.pending,.res.nodata{color:var(--pend);background:transparent;border:1px dashed var(--line)}
+.status{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
+.pill{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.pill.red{background:var(--bad);color:#fff}
+.pill.black{background:var(--blk);color:var(--blk-ink);border:1px solid var(--blk-line)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.wait{color:var(--pend);border:1px dashed var(--line)}
+.status .mins{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(10,14,13,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal .box{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;max-width:560px;width:100%;max-height:85vh;overflow:auto;padding:18px 18px 16px}
+.modal h3{margin:0 0 10px;font-family:var(--f-display);font-size:17px}
+.modal ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px}
+.modal .x{float:right;border:0;background:none;font-size:20px;line-height:1;color:var(--muted);padding:2px 6px}
+.exc-list{list-style:none;padding:0!important}
+.exc-list li{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:7px}
+.exc-list li:first-child{border-top:0;padding-top:0}
+.exc-list .meta{color:var(--muted);font-size:12.5px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:60}
+
+@media (max-width:860px){
+  .summary{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  .inputs{grid-template-columns:1fr}
+  .drow.colhead{display:none}
+  .drow{grid-template-columns:1fr 1fr;gap:8px 12px}
+  .drow .date{grid-column:1}
+  .drow .status{grid-column:2;grid-row:1}
+  .side .lab{display:block}
+  .card .v{font-size:27px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1 data-t="title"></h1>
+      <span class="store" id="store" hidden></span>
+    </div>
+    <div class="actions">
+      <button class="btn icon" id="rulesBtn" type="button" aria-label="Rules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="btn primary" id="copyBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
+        <span data-t="copy"></span>
+      </button>
+    </div>
+  </header>
+
+  <section class="inputs" aria-label="Reports">
+    <div class="paste">
+      <div class="paste-head">
+        <label for="clockIn"><span class="step">1</span><span data-t="clockLabel"></span></label>
+        <button class="linkbtn" type="button" data-clear="clockIn" data-t="clear"></button>
+      </div>
+      <div class="hint" data-t="clockHint"></div>
+      <textarea id="clockIn" spellcheck="false"></textarea>
+      <div class="parse idle" id="clockStatus"></div>
+    </div>
+    <div class="paste">
+      <div class="paste-head">
+        <label for="schedIn"><span class="step">2</span><span data-t="schedLabel"></span></label>
+        <button class="linkbtn" type="button" data-clear="schedIn" data-t="clear"></button>
+      </div>
+      <div class="hint" data-t="schedHint"></div>
+      <textarea id="schedIn" spellcheck="false"></textarea>
+      <div class="parse idle" id="schedStatus"></div>
+    </div>
+  </section>
+
+  <div id="banner"></div>
+  <div class="months" id="months" hidden></div>
+  <section class="summary" id="summary"></section>
+  <div class="people" id="people"></div>
+
+  <section>
+    <div class="list-head" style="margin-bottom:10px">
+      <h2 data-t="daysTitle"></h2>
+      <div class="seg" role="group">
+        <button type="button" id="fIssues" aria-pressed="true"></button>
+        <button type="button" id="fAll" aria-pressed="false"></button>
+      </div>
+    </div>
+    <div class="days" id="days"></div>
+  </section>
+</div>
+
+<div class="modal" id="modal" hidden><div class="box" role="dialog" aria-modal="true"><button class="x" type="button" id="modalX" aria-label="Close">×</button><div id="modalBody"></div></div></div>
+
+<script>
+/* ---------- Strings (localization-ready: add another language object with the same keys) ---------- */
+const STR = { en: {
+  title:"Attendance Check", copy:"Copy summary", clear:"Clear",
+  clockLabel:"Clock-in-out report", clockHint:"KSA Pharmacy Dashboard → Employee clock-in-out. Select all, copy, paste here. Paste more pages below; duplicates are ignored.",
+  clockPh:"Paste the clock-in-out page here…",
+  schedLabel:"Monthly schedule", schedHint:"Store Attendance Duty → Monthly Schedule. Paste one or more months; the weekly template is ignored.",
+  schedPh:"Paste the attendance duty page here…",
+  clockOk:"{n} punches · {from} – {to} · {p} pharmacist(s){dup}", clockNone:"No punches found. Copy the whole clock-in-out page, including the table rows.",
+  schedOk:"{n} days · {months}{dup}", schedNone:"No schedule days found. Copy the Monthly Schedule table, including the dated rows.",
+  dupNote:" · {d} duplicate(s) ignored", waiting:"Waiting for paste",
+  sample:"You're looking at sample data. Paste your two reports above to check your store.",
+  needSched:"Clock data loaded. Paste the monthly schedule to compare.", needClock:"Schedule loaded. Paste the clock-in-out report to compare.",
+  alert:"<b>{n} day(s)</b> need an exceptional duty. Earliest deadline: <b>{date}</b>.",
+  monthLbl:"Month", allMonths:"All",
+  totalK:"Total delay", totalS:"{days} day(s) compared", minUnit:"min",
+  avgK:"Daily average", avgS:"Target: under 1 min per day",
+  missedK:"Missed punches", missedS:"Each counts as 30 min",
+  excK:"Exceptional duties", excView:"View days", excLimit:"Limit 5 per month · late edits: {n}",
+  peopleLbl:"By pharmacist", unassigned:"Unassigned",
+  daysTitle:"Days", fIssues:"Issues ({n})", fAll:"All days ({n})",
+  colDate:"Date", colOut:"Clock out", colIn:"Clock in", colStatus:"Status",
+  sched:"Sched", tagExc:"Exceptional", tagLate:"Late edit", tagPlanned:"Planned change",
+  rOk:"On time", rMissed:"Missed · 30", rLate:"{m} min", rExcused:"Missed action", rPending:"Not yet", rNodata:"Not in report",
+  stRed:"Fix within {n} day(s)", stRedToday:"Fix today", stBlack:"Deadline passed", stOk:"On time", stWait:"Waiting", stNodata:"No clock data",
+  deadline:"Deadline {date}", noIssues:"No issues in this period.", noDays:"No past days to compare yet.",
+  rulesTitle:"How it's calculated",
+  rules:[
+    "Seconds are dropped: 07:10:59 counts as 07:10.",
+    "Clock in is on time from 25 min before to 10 min after the scheduled time. Outside that, the delay is counted from the scheduled time (07:11 → 11 min, 06:34 → 26 min).",
+    "Clock out is on time from 5 min before to 25 min after (01:54 → 6 min, 02:26 → 26 min).",
+    "A missing punch counts as 30 min. No single delay counts more than 30 min.",
+    "If a punch is recorded twice, the last one counts.",
+    "“Missed Action” in the schedule means the punch was excused: 0 min.",
+    "An exceptional duty counts toward the monthly limit of 5 only if it was edited after the day started. In and out on the same day count once.",
+    "An exceptional duty must be made within 4 days to be approved. Red days can still be fixed; black days are past the deadline.",
+    "Today's punches are compared only if they appear in the report. Days outside the pasted clock data are not counted."
+  ],
+  excTitle:"Exceptional duties", excCounted:"Counted", excNot:"Not counted (edited before the day)", excLateEdit:"Late edit, may not be approved",
+  excEdited:"Edited {date} by {who}", excNone:"No exceptional duties in this period.",
+  copied:"Summary copied", copyFail:"Copy blocked, text selected instead",
+  cpHead:"Attendance check · Store {store} · {scope}", cpTotal:"Total delay: {t} min · Daily average {a} min (target under 1)",
+  cpMissed:"Missed punches: {n}", cpExc:"Exceptional duties {m}: {n}/5", cpBy:"By pharmacist: {list}", cpIssues:"Issues:", cpNone:"No issues."
+}};
+let LANG = "en";
+const t = (k, v = {}) => String((STR[LANG] && STR[LANG][k]) ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
+
+/* ---------- Date helpers (all times as naive local minutes, day numbers are UTC-based) ---------- */
+const MON = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const MONS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WDN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const WDS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const pad = n => String(n).padStart(2, "0");
+const dayOf = (y, m, d) => Date.UTC(y, m, d) / 864e5;
+const ymd = day => { const d = new Date(day * 864e5); return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate(), wd: d.getUTCDay() }; };
+const monthKey = day => { const x = ymd(day); return x.y + "-" + pad(x.m + 1); };
+const monthName = key => { const [y, m] = key.split("-"); return MONL[+m - 1] + " " + y; };
+const fmtDay = day => { const x = ymd(day); return x.d + " " + MONS[x.m]; };
+const fmtDayLong = day => { const x = ymd(day); return WDS[x.wd] + " " + x.d + " " + MONS[x.m]; };
+const fmt12 = min => { const m = ((min % 1440) + 1440) % 1440, h = Math.floor(m / 60); return ((h % 12) || 12) + ":" + pad(m % 60) + " " + (h < 12 ? "AM" : "PM"); };
+function nowParts() { const n = new Date(); const today = dayOf(n.getFullYear(), n.getMonth(), n.getDate()); return { today, nowMin: today * 1440 + n.getHours() * 60 + n.getMinutes() }; }
+
+function parseTime12(s) {
+  s = (s || "").trim();
+  if (/missed\s*action/i.test(s)) return "MA";
+  const m = s.match(/^(\d{1,2}):(\d{2})\s*([AP])\.?M\.?$/i);
+  if (!m) return null;
+  let h = +m[1] % 12; if (/p/i.test(m[3])) h += 12;
+  return h * 60 + +m[2];
+}
+function parseStamp(s) { // 25-OCT-2026 07:05:06  or 25-SEP-2026 01:00
+  const m = (s || "").trim().match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})\s+(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const mo = MON.indexOf(m[2].toUpperCase()); if (mo < 0) return null;
+  return dayOf(+m[3], mo, +m[1]) * 1440 + +m[4] * 60 + +m[5];
+}
+
+/* ---------- Parsers ---------- */
+function parseClock(text) {
+  const seen = new Set(), recs = []; let dup = 0;
+  for (const line of (text || "").split(/\r?\n/)) {
+    let biz, id, name, code, ts;
+    const c = line.split("\t").map(s => s.trim());
+    if (c.length >= 7 && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(c[0])) { [biz, id, name] = c; code = c[5]; ts = c[6]; }
+    else {
+      const m = line.match(/^\s*(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d+)\s+(\S+).*?\b(DAY\s+IN|DAY\s+OUT)\s+(\d{1,2}-[A-Za-z]{3}-\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?)/i);
+      if (!m) continue; [, biz, id, name, code, ts] = m;
+    }
+    code = (code || "").toUpperCase().replace(/\s+/g, " ");
+    const side = code === "DAY IN" ? "in" : code === "DAY OUT" ? "out" : null;
+    if (!side) continue;
+    const b = biz.split("/").map(Number), tsMin = parseStamp(ts);
+    if (tsMin == null) continue;
+    const day = dayOf(b[2], b[0] - 1, b[1]);
+    const key = day + "|" + id + "|" + side + "|" + tsMin;
+    if (seen.has(key)) { dup++; continue; }
+    seen.add(key);
+    recs.push({ day, id, name: name || id, side, tsMin });
+  }
+  return { recs, dup };
+}
+
+function parseSchedule(text) {
+  const byDay = new Map(); let dup = 0, store = "";
+  for (const line of (text || "").split(/\r?\n/)) {
+    const c = line.split("\t").map(s => s.trim());
+    let st, dd, mon, wd, out, inn, type, by, upd;
+    let dm = c.length >= 6 && (c[1] || "").match(/^(\d{1,2})-([A-Za-z]{3})$/);
+    if (dm) { st = c[0]; dd = +dm[1]; mon = dm[2]; wd = c[2]; out = c[3]; inn = c[4]; type = c[5]; by = c[9] || ""; upd = c[10] || ""; }
+    else {
+      const m = line.match(/^\s*(\d+)\s+(\d{1,2})-([A-Za-z]{3})\s+([A-Za-z]+day)\s+(\d{1,2}:\d{2}\s*[AP]M|Missed Action)\s+(\d{1,2}:\d{2}\s*[AP]M|Missed Action)\s+(Target Submission|Exceptional Duty Change|[A-Za-z]+(?: [A-Za-z]+)*?)\s.*?(\S+@\S+)?\s+(\d{1,2}-[A-Za-z]{3}-\d{4}\s+\d{1,2}:\d{2})\s*$/i);
+      if (!m) continue;
+      [, st, dd, mon, wd, out, inn, type, by, upd] = m; dd = +dd;
+    }
+    const mo = MON.indexOf(mon.toUpperCase()); if (mo < 0) continue;
+    const updMin = parseStamp(upd);
+    const refYear = updMin != null ? ymd(Math.floor(updMin / 1440)).y : new Date().getFullYear();
+    const wdi = WDN.findIndex(w => w.toLowerCase() === (wd || "").toLowerCase());
+    let year = refYear;
+    for (const y of [refYear, refYear + 1, refYear - 1]) { if (wdi < 0 || ymd(dayOf(y, mo, dd)).wd === wdi) { year = y; break; } }
+    const day = dayOf(year, mo, dd);
+    const idm = (by || "").match(/\.(\d{3,})\./);
+    const row = { day, out: parseTime12(out), in: parseTime12(inn), outText: (out || "").trim(), inText: (inn || "").trim(),
+      type: (type || "").trim(), byId: idm ? idm[1] : (by || "").trim(), updMin };
+    if (!store) store = st;
+    const prev = byDay.get(day);
+    if (prev) { dup++; if ((row.updMin ?? 0) < (prev.updMin ?? 0)) continue; }
+    byDay.set(day, row);
+  }
+  return { byDay, dup, store };
+}
+
+/* ---------- Comparison ---------- */
+const WIN = { in: [-25, 10], out: [-5, 25] };
+const CAP = 30;
+
+function analyze(clock, sched, now) {
+  const { today, nowMin } = now;
+  // last punch per business day and side
+  const last = new Map(), names = new Map();
+  let minDay = Infinity, maxDay = -Infinity;
+  for (const r of clock.recs) {
+    names.set(r.id, r.name);
+    const k = r.day + "|" + r.side, p = last.get(k);
+    if (!p || r.tsMin >= p.tsMin) last.set(k, r);
+    if (r.day < minDay) minDay = r.day; if (r.day > maxDay) maxDay = r.day;
+  }
+  const days = [];
+  const excByMonth = new Map(); // monthKey -> list
+  for (const s of [...sched.byDay.values()].sort((a, b) => b.day - a.day)) {
+    const isExcType = s.type && !/target\s*submission/i.test(s.type);
+    const editedAfter = s.updMin != null && s.updMin >= s.day * 1440;
+    const counted = isExcType && editedAfter;
+    const editLag = s.updMin != null ? Math.floor(s.updMin / 1440) - s.day : null;
+    const lateEdit = counted && editLag > 4;
+    const exc = { counted, lateEdit, planned: isExcType && !editedAfter, byId: s.byId, updMin: s.updMin, day: s.day };
+    if (counted) { const mk = monthKey(s.day); if (!excByMonth.has(mk)) excByMonth.set(mk, []); excByMonth.get(mk).push(exc); }
+    if (s.day > today) continue;
+
+    const sides = {};
+    for (const side of ["out", "in"]) {
+      const S = s[side];
+      const cell = { side, schedText: S === "MA" ? "Missed Action" : (S == null ? "" : fmt12(S)), state: "none", minutes: 0, rec: null };
+      sides[side] = cell;
+      if (S == null) continue;
+      const rec = last.get(s.day + "|" + side) || null;
+      cell.rec = rec;
+      const inRange = clock.recs.length && s.day >= minDay && s.day <= maxDay;
+      if (S === "MA") { cell.state = "excused"; continue; }
+      if (rec) {
+        const diff = rec.tsMin - (s.day * 1440 + S);
+        cell.diff = diff;
+        const [lo, hi] = WIN[side];
+        if (diff >= lo && diff <= hi) cell.state = "ok";
+        else { cell.state = "late"; cell.minutes = Math.min(CAP, Math.abs(diff)); }
+      } else if (!inRange) cell.state = "nodata";
+      else if (s.day === today) cell.state = "pending";
+      else if (s.day === minDay) cell.state = "nodata"; // oldest day may be cut at a page boundary
+      else { cell.state = "missed"; cell.minutes = CAP; }
+    }
+    const list = [sides.out, sides.in].filter(c => c.state !== "none");
+    const minutes = list.reduce((a, c) => a + c.minutes, 0);
+    const compared = list.some(c => ["ok", "late", "missed", "excused"].includes(c.state));
+    const issue = minutes > 0;
+    let status = "wait", left = null;
+    if (issue) { const dl = s.day + 4; left = dl - today; status = left >= 0 ? "red" : "black"; }
+    else if (compared && list.every(c => c.state !== "pending")) status = "ok";
+    else if (list.every(c => c.state === "nodata")) status = "nodata";
+    days.push({ day: s.day, sides, minutes, compared, issue, status, left, exc });
+  }
+  return { days, excByMonth, names, minDay, maxDay };
+}
+
+function summarize(A, scope) {
+  const inScope = d => scope === "all" || monthKey(d) === scope;
+  const days = A.days.filter(d => inScope(d.day));
+  const compared = days.filter(d => d.compared);
+  const total = days.reduce((a, d) => a + d.minutes, 0);
+  const avg = compared.length ? total / compared.length : 0;
+  let missed = 0; const people = new Map();
+  for (const d of days) for (const c of [d.sides.out, d.sides.in]) {
+    if (c.state === "missed") missed++;
+    if (c.rec) { const k = c.rec.id; if (!people.has(k)) people.set(k, { id: k, name: c.rec.name, mins: 0 }); people.get(k).mins += c.minutes; }
+    else if (c.minutes) { if (!people.has("_")) people.set("_", { id: "", name: t("unassigned"), mins: 0 }); people.get("_").mins += c.minutes; }
+  }
+  const months = [...A.excByMonth.keys()].concat(days.map(d => monthKey(d.day)));
+  const monthSet = [...new Set(months)].filter(m => scope === "all" || m === scope).sort();
+  const exc = monthSet.map(m => { const l = A.excByMonth.get(m) || []; return { m, n: l.length, late: l.filter(e => e.lateEdit).length, list: l }; });
+  const red = days.filter(d => d.status === "red");
+  return { days, compared: compared.length, total, avg, missed, people: [...people.values()].sort((a, b) => b.mins - a.mins), exc, red };
+}
+
+/* ---------- Sample data (generated relative to today so colors stay meaningful) ---------- */
+function buildSample(now) {
+  const T = now.today, sl = [], cl = [];
+  const tmpl = { 6: [60, 900], 0: [60, 420], 1: [120, 420], 2: [120, 420], 3: [120, 420], 4: [120, 420], 5: [120, 900] };
+  const outOff = [-3, 4, -1, 6, 2, -2, 1, 8, -4, 3, 0, 5, -1, 2], inOff = [-12, 3, -5, 6, -20, 1, 8, -2, 4, -9, 2, 7, -15, 5];
+  const stamp = min => { const x = ymd(Math.floor(min / 1440)), m = ((min % 1440) + 1440) % 1440; return pad(x.d) + "-" + MON[x.m] + "-" + x.y + " " + pad(Math.floor(m / 60)) + ":" + pad(m % 60); };
+  const ppl = [["10001", "Ahmed"], ["10002", "Khaled"]];
+  for (let k = -13; k <= 2; k++) {
+    const day = T + k, x = ymd(day); let [o, i] = tmpl[x.wd]; let type = "Target Submission", upd = (day - 30) * 1440 + 60, by = "10001";
+    if (k === -9) { i += 30; type = "Exceptional Duty Change"; upd = (day + 1) * 1440 + 493; }
+    sl.push([" 9231", pad(x.d) + "-" + MON[x.m], WDN[x.wd], fmt12(o), fmt12(i), type, type === "Target Submission" ? "" : "Other", "", " 2", "private_message." + by + ".nahdiho@ops-center.opterus.net", stamp(upd)].join("\t"));
+    if (k > 0) continue;
+    const j = (k + 13) % 14, pOut = ppl[(j + 1) % 2], pIn = ppl[j % 2];
+    const biz = (x.m + 1) + "/" + x.d + "/" + x.y;
+    const outAt = day * 1440 + o + outOff[j];
+    let inAt = day * 1440 + i + (k === -2 ? 14 : k === -11 ? -27 : inOff[j]);
+    if (k !== -7 && now.nowMin > outAt) cl.push([biz, pOut[0], pOut[1], "PHARMACIST", "", "DAY OUT", stamp(outAt) + ":" + pad(17 + j)].join("\t"));
+    if (k < 0) cl.push([biz, pIn[0], pIn[1], "PHARMACIST", "", "DAY IN", stamp(inAt) + ":" + pad(31 + j)].join("\t"));
+  }
+  return { clock: cl.join("\n"), sched: sl.join("\n") };
+}
+
+/* ---------- UI ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+const state = { scope: null, filter: "issues", A: null, S: null, store: "", sample: false };
+
+function applyStrings() {
+  document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
+  $("clockIn").placeholder = t("clockPh"); $("schedIn").placeholder = t("schedPh");
+  document.title = t("title");
+}
+
+function setStatus(el, cls, html) { el.className = "parse " + cls; el.innerHTML = html; }
+const icoOk = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const icoInfo = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5" stroke-linecap="round"/></svg>';
+const icoWarn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l9.5 17h-19z" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.5v.3" stroke-linecap="round"/></svg>';
+
+function run() {
+  const now = nowParts();
+  const cTxt = $("clockIn").value, sTxt = $("schedIn").value;
+  const userClock = parseClock(cTxt), userSched = parseSchedule(sTxt);
+
+  // input status lines
+  if (!cTxt.trim()) setStatus($("clockStatus"), "idle", t("waiting"));
+  else if (!userClock.recs.length) setStatus($("clockStatus"), "bad", t("clockNone"));
+  else {
+    const ds = userClock.recs.map(r => r.day), ppl = new Set(userClock.recs.map(r => r.id));
+    setStatus($("clockStatus"), "good", icoOk + esc(t("clockOk", { n: userClock.recs.length, from: fmtDay(Math.min(...ds)), to: fmtDay(Math.max(...ds)), p: ppl.size, dup: userClock.dup ? t("dupNote", { d: userClock.dup }) : "" })));
+  }
+  if (!sTxt.trim()) setStatus($("schedStatus"), "idle", t("waiting"));
+  else if (!userSched.byDay.size) setStatus($("schedStatus"), "bad", t("schedNone"));
+  else {
+    const ms = [...new Set([...userSched.byDay.keys()].map(monthKey))].sort().map(monthName).join(", ");
+    setStatus($("schedStatus"), "good", icoOk + esc(t("schedOk", { n: userSched.byDay.size, months: ms, dup: userSched.dup ? t("dupNote", { d: userSched.dup }) : "" })));
+  }
+
+  const hasC = userClock.recs.length > 0, hasS = userSched.byDay.size > 0;
+  let clock = userClock, sched = userSched, note = "";
+  state.sample = false;
+  if (!hasC && !hasS) { const smp = buildSample(now); clock = parseClock(smp.clock); sched = parseSchedule(smp.sched); state.sample = true; note = "sample"; }
+  else if (!hasS) note = "needSched";
+  else if (!hasC) note = "needClock";
+
+  state.store = sched.store || "";
+  state.A = analyze(clock, sched, now);
+  const monthsAvail = [...new Set(state.A.days.map(d => monthKey(d.day)).concat([...state.A.excByMonth.keys()]))].sort();
+  if (!state.scope || (state.scope !== "all" && !monthsAvail.includes(state.scope))) {
+    const firstCompared = state.A.days.find(d => d.compared);
+    state.scope = firstCompared ? monthKey(firstCompared.day) : (monthsAvail[monthsAvail.length - 1] || "all");
+  }
+  state.monthsAvail = monthsAvail;
+  state.note = note;
+  render();
+}
+
+function render() {
+  const A = state.A, S = summarize(A, state.scope); state.S = S;
+  // store
+  const st = $("store"); st.hidden = !state.store; st.textContent = state.store ? "Store " + state.store : "";
+  // banner
+  let b = "";
+  if (state.note) b += `<div class="banner sample">${icoInfo}<span>${esc(t(state.note))}</span></div>`;
+  if (S.red.length) {
+    const earliest = Math.min(...S.red.map(d => d.day)) + 4;
+    b += `<div class="banner alert" style="margin-top:${state.note ? 8 : 0}px">${icoWarn}<span>${t("alert", { n: S.red.length, date: esc(fmtDayLong(earliest)) })}</span></div>`;
+  }
+  $("banner").innerHTML = b;
+
+  // months
+  const mEl = $("months");
+  if (state.monthsAvail.length > 1) {
+    mEl.hidden = false;
+    mEl.innerHTML = `<span class="lbl">${esc(t("monthLbl"))}</span>` +
+      state.monthsAvail.slice().reverse().map(m => `<button type="button" class="chip-btn" data-scope="${m}" aria-pressed="${state.scope === m}">${esc(monthName(m))}</button>`).join("") +
+      `<button type="button" class="chip-btn" data-scope="all" aria-pressed="${state.scope === "all"}">${esc(t("allMonths"))}</button>`;
+  } else { mEl.hidden = true; mEl.innerHTML = ""; }
+
+  // summary cards
+  const avgBad = S.avg >= 1;
+  const excRows = S.exc.length ? S.exc.map(e => {
+    const lv = e.n >= 5 ? "lv-bad" : e.n >= 4 ? "lv-warn" : "lv-ok";
+    const segs = Array.from({ length: 5 }, (_, i) => `<i class="${i < e.n ? "on" : ""}"></i>`).join("");
+    return `<div class="meter-row"><span class="m">${esc(monthName(e.m).split(" ")[0].slice(0, 3))}</span><span class="meter ${lv}">${segs}</span><span class="c ${lv}">${e.n}/5</span></div>`;
+  }).join("") : `<div class="s">—</div>`;
+  const lateEdits = S.exc.reduce((a, e) => a + e.late, 0);
+  $("summary").innerHTML = `
+    <div class="card ${S.total ? "is-bad" : "is-ok"}"><div class="k">${esc(t("totalK"))}</div><div class="v">${S.total}<small>${esc(t("minUnit"))}</small></div><div class="s">${esc(t("totalS", { days: S.compared }))}</div></div>
+    <div class="card ${avgBad ? "is-bad" : "is-ok"}"><div class="k">${esc(t("avgK"))}</div><div class="v">${S.avg.toFixed(2)}<small>${esc(t("minUnit"))}</small></div><div class="s">${esc(t("avgS"))}</div></div>
+    <div class="card ${S.missed ? "is-bad" : ""}"><div class="k">${esc(t("missedK"))}</div><div class="v">${S.missed}</div><div class="s">${esc(t("missedS"))}</div></div>
+    <div class="card"><div class="k"><span>${esc(t("excK"))}</span><button type="button" class="tiny" id="excBtn">${esc(t("excView"))}</button></div>${excRows}<div class="s">${esc(t("excLimit", { n: lateEdits }))}</div></div>`;
+  $("excBtn").onclick = openExc;
+
+  // people
+  $("people").innerHTML = S.people.length ? `<span class="lbl">${esc(t("peopleLbl"))}</span>` + S.people.map(p =>
+    `<span class="person ${p.mins ? "has" : "zero"}"><b>${esc(p.name)}</b>${p.id ? `<span class="id">${esc(p.id)}</span>` : ""}<span class="mins">${p.mins} ${esc(t("minUnit"))}</span></span>`).join("") : "";
+
+  // filter buttons
+  const issues = S.days.filter(d => d.issue);
+  $("fIssues").textContent = t("fIssues", { n: issues.length });
+  $("fAll").textContent = t("fAll", { n: S.days.length });
+  $("fIssues").setAttribute("aria-pressed", state.filter === "issues");
+  $("fAll").setAttribute("aria-pressed", state.filter === "all");
+
+  const rows = state.filter === "issues" ? issues : S.days;
+  const head = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colOut"))}</span><span>${esc(t("colIn"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
+  $("days").innerHTML = rows.length ? head + rows.map(dayRow).join("") :
+    `<div class="empty">${esc(S.days.length ? t("noIssues") : t("noDays"))}</div>`;
+}
+
+function sideCell(c, labelKey) {
+  if (c.state === "none") return `<div class="side"><span class="lab">${esc(t(labelKey))}</span><span class="who">—</span></div>`;
+  const act = c.rec ? fmt12(c.rec.tsMin) : "—";
+  const res = c.state === "ok" ? t("rOk") : c.state === "late" ? t("rLate", { m: c.minutes }) : c.state === "missed" ? t("rMissed")
+    : c.state === "excused" ? t("rExcused") : c.state === "pending" ? t("rPending") : t("rNodata");
+  const who = c.rec ? esc(c.rec.name) + " · " + esc(c.rec.id) : (c.state === "missed" ? esc(t("unassigned")) : "");
+  const sch = c.state === "excused" ? "" : `<span class="sch">${esc(t("sched"))} ${esc(c.schedText)}</span><span class="arr">→</span>`;
+  return `<div class="side"><span class="lab">${esc(t(labelKey))}</span>
+    <span class="times">${sch}<span>${esc(act)}</span><span class="res ${c.state}">${esc(res)}</span></span>
+    ${who ? `<span class="who">${who}</span>` : ""}</div>`;
+}
+
+function dayRow(d) {
+  const x = ymd(d.day);
+  const tags = [];
+  if (d.exc.counted) tags.push(`<span class="tag exc">${esc(t("tagExc"))}</span>`);
+  if (d.exc.lateEdit) tags.push(`<span class="tag late">${esc(t("tagLate"))}</span>`);
+  if (d.exc.planned) tags.push(`<span class="tag">${esc(t("tagPlanned"))}</span>`);
+  let pill;
+  if (d.status === "red") pill = `<span class="pill red">${esc(d.left === 0 ? t("stRedToday") : t("stRed", { n: d.left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDay(d.day + 4) }))}</span>`;
+  else if (d.status === "black") pill = `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${d.minutes} ${esc(t("minUnit"))}</span>`;
+  else if (d.status === "ok") pill = `<span class="pill ok">${esc(t("stOk"))}</span>`;
+  else if (d.status === "nodata") pill = `<span class="pill wait">${esc(t("stNodata"))}</span>`;
+  else pill = `<span class="pill wait">${esc(t("stWait"))}</span>`;
+  if (d.status === "red") pill = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("minUnit"))}</span>` + pill;
+  return `<div class="drow st-${d.status}">
+    <div class="date"><b>${x.d} ${MONS[x.m]}</b><span class="wd">${WDN[x.wd]}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
+    ${sideCell(d.sides.out, "colOut")}
+    ${sideCell(d.sides.in, "colIn")}
+    <div class="status">${pill}</div></div>`;
+}
+
+/* ---------- Modal, copy, toast ---------- */
+function openModal(html) { $("modalBody").innerHTML = html; $("modal").hidden = false; $("modalX").focus(); }
+function closeModal() { $("modal").hidden = true; }
+function openRules() {
+  openModal(`<h3>${esc(t("rulesTitle"))}</h3><ul>${STR[LANG].rules.map(r => `<li>${esc(r)}</li>`).join("")}</ul>`);
+}
+function openExc() {
+  const items = state.S.exc.flatMap(e => e.list).sort((a, b) => a.day - b.day);
+  const body = items.length ? `<ul class="exc-list">${items.map(e => {
+    const who = (state.A.names.get(e.byId) ? state.A.names.get(e.byId) + " · " : "") + e.byId;
+    const ed = e.updMin != null ? fmtDay(Math.floor(e.updMin / 1440)) + " " + fmt12(e.updMin) : "—";
+    return `<li><span><b>${esc(fmtDayLong(e.day))}</b><br><span class="meta">${esc(t("excEdited", { date: ed, who }))}</span></span>
+      <span class="${e.lateEdit ? "res late" : "res excused"}" style="align-self:center;white-space:nowrap">${esc(e.lateEdit ? t("excLateEdit") : t("excCounted"))}</span></li>`;
+  }).join("")}</ul>` : `<p class="meta">${esc(t("excNone"))}</p>`;
+  openModal(`<h3>${esc(t("excTitle"))}</h3>${body}`);
+}
+function toast(msg) {
+  const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+function summaryText() {
+  const S = state.S, scope = state.scope === "all" ? t("allMonths") : monthName(state.scope);
+  const L = [t("cpHead", { store: state.store || "—", scope }), t("cpTotal", { t: S.total, a: S.avg.toFixed(2) }), t("cpMissed", { n: S.missed })];
+  S.exc.forEach(e => L.push(t("cpExc", { m: monthName(e.m), n: e.n })));
+  if (S.people.length) L.push(t("cpBy", { list: S.people.map(p => p.name + " " + p.mins).join(" · ") }));
+  const iss = S.days.filter(d => d.issue);
+  L.push("", iss.length ? t("cpIssues") : t("cpNone"));
+  for (const d of iss) for (const c of [d.sides.out, d.sides.in]) {
+    if (!c.minutes) continue;
+    const label = t(c.side === "out" ? "colOut" : "colIn");
+    const act = c.rec ? fmt12(c.rec.tsMin) : "—";
+    const who = c.rec ? c.rec.name : t("unassigned");
+    L.push(`${fmtDayLong(d.day)} · ${label} · ${t("sched")} ${c.schedText} · ${act} · ${c.minutes} ${t("minUnit")} · ${who}`);
+  }
+  return L.join("\n");
+}
+function copySummary() {
+  const txt = summaryText();
+  const fallback = () => { openModal(`<h3>${esc(t("copy"))}</h3><textarea id="cpTa" style="min-height:240px">${esc(txt)}</textarea>`); const ta = $("cpTa"); ta.focus(); ta.select(); toast(t("copyFail")); };
+  try { navigator.clipboard.writeText(txt).then(() => toast(t("copied")), fallback); } catch (e) { fallback(); }
+}
+
+/* ---------- Boot ---------- */
+function boot() {
+  applyStrings();
+  let timer;
+  const schedule = () => { clearTimeout(timer); timer = setTimeout(run, 200); };
+  for (const id of ["clockIn", "schedIn"]) {
+    const ta = $(id);
+    ta.addEventListener("input", schedule);
+    // when the box already has data, a new paste is appended so several pages can be stacked
+    ta.addEventListener("paste", e => {
+      const txt = e.clipboardData && e.clipboardData.getData("text");
+      if (!txt || !ta.value.trim() || ta.selectionStart !== ta.selectionEnd) return;
+      e.preventDefault(); ta.value = ta.value.replace(/\s*$/, "") + "\n" + txt; ta.scrollTop = ta.scrollHeight; schedule();
+    });
+  }
+  document.querySelectorAll("[data-clear]").forEach(b => b.addEventListener("click", () => { $(b.dataset.clear).value = ""; state.scope = null; run(); }));
+  $("months").addEventListener("click", e => { const b = e.target.closest("[data-scope]"); if (b) { state.scope = b.dataset.scope; render(); } });
+  $("fIssues").onclick = () => { state.filter = "issues"; render(); };
+  $("fAll").onclick = () => { state.filter = "all"; render(); };
+  $("rulesBtn").onclick = openRules;
+  $("copyBtn").onclick = copySummary;
+  $("modalX").onclick = closeModal;
+  $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+  run();
+}
+if (typeof document !== "undefined" && document.getElementById("clockIn")) boot();
+</script>
