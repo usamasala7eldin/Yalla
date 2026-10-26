@@ -81,6 +81,10 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .addbtn{align-self:flex-start;border:1px dashed var(--line);background:none;border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--accent)}
 .addbtn:hover{border-color:var(--accent)}
 .savednote{font-size:12.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:7px 10px}
+.usual{font-family:var(--f-mono);font-size:12px;color:var(--muted);border-top:1px dashed var(--line);padding-top:3px;margin-top:2px}
+.usual b{color:var(--bad);font-weight:600}
+.excsum{padding:10px 16px;font-size:13px;font-weight:600;color:var(--ok);background:var(--ok-soft);border-bottom:1px solid var(--line)}
+.excsum.has{color:var(--bad);background:var(--bad-soft)}
 .rowhint{grid-column:1/-1;font-size:12px;color:var(--bad);margin-top:-4px}
 
 /* Store bar */
@@ -295,6 +299,9 @@ const STR = { en: {
   colEdited:"Edited", colRules:"Rules", excWithin:"Within 4 days", excAfter:"After {n} days", excRank:"{r} of 5", excOverRank:"{r} of 5 · over limit",
   pillRulesOk:"Within rules", pillLate:"Late edit", pillOver:"Over limit", pillBoth:"Late and over limit",
   excStill:"Still {m} min late", excClear:"No delay after edit", tagOver:"Over limit",
+  usual:"Usual {time}", ifRejected:"If rejected: +{m} min", ifRejectedZero:"Breaks rules · +0 min", countedNow:"Counted now: {m} min",
+  excSum:"If late and over-limit duties are rejected: +{m} min across {n} day(s). Usual times are estimated from the same weekday.",
+  excSumOk:"All exceptional duties in this period follow the rules.",
   noAction:"Nothing needs action right now.", noExc:"No exceptional duties in this period.",
   colDate:"Date", colOut:"Clock out", colIn:"Clock in", colStatus:"Status",
   sched:"Planned", tagExc:"Exceptional", tagLate:"Late edit", tagPlanned:"Planned change",
@@ -386,10 +393,12 @@ function parseClock(text) {
 }
 
 function parseSchedule(text) {
-  const byDay = new Map(); let dup = 0, store = "";
+  const byDay = new Map(), template = {}; let dup = 0, store = "";
   for (const line of (text || "").split(/\r?\n/)) {
     const c = line.split("\t").map(s => s.trim());
     let st, dd, mon, wd, out, inn, type, by, upd;
+    const twd = WDN.findIndex(w => w.toLowerCase() === (c[1] || "").toLowerCase());
+    if (twd >= 0 && c.length >= 4 && parseTime12(c[2]) != null) { template[twd] = { out: parseTime12(c[2]), in: parseTime12(c[3]) }; continue; }
     let dm = c.length >= 6 && (c[1] || "").match(/^(\d{1,2})-([A-Za-z]{3})$/);
     if (dm) { st = c[0]; dd = +dm[1]; mon = dm[2]; wd = c[2]; out = c[3]; inn = c[4]; type = c[5]; by = c[9] || ""; upd = c[10] || ""; }
     else {
@@ -412,7 +421,7 @@ function parseSchedule(text) {
     if (prev) { dup++; if ((row.updMin ?? 0) < (prev.updMin ?? 0)) continue; }
     byDay.set(day, row);
   }
-  return { byDay, dup, store };
+  return { byDay, dup, store, template };
 }
 
 /* ---------- Comparison ---------- */
@@ -432,36 +441,56 @@ function analyze(clock, sched, now) {
   }
   const days = [];
   const excByMonth = new Map(); // monthKey -> list
+
+  // Usual planned time per month, weekday and side: the most common time on days without an exceptional duty.
+  const tally = new Map(), usual = new Map();
+  for (const r of sched.byDay.values()) {
+    if (r.type && !/target\s*submission/i.test(r.type)) continue;
+    const pre = monthKey(r.day) + "|" + ymd(r.day).wd + "|";
+    for (const side of ["out", "in"]) {
+      if (typeof r[side] !== "number") continue;
+      const m = tally.get(pre + side) || new Map();
+      m.set(r[side], (m.get(r[side]) || 0) + 1); tally.set(pre + side, m);
+    }
+  }
+  for (const [k, m] of tally) usual.set(k, [...m.entries()].sort((x, y) => y[1] - x[1])[0][0]);
+  const usualFor = (day, side) => {
+    const k = monthKey(day) + "|" + ymd(day).wd + "|" + side;
+    if (usual.has(k)) return usual.get(k);
+    const tp = sched.template && sched.template[ymd(day).wd];
+    return tp && typeof tp[side] === "number" ? tp[side] : null;
+  };
+  // Compare one punch with one planned time.
+  const judge = (side, S, rec, day, missState) => {
+    if (rec) {
+      const diff = rec.tsMin - (day * 1440 + S), [lo, hi] = WIN[side];
+      return diff >= lo && diff <= hi ? { state: "ok", minutes: 0, diff } : { state: "late", minutes: Math.min(CAP, Math.abs(diff)), diff };
+    }
+    return missState === "missed" ? { state: "missed", minutes: CAP } : { state: missState, minutes: 0 };
+  };
+
   for (const s of [...sched.byDay.values()].sort((a, b) => b.day - a.day)) {
     const isExcType = s.type && !/target\s*submission/i.test(s.type);
     const editedAfter = s.updMin != null && s.updMin >= s.day * 1440;
     const counted = isExcType && editedAfter;
     const editLag = s.updMin != null ? Math.floor(s.updMin / 1440) - s.day : null;
     const lateEdit = counted && editLag > 4;
-    const exc = { counted, lateEdit, editLag, rank: 0, over: false, planned: isExcType && !editedAfter, byId: s.byId, updMin: s.updMin, day: s.day };
+    const exc = { counted, lateEdit, editLag, rank: 0, over: false, planned: isExcType && !editedAfter, byId: s.byId, updMin: s.updMin, day: s.day, alt: null, added: 0, dayRef: null };
     if (counted) { const mk = monthKey(s.day); if (!excByMonth.has(mk)) excByMonth.set(mk, []); excByMonth.get(mk).push(exc); }
     if (s.day > today) continue;
 
+    const inRange = clock.recs.length && s.day >= minDay && s.day <= maxDay;
+    const missState = !inRange ? "nodata" : s.day === today ? "pending" : s.day === minDay ? "nodata" : "missed"; // oldest day may be cut at a page boundary
     const sides = {};
     for (const side of ["out", "in"]) {
       const S = s[side];
-      const cell = { side, schedText: S === "MA" ? "Missed Action" : (S == null ? "" : fmt12(S)), state: "none", minutes: 0, rec: null };
+      const cell = { side, S, schedText: S === "MA" ? "Missed Action" : (S == null ? "" : fmt12(S)), state: "none", minutes: 0, rec: null };
       sides[side] = cell;
       if (S == null) continue;
       const rec = last.get(s.day + "|" + side) || null;
       cell.rec = rec;
-      const inRange = clock.recs.length && s.day >= minDay && s.day <= maxDay;
       if (S === "MA") { cell.state = "excused"; continue; }
-      if (rec) {
-        const diff = rec.tsMin - (s.day * 1440 + S);
-        cell.diff = diff;
-        const [lo, hi] = WIN[side];
-        if (diff >= lo && diff <= hi) cell.state = "ok";
-        else { cell.state = "late"; cell.minutes = Math.min(CAP, Math.abs(diff)); }
-      } else if (!inRange) cell.state = "nodata";
-      else if (s.day === today) cell.state = "pending";
-      else if (s.day === minDay) cell.state = "nodata"; // oldest day may be cut at a page boundary
-      else { cell.state = "missed"; cell.minutes = CAP; }
+      Object.assign(cell, judge(side, S, rec, s.day, missState));
     }
     const list = [sides.out, sides.in].filter(c => c.state !== "none");
     const minutes = list.reduce((a, c) => a + c.minutes, 0);
@@ -471,7 +500,20 @@ function analyze(clock, sched, now) {
     if (issue) { const dl = s.day + 4; left = dl - today; status = left >= 0 ? "red" : "black"; }
     else if (compared && list.every(c => c.state !== "pending")) status = "ok";
     else if (list.every(c => c.state === "nodata")) status = "nodata";
-    days.push({ day: s.day, sides, minutes, compared, issue, status, left, exc });
+    const dayObj = { day: s.day, sides, minutes, compared, issue, status, left, exc };
+    days.push(dayObj);
+
+    // What would count if this exceptional duty were rejected: compare with the usual time instead.
+    if (counted) {
+      const alt = {}; let altTotal = 0;
+      for (const side of ["out", "in"]) {
+        const c = sides[side], U = usualFor(s.day, side);
+        if (c.state === "none" || U == null || U === c.S) { alt[side] = null; altTotal += c.minutes; continue; }
+        alt[side] = Object.assign({ usual: U }, judge(side, U, c.rec, s.day, missState));
+        altTotal += alt[side].minutes;
+      }
+      exc.alt = alt; exc.added = Math.max(0, altTotal - minutes); exc.dayRef = dayObj;
+    }
   }
   // The monthly limit of 5 is counted in the order the edits were made.
   for (const list of excByMonth.values()) {
@@ -709,7 +751,7 @@ function run() {
   renderStoreBar();
   const useCloud = API_URL && cloud.status === "loaded" && cloud.store && (!userSched.store || userSched.store === cloud.store);
   const clock = useCloud ? mergeClock(cloud.recs, userClock.recs) : userClock;
-  const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: userSched.store || (useCloud ? cloud.store : "") };
+  const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: userSched.store || (useCloud ? cloud.store : ""), template: userSched.template };
   const hasC = clock.recs.length > 0, hasS = sched.byDay.size > 0;
   const savedMonths = useCloud ? [...new Set([...cloud.byDay.keys()].map(monthKey))].sort() : [];
   const note = $("schedSaved");
@@ -737,7 +779,11 @@ function run() {
 
   state.A = analyze(clock, sched, now);
   const monthsAvail = [...new Set(state.A.days.map(d => monthKey(d.day)).concat([...state.A.excByMonth.keys()]))].sort();
-  if (!state.scope || (state.scope !== "all" && !monthsAvail.includes(state.scope))) state.scope = "all";
+  if (!state.scope || (state.scope !== "all" && !monthsAvail.includes(state.scope))) {
+    const cur = monthKey(now.today);
+    const withData = state.A.days.filter(d => d.compared).map(d => monthKey(d.day));
+    state.scope = withData.includes(cur) ? cur : (withData[0] || monthsAvail[monthsAvail.length - 1] || "all");
+  }
   state.monthsAvail = monthsAvail;
   render();
 }
@@ -749,9 +795,10 @@ function render() {
   if (state.missingMonths && state.missingMonths.length) {
     b += `<div class="banner sample" style="margin-bottom:8px">${icoInfo}<span>${esc(t("schedMissing", { months: state.missingMonths.map(monthName).join(", ") }))}</span></div>`;
   }
-  if (S.red.length) {
-    const earliest = Math.min(...S.red.map(d => d.day)) + 4;
-    b += `<div class="banner alert">${icoWarn}<span>${t("alert", { n: S.red.length, date: esc(fmtDayLong(earliest)) })}</span></div>`;
+  const allRed = A.days.filter(d => d.status === "red");
+  if (allRed.length) {
+    const earliest = Math.min(...allRed.map(d => d.day)) + 4;
+    b += `<div class="banner alert">${icoWarn}<span>${t("alert", { n: allRed.length, date: esc(fmtDayLong(earliest)) })}</span></div>`;
   }
   $("banner").innerHTML = b;
 
@@ -785,7 +832,7 @@ function render() {
 
   // filter buttons
   const issues = S.days.filter(d => d.issue);
-  const action = S.days.filter(d => d.status === "red" && !d.exc.counted).sort((a, b) => a.day - b.day);
+  const action = A.days.filter(d => d.status === "red" && !d.exc.counted).sort((a, b) => a.day - b.day);
   const excList = S.exc.flatMap(e => e.list).sort((a, b) => b.day - a.day);
   $("fIssues").textContent = t("fIssues", { n: issues.length });
   $("fAction").textContent = t("fAction", { n: action.length });
@@ -793,20 +840,20 @@ function render() {
   $("fAll").textContent = t("fAll", { n: S.days.length });
   for (const id of ["fIssues", "fAction", "fExc", "fAll"]) $(id).setAttribute("aria-pressed", state.filter === $(id).dataset.f);
 
+  const head = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colOut"))}</span><span>${esc(t("colIn"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
   if (state.filter === "exc") {
-    const byDay = new Map(S.days.map(d => [d.day, d]));
-    const h = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colEdited"))}</span><span>${esc(t("colRules"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
-    $("days").innerHTML = excList.length ? h + excList.map(e => excRow(e, byDay.get(e.day))).join("") : `<div class="empty">${esc(t("noExc"))}</div>`;
+    const bad = excList.filter(e => e.lateEdit || e.over);
+    const added = bad.reduce((a, e) => a + e.added, 0);
+    const sum = `<div class="excsum ${bad.length ? "has" : ""}">${esc(bad.length ? t("excSum", { m: added, n: bad.length }) : t("excSumOk"))}</div>`;
+    $("days").innerHTML = excList.length ? sum + head + excList.map(excRow).join("") : `<div class="empty">${esc(t("noExc"))}</div>`;
     return;
   }
-
   const rows = state.filter === "issues" ? issues : state.filter === "action" ? action : S.days;
-  const head = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colOut"))}</span><span>${esc(t("colIn"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
   $("days").innerHTML = rows.length ? head + rows.map(d => dayRow(d, state.filter === "action")).join("") :
     `<div class="empty">${esc(!S.days.length ? t("noDays") : state.filter === "action" ? t("noAction") : t("noIssues"))}</div>`;
 }
 
-function sideCell(c, labelKey) {
+function sideCell(c, labelKey, extra = "") {
   if (c.state === "none") return `<div class="side"><span class="lab">${esc(t(labelKey))}</span><span class="who">—</span></div>`;
   const act = c.rec ? fmt12(c.rec.tsMin) : "—";
   const res = c.state === "ok" ? t("rOk") : c.state === "late" ? t("rLate", { m: c.minutes }) : c.state === "missed" ? t("rMissed")
@@ -815,7 +862,7 @@ function sideCell(c, labelKey) {
   const sch = c.state === "excused" ? "" : `<span class="sch">${esc(t("sched"))} ${esc(c.schedText)}</span><span class="arr">→</span>`;
   return `<div class="side"><span class="lab">${esc(t(labelKey))}</span>
     <span class="times">${sch}<span>${esc(act)}</span><span class="res ${c.state}">${esc(res)}</span></span>
-    ${who ? `<span class="who">${who}</span>` : ""}</div>`;
+    ${who ? `<span class="who">${who}</span>` : ""}${extra}</div>`;
 }
 
 function dayRow(d, hint) {
@@ -840,21 +887,32 @@ function dayRow(d, hint) {
     ${hint ? `<div class="rowhint">${esc(t("rowHint"))}</div>` : ""}</div>`;
 }
 
-function excRow(e, d) {
-  const x = ymd(e.day);
+function excRow(e) {
+  const d = e.dayRef, x = ymd(e.day);
   const who = (state.A.names.get(e.byId) ? state.A.names.get(e.byId) + " · " : "") + e.byId;
   const ed = e.updMin != null ? fmtDay(Math.floor(e.updMin / 1440)) + ", " + fmt12(e.updMin) : "—";
-  const timing = e.lateEdit ? `<span class="res warn">${esc(t("excAfter", { n: e.editLag }))}</span>` : `<span class="res ok">${esc(t("excWithin"))}</span>`;
-  const limit = e.over ? `<span class="res late">${esc(t("excOverRank", { r: e.rank }))}</span>` : `<span class="res ok">${esc(t("excRank", { r: e.rank }))}</span>`;
-  const pill = e.lateEdit && e.over ? `<span class="pill bad">${esc(t("pillBoth"))}</span>` : e.over ? `<span class="pill bad">${esc(t("pillOver"))}</span>`
-    : e.lateEdit ? `<span class="pill warn">${esc(t("pillLate"))}</span>` : `<span class="pill ok">${esc(t("pillRulesOk"))}</span>`;
-  const after = d ? `<span class="mins">${esc(d.minutes ? t("excStill", { m: d.minutes }) : t("excClear"))}</span>` : "";
-  const st = e.lateEdit || e.over ? "black" : "ok";
-  return `<div class="drow st-${st}">
-    <div class="date"><b>${x.d} ${MONS[x.m]}</b><span class="wd">${WDN[x.wd]}</span></div>
-    <div class="side"><span class="lab">${esc(t("colEdited"))}</span><span class="times"><span>${esc(ed)}</span></span><span class="who">${esc(who)}</span></div>
-    <div class="side"><span class="lab">${esc(t("colRules"))}</span><span class="times">${timing}${limit}</span></div>
-    <div class="status">${pill}${after}</div></div>`;
+  const tags = [
+    e.lateEdit ? `<span class="tag late">${esc(t("excAfter", { n: e.editLag }))}</span>` : `<span class="tag exc">${esc(t("excWithin"))}</span>`,
+    e.over ? `<span class="tag over">${esc(t("excOverRank", { r: e.rank }))}</span>` : `<span class="tag">${esc(t("excRank", { r: e.rank }))}</span>`
+  ].join("");
+  const usualLine = side => {
+    const a = e.alt && e.alt[side]; if (!a) return "";
+    const res = a.minutes ? `<b>${esc(t("rLate", { m: a.minutes }))}</b>` : esc(t("rOk"));
+    return `<span class="usual">${esc(t("usual", { time: fmt12(a.usual) }))} → ${res}</span>`;
+  };
+  const bad = e.lateEdit || e.over;
+  let pill;
+  if (!bad) pill = `<span class="pill ok">${esc(t("pillRulesOk"))}</span>`;
+  else if (e.added) pill = `<span class="pill red">${esc(t("ifRejected", { m: e.added }))}</span>`;
+  else pill = `<span class="pill warn">${esc(t("ifRejectedZero"))}</span>`;
+  const now = d && d.minutes ? `<span class="mins">${esc(t("countedNow", { m: d.minutes }))}</span>` : "";
+  const edited = `<span class="mins">${esc(t("excEdited", { date: ed, who }))}</span>`;
+  const out = d ? sideCell(d.sides.out, "colOut", usualLine("out")) : `<div class="side"></div>`;
+  const inn = d ? sideCell(d.sides.in, "colIn", usualLine("in")) : `<div class="side"></div>`;
+  return `<div class="drow ${bad ? "st-red" : "st-ok"}">
+    <div class="date"><b>${x.d} ${MONS[x.m]}</b><span class="wd">${WDN[x.wd]}</span><div class="tags">${tags}</div></div>
+    ${out}${inn}
+    <div class="status">${pill}${now}${edited}</div></div>`;
 }
 
 /* ---------- Modal, copy, toast ---------- */
