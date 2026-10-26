@@ -1,0 +1,303 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Attendance Overview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Arabic:wght@500;700&display=swap">
+<style>
+/* Layout: one column — summary tiles, then one row per pharmacy that expands into its late days. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#f8faf9; --ink:#17201c; --muted:#5b6762; --line:#dde3e0;
+  --accent:#0c6a57; --accent-ink:#ffffff; --accent-soft:#e2efeb;
+  --ok:#1d7a4c; --ok-soft:#e5f3eb; --bad:#c32a2a; --bad-soft:#fcebea; --warn:#9a6200; --warn-soft:#fbf0d9;
+  --shadow:0 1px 2px rgba(20,32,28,.06),0 4px 14px rgba(20,32,28,.05);
+  --f-display:"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-ar:"Noto Sans Arabic","Segoe UI",Tahoma,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1211; --surface:#161b19; --surface-2:#1b211f; --ink:#e6ebe9; --muted:#9ba6a1; --line:#2a312e;
+  --accent:#4dbd9c; --accent-ink:#06231c; --accent-soft:#15302a;
+  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --warn:#e2a93b; --warn-soft:#2f240e;
+  --shadow:none; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e1211; --surface:#161b19; --surface-2:#1b211f; --ink:#e6ebe9; --muted:#9ba6a1; --line:#2a312e;
+  --accent:#4dbd9c; --accent-ink:#06231c; --accent-soft:#15302a;
+  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --warn:#e2a93b; --warn-soft:#2f240e;
+  --shadow:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,.prow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+bdi.ar{font-family:var(--f-ar)}
+
+/* Login */
+.login{max-width:360px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.login h1{margin:0;font-family:var(--f-display);font-size:22px;font-weight:800;letter-spacing:-.02em}
+.login p{margin:0;color:var(--muted)}
+.login input{font:inherit;font-size:16px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface-2);color:var(--ink)}
+.err{color:var(--bad);font-size:13px;min-height:18px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);padding:10px 12px;font-size:14px}
+.btn[disabled]{opacity:.6;cursor:default}
+.btn svg{width:16px;height:16px}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
+
+/* Header */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.02em;margin:0}
+.brand .sub{color:var(--muted);font-size:13px}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* Tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;box-shadow:var(--shadow)}
+.tile .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.tile .v{font-family:var(--f-display);font-weight:800;font-size:32px;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+.tile .v small{font-size:15px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}
+.tile .s{font-size:12.5px;color:var(--muted)}
+.tile.bad .v{color:var(--bad)} .tile.ok .v{color:var(--ok)} .tile.warn .v{color:var(--warn)}
+
+/* Pharmacy list */
+.list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.list-head h2{font-family:var(--f-display);font-size:17px;font-weight:700;margin:0}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.prow{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr .9fr 1.2fr;gap:14px;align-items:center;padding:12px 14px 12px 16px;border-top:1px solid var(--line);position:relative;cursor:pointer}
+.prow:first-child{border-top:0}
+.prow.colhead{cursor:default;background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding-block:8px}
+.prow::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
+.prow.st-red{background:var(--bad-soft)} .prow.st-red::before{background:var(--bad)}
+.prow.st-warn::before{background:var(--warn)}
+.prow:not(.colhead):hover{background:var(--surface-2)}
+.prow.st-red:hover{background:var(--bad-soft)}
+.cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cell .lab{display:none;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.name b{font-size:15px;font-weight:700}
+.name .code{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.small{font-size:12.5px;color:var(--muted)}
+.pill{display:inline-flex;align-self:flex-start;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad);color:#fff}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.mute{color:var(--muted);border:1px dashed var(--line)}
+.mins{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums}
+.mins.bad{color:var(--bad)} .mins.ok{color:var(--ok)}
+.meter{display:flex;gap:3px;width:100%;max-width:110px}
+.meter i{flex:1;height:9px;border-radius:2px;background:var(--line)}
+.meter.lv-ok i.on{background:var(--accent)} .meter.lv-warn i.on{background:var(--warn)} .meter.lv-bad i.on{background:var(--bad)}
+.chev{position:absolute;right:12px;top:50%;width:14px;height:14px;transform:translateY(-50%);color:var(--muted);transition:transform .15s}
+.prow[aria-expanded="true"] .chev{transform:translateY(-50%) rotate(180deg)}
+
+/* Details */
+.details{border-top:1px solid var(--line);background:var(--surface-2);padding:12px 16px 14px;display:flex;flex-direction:column;gap:10px}
+.details h3{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.drow{display:grid;grid-template-columns:120px 1fr 1fr 130px;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.drow.red{border-color:var(--bad)}
+.drow .times{font-family:var(--f-mono);font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.drow .who{font-size:12px;color:var(--muted)}
+.res{font-family:var(--f-mono);font-size:12px;font-weight:600;border-radius:5px;padding:1px 6px}
+.res.ok{color:var(--ok);background:var(--ok-soft)} .res.bad{color:#fff;background:var(--bad)}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
+.none{color:var(--muted);font-size:13px}
+.state{padding:28px 16px;text-align:center;color:var(--muted)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:900px){ .tiles{grid-template-columns:1fr 1fr} }
+@media (max-width:760px){
+  .prow.colhead{display:none}
+  .prow{grid-template-columns:1fr 1fr;gap:10px 14px;padding-right:34px}
+  .prow .name{grid-column:1/-1}
+  .cell .lab{display:block}
+  .drow{grid-template-columns:1fr 1fr}
+  .drow .right{align-items:flex-start;text-align:left}
+  .tile .v{font-size:27px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <form class="login" id="login" hidden>
+    <h1 data-t="title"></h1>
+    <p data-t="loginHint"></p>
+    <input id="pw" type="password" autocomplete="current-password">
+    <div class="err" id="loginErr"></div>
+    <button class="btn primary" id="loginBtn" type="submit" data-t="open"></button>
+  </form>
+
+  <div id="app" hidden>
+    <header class="top">
+      <div class="brand"><h1 data-t="title"></h1><div class="sub" id="sub"></div></div>
+      <div class="actions">
+        <button class="btn" id="refresh" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-t="refresh"></span>
+        </button>
+        <button class="linkbtn" id="signout" type="button" data-t="signOut"></button>
+      </div>
+    </header>
+    <section class="tiles" id="tiles"></section>
+    <section>
+      <div class="list-head" style="margin-bottom:10px"><h2 data-t="pharmacies"></h2><span class="small" data-t="tapHint"></span></div>
+      <div class="list" id="list"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ---------- Strings (localization-ready) ---------- */
+const STR = { en: {
+  title: "Attendance Overview", loginHint: "Enter the supervisor password.", open: "Open", opening: "Opening…",
+  wrongPw: "Wrong password. Try again.", noPw: "No supervisor password has been set yet.", netErr: "Couldn't load the data. Check the internet and try again.",
+  refresh: "Refresh", signOut: "Sign out", updated: "{date} · updated {time}", pharmacies: "Pharmacies", tapHint: "Tap a pharmacy to see its late days",
+  tSaved: "Saved today", tSavedS: "{n} not saved today", tDelay: "Delay this month", tDelayS: "{n} pharmacy(ies) with delay", tAction: "Need exceptional duty", tActionS: "Days still inside the 4-day window",
+  tStale: "Data behind", tStaleS: "Latest day older than yesterday", min: "min",
+  cPharmacy: "Pharmacy", cSaved: "Last saved", cData: "Data up to", cDelay: "Delay this month", cExc: "Exceptional", cAction: "Needs action",
+  today: "Today {time}", yesterday: "Yesterday {time}", daysAgo: "{n} days ago", never: "Never saved", noData: "No data",
+  avg: "{a} min per day", days: "{n} day(s)", actionPill: "{n} day(s) · by {date}", actionNone: "Nothing due",
+  dAction: "Needs an exceptional duty", dIssues: "Late days this month", dNone: "No late days this month.",
+  out: "Out", in: "In", planned: "Planned", left0: "Fix today", leftN: "{n} day(s) left", deadline: "Deadline {date}", exc: "Exceptional duty"
+}};
+let LANG = "en";
+const t = (k, v = {}) => String((STR[LANG] && STR[LANG][k]) ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
+
+/* ---------- Setup ---------- */
+// The same Web app link used by the attendance page.
+const API_URL = "https://script.google.com/macros/s/AKfycbxai2MWsrqVcLeKrvV4wa1dQYzbBI3eNEZM11Ke3pKl6NZDH39XInlJzBqO0uNdQLxcZA/exec";
+const PW_KEY = "attendanceSupervisorPw";
+const MONS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const WDS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pad = n => String(n).padStart(2, "0");
+const store = { get() { try { return localStorage.getItem(PW_KEY) || ""; } catch (e) { return ""; } },
+  set(v) { try { localStorage.setItem(PW_KEY, v); } catch (e) {} }, clear() { try { localStorage.removeItem(PW_KEY); } catch (e) {} } };
+const dayNum = s => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+const fmtDay = s => { if (!s) return ""; const d = new Date(dayNum(s) * 864e5); return d.getUTCDate() + " " + MONS[d.getUTCMonth()]; };
+const fmtTime = d => { const h = d.getHours(); return ((h % 12) || 12) + ":" + pad(d.getMinutes()) + " " + (h < 12 ? "AM" : "PM"); };
+const state = { data: null, open: new Set(), pw: "" };
+
+function applyStrings() { document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t)); document.title = t("title"); }
+
+async function fetchData(pw) {
+  const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "dashboard", password: pw }) });
+  return res.json();
+}
+
+function showLogin(msg) {
+  $("app").hidden = true; $("login").hidden = false;
+  $("loginErr").textContent = msg || ""; $("pw").value = ""; $("pw").focus();
+}
+
+async function load(pw, fromLogin) {
+  const btn = fromLogin ? $("loginBtn") : $("refresh");
+  btn.disabled = true;
+  if (fromLogin) btn.textContent = t("opening");
+  else if (!state.data) { $("app").hidden = false; $("list").innerHTML = `<div class="state"><span class="spin"></span></div>`; }
+  try {
+    const data = await fetchData(pw);
+    if (!data.ok) {
+      if (data.auth === false) { store.clear(); showLogin(t("wrongPw")); }
+      else showLogin(data.error && /password/i.test(data.error) ? t("noPw") : t("netErr"));
+      return;
+    }
+    state.pw = pw; store.set(pw); state.data = data; state.loadedAt = new Date();
+    $("login").hidden = true; $("app").hidden = false; render();
+  } catch (e) {
+    if (fromLogin || !state.data) showLogin(t("netErr")); else $("sub").textContent = t("netErr");
+  } finally {
+    btn.disabled = false; if (fromLogin) btn.textContent = t("open");
+  }
+}
+
+function savedInfo(p, todayN) {
+  if (!p.lastSaved) return { text: t("never"), cls: "bad", today: false };
+  const d = new Date(p.lastSaved), dn = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5, diff = todayN - dn;
+  if (diff <= 0) return { text: t("today", { time: fmtTime(d) }), cls: "ok", today: true };
+  if (diff === 1) return { text: t("yesterday", { time: fmtTime(d) }), cls: "warn", today: false };
+  return { text: t("daysAgo", { n: diff }), cls: "bad", today: false };
+}
+
+function render() {
+  const D = state.data, todayN = dayNum(D.today);
+  const now = state.loadedAt, td = new Date(todayN * 864e5);
+  $("sub").textContent = t("updated", { date: WDS[td.getUTCDay()] + " " + td.getUTCDate() + " " + MONS[td.getUTCMonth()], time: fmtTime(now) });
+
+  const list = D.pharmacies.map(p => {
+    const sv = savedInfo(p, todayN);
+    const stale = !p.latestDay || dayNum(p.latestDay) < todayN - 1;
+    return Object.assign({}, p, { sv, stale });
+  }).sort((a, b) => (b.action.length - a.action.length) || (a.sv.today - b.sv.today) || (b.monthMinutes - a.monthMinutes));
+
+  const savedToday = list.filter(p => p.sv.today).length;
+  const totalMin = list.reduce((a, p) => a + p.monthMinutes, 0);
+  const withDelay = list.filter(p => p.monthMinutes > 0).length;
+  const actionDays = list.reduce((a, p) => a + p.action.length, 0);
+  const stale = list.filter(p => p.stale).length;
+  $("tiles").innerHTML = `
+    <div class="tile ${savedToday === list.length ? "ok" : "warn"}"><div class="k">${esc(t("tSaved"))}</div><div class="v">${savedToday}<small>/ ${list.length}</small></div><div class="s">${esc(t("tSavedS", { n: list.length - savedToday }))}</div></div>
+    <div class="tile ${totalMin ? "bad" : "ok"}"><div class="k">${esc(t("tDelay"))}</div><div class="v">${totalMin}<small>${esc(t("min"))}</small></div><div class="s">${esc(t("tDelayS", { n: withDelay }))}</div></div>
+    <div class="tile ${actionDays ? "bad" : "ok"}"><div class="k">${esc(t("tAction"))}</div><div class="v">${actionDays}</div><div class="s">${esc(t("tActionS"))}</div></div>
+    <div class="tile ${stale ? "warn" : "ok"}"><div class="k">${esc(t("tStale"))}</div><div class="v">${stale}</div><div class="s">${esc(t("tStaleS"))}</div></div>`;
+
+  const head = `<div class="prow colhead"><span>${esc(t("cPharmacy"))}</span><span>${esc(t("cSaved"))}</span><span>${esc(t("cData"))}</span><span>${esc(t("cDelay"))}</span><span>${esc(t("cExc"))}</span><span>${esc(t("cAction"))}</span></div>`;
+  $("list").innerHTML = head + list.map(p => pharmacyRow(p, todayN)).join("");
+  $("list").querySelectorAll(".prow[data-code]").forEach(el => {
+    const toggle = () => { const c = el.dataset.code; state.open.has(c) ? state.open.delete(c) : state.open.add(c); render(); };
+    el.onclick = toggle; el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
+  });
+}
+
+function pharmacyRow(p, todayN) {
+  const open = state.open.has(p.code);
+  const avg = p.monthDays ? (p.monthMinutes / p.monthDays) : 0;
+  const lv = p.exceptions >= 5 ? "lv-bad" : p.exceptions >= 4 ? "lv-warn" : "lv-ok";
+  const segs = Array.from({ length: 5 }, (_, i) => `<i class="${i < p.exceptions ? "on" : ""}"></i>`).join("");
+  const firstDl = p.action.length ? p.action[0].deadline : "";
+  const actionCell = p.action.length ? `<span class="pill bad">${esc(t("actionPill", { n: p.action.length, date: fmtDay(firstDl) }))}</span>` : `<span class="pill ok">${esc(t("actionNone"))}</span>`;
+  const st = p.action.length ? "st-red" : (!p.sv.today || p.stale) ? "st-warn" : "";
+  const row = `<div class="prow ${st}" data-code="${esc(p.code)}" tabindex="0" role="button" aria-expanded="${open}">
+    <div class="cell name"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></div>
+    <div class="cell"><span class="lab">${esc(t("cSaved"))}</span><span class="pill ${p.sv.cls}">${esc(p.sv.text)}</span></div>
+    <div class="cell"><span class="lab">${esc(t("cData"))}</span><span class="${p.stale ? "mins bad" : "mins"}">${esc(p.latestDay ? fmtDay(p.latestDay) : t("noData"))}</span></div>
+    <div class="cell"><span class="lab">${esc(t("cDelay"))}</span><span class="mins ${p.monthMinutes ? "bad" : "ok"}">${p.monthMinutes} ${esc(t("min"))}</span><span class="small">${esc(t("avg", { a: avg.toFixed(2) }))}</span></div>
+    <div class="cell"><span class="lab">${esc(t("cExc"))}</span><span class="meter ${lv}">${segs}</span><span class="small num">${p.exceptions}/5</span></div>
+    <div class="cell"><span class="lab">${esc(t("cAction"))}</span>${actionCell}</div>
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>`;
+  if (!open) return row;
+  const act = p.action.length ? `<h3>${esc(t("dAction"))}</h3>` + p.action.map(x => dayLine(x, todayN, true)).join("") : "";
+  const iss = `<h3>${esc(t("dIssues"))}</h3>` + (p.issues.length ? p.issues.map(x => dayLine(x, todayN, false)).join("") : `<div class="none">${esc(t("dNone"))}</div>`);
+  return row + `<div class="details">${act}${iss}</div>`;
+}
+
+function dayLine(x, todayN, urgent) {
+  const side = (label, planned, actual, m, by) => {
+    if (!planned) return `<div></div>`;
+    const res = m ? `<span class="res bad">${m} ${esc(t("min"))}</span>` : `<span class="res ok">0</span>`;
+    return `<div><div class="times"><span class="small">${esc(label)}</span><span>${esc(planned)}</span><span class="small">→</span><span>${esc(actual || "—")}</span>${res}</div>${by ? `<div class="who"><bdi>${esc(by)}</bdi></div>` : ""}</div>`;
+  };
+  const left = dayNum(x.deadline) - todayN;
+  const right = urgent ? `<span class="pill bad">${esc(left <= 0 ? t("left0") : t("leftN", { n: left }))}</span><span class="small">${esc(t("deadline", { date: fmtDay(x.deadline) }))}</span>`
+    : `<span class="mins bad">${x.minutes} ${esc(t("min"))}</span>${x.exceptional ? `<span class="small">${esc(t("exc"))}</span>` : ""}`;
+  return `<div class="drow ${urgent ? "red" : ""}"><div><b>${esc(fmtDay(x.date))}</b><div class="small">${esc(x.weekday)}</div></div>
+    ${side(t("out"), x.outPlanned, x.outActual, x.outMin, x.outBy)}${side(t("in"), x.inPlanned, x.inActual, x.inMin, x.inBy)}<div class="right">${right}</div></div>`;
+}
+
+/* ---------- Boot ---------- */
+applyStrings();
+$("login").addEventListener("submit", e => { e.preventDefault(); const pw = $("pw").value.trim(); if (pw) load(pw, true); });
+$("refresh").onclick = () => load(state.pw, false);
+$("signout").onclick = () => { store.clear(); state.data = null; state.pw = ""; showLogin(""); };
+const saved = store.get();
+if (saved) load(saved, false); else showLogin("");
+</script>
