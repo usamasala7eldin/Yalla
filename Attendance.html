@@ -67,6 +67,19 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .parse.good{color:var(--ok)} .parse.bad{color:var(--bad)} .parse.idle{color:var(--muted)}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
 .linkbtn:hover{color:var(--ink)}
+.boxes{display:flex;flex-direction:column;gap:6px}
+.pbox{display:flex;align-items:center;gap:8px;border:1px dashed var(--line);border-radius:8px;background:var(--surface-2);padding:3px 4px 3px 3px}
+.pbox.filled{border-style:solid}
+.pbox textarea{flex:0 0 150px;width:150px;height:32px;min-height:0;max-height:32px;resize:none;overflow:hidden;white-space:nowrap;border:0;border-radius:6px;
+  background:var(--surface);color:var(--muted);font-size:11px;padding:7px 8px;line-height:1.4}
+.pbox textarea::placeholder{font-size:12px}
+.pmeta{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12.5px}
+.plabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plabel.good{color:var(--ok)} .plabel.bad{color:var(--bad)} .plabel.warn{color:var(--warn)} .plabel.idle{color:var(--muted)}
+.xbtn{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:2px 7px;border-radius:6px}
+.xbtn:hover{color:var(--bad);background:var(--bad-soft)}
+.addbtn{align-self:flex-start;border:1px dashed var(--line);background:none;border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.addbtn:hover{border-color:var(--accent)}
 
 /* Banners */
 .banner{border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:500}
@@ -192,20 +205,22 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
   <section class="inputs" aria-label="Reports">
     <div class="paste">
       <div class="paste-head">
-        <label for="clockIn"><span class="step">1</span><span data-t="clockLabel"></span></label>
-        <button class="linkbtn" type="button" data-clear="clockIn" data-t="clear"></button>
+        <label><span class="step">1</span><span data-t="clockLabel"></span></label>
+        <button class="linkbtn" type="button" data-clearall="clock" data-t="clearAll"></button>
       </div>
       <div class="hint" data-t="clockHint"></div>
-      <textarea id="clockIn" spellcheck="false"></textarea>
+      <div class="boxes" id="clockBoxes"></div>
+      <button class="addbtn" type="button" id="addClock">+ <span data-t="addPage"></span></button>
       <div class="parse idle" id="clockStatus"></div>
     </div>
     <div class="paste">
       <div class="paste-head">
-        <label for="schedIn"><span class="step">2</span><span data-t="schedLabel"></span></label>
-        <button class="linkbtn" type="button" data-clear="schedIn" data-t="clear"></button>
+        <label><span class="step">2</span><span data-t="schedLabel"></span></label>
+        <button class="linkbtn" type="button" data-clearall="sched" data-t="clearAll"></button>
       </div>
       <div class="hint" data-t="schedHint"></div>
-      <textarea id="schedIn" spellcheck="false"></textarea>
+      <div class="boxes" id="schedBoxes"></div>
+      <button class="addbtn" type="button" id="addSched">+ <span data-t="addMonth"></span></button>
       <div class="parse idle" id="schedStatus"></div>
     </div>
   </section>
@@ -235,15 +250,15 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 /* ---------- Strings (localization-ready: add another language object with the same keys) ---------- */
 const STR = { en: {
   title:"Attendance Check", copy:"Copy summary", clear:"Clear",
-  clockLabel:"Clock-in-out report", clockHint:"KSA Pharmacy Dashboard → Employee clock-in-out. Select all, copy, paste here. Paste more pages below; duplicates are ignored.",
-  clockPh:"Paste the clock-in-out page here…",
-  schedLabel:"Monthly schedule", schedHint:"Store Attendance Duty → Monthly Schedule. Paste one or more months; the weekly template is ignored.",
-  schedPh:"Paste the attendance duty page here…",
-  clockOk:"{n} punches · {from} – {to} · {p} pharmacist(s){dup}", clockNone:"No punches found. Copy the whole clock-in-out page, including the table rows.",
-  schedOk:"{n} days · {months}{dup}", schedNone:"No schedule days found. Copy the Monthly Schedule table, including the dated rows.",
+  clockLabel:"Employee InOut", clockHint:"Copy the whole page and paste it below. If the report has more than one page, add each page.",
+  schedLabel:"Store Attendance Duty", schedHint:"Copy the whole page and paste it below. Add each month you want to check.",
+  addPage:"Add page", addMonth:"Add month", clearAll:"Clear all", remove:"Remove", pastePh:"Click, then Ctrl+V",
+  boxNone:"Nothing found in this paste", boxDup:"Already added above", boxClock:"{n} punches · {from} – {to}", boxSched:"{months} · {n} days",
+  clockOk:"Total: {n} punches · {from} – {to} · {p} pharmacist(s)", clockNone:"No punches found. Copy the whole Employee InOut page, including the table rows.",
+  schedOk:"Total: {n} days · {months}", schedNone:"No days found. Copy the whole Store Attendance Duty page, including the dated rows.",
   dupNote:" · {d} duplicate(s) ignored", waiting:"Waiting for paste",
   empty:"Paste both reports above to see the results.",
-  needSched:"Clock data loaded. Paste the monthly schedule to compare.", needClock:"Schedule loaded. Paste the clock-in-out report to compare.",
+  needSched:"Employee InOut is loaded. Paste Store Attendance Duty to compare.", needClock:"Store Attendance Duty is loaded. Paste Employee InOut to compare.",
   alert:"<b>{n} day(s)</b> need an exceptional duty. Earliest deadline: <b>{date}</b>.",
   monthLbl:"Month", allMonths:"All",
   totalK:"Total delay", totalS:"{days} day(s) compared", minUnit:"min",
@@ -253,7 +268,7 @@ const STR = { en: {
   peopleLbl:"By pharmacist", unassigned:"Unassigned",
   daysTitle:"Days", fIssues:"Issues ({n})", fAll:"All days ({n})",
   colDate:"Date", colOut:"Clock out", colIn:"Clock in", colStatus:"Status",
-  sched:"Sched", tagExc:"Exceptional", tagLate:"Late edit", tagPlanned:"Planned change",
+  sched:"Planned", tagExc:"Exceptional", tagLate:"Late edit", tagPlanned:"Planned change",
   rOk:"On time", rMissed:"Missed · 30", rLate:"{m} min", rExcused:"Missed action", rPending:"Not yet", rNodata:"Not in report",
   stRed:"Fix within {n} day(s)", stRedToday:"Fix today", stBlack:"Deadline passed", stOk:"On time", stWait:"Waiting", stNodata:"No clock data",
   deadline:"Deadline {date}", noIssues:"No issues in this period.", noDays:"No past days to compare yet.",
@@ -451,8 +466,70 @@ const state = { scope: null, filter: "issues", A: null, S: null, store: "" };
 
 function applyStrings() {
   document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
-  $("clockIn").placeholder = t("clockPh"); $("schedIn").placeholder = t("schedPh");
   document.title = t("title");
+}
+
+/* ---------- Paste boxes (one paste per box) ---------- */
+let timer, boxSeq = 0;
+const schedule = () => { clearTimeout(timer); timer = setTimeout(run, 200); };
+const HOST = { clock: "clockBoxes", sched: "schedBoxes" };
+function addBox(kind, focus) {
+  const wrap = document.createElement("div"); wrap.className = "pbox";
+  const id = kind + "-" + (++boxSeq);
+  wrap.innerHTML = `<textarea id="${id}" spellcheck="false" rows="1" aria-label="${esc(t(kind === "clock" ? "clockLabel" : "schedLabel"))}"></textarea>
+    <div class="pmeta"><span class="plabel idle"></span><button type="button" class="xbtn" aria-label="${esc(t("remove"))}">×</button></div>`;
+  const ta = wrap.querySelector("textarea");
+  ta.placeholder = t("pastePh");
+  ta.addEventListener("paste", e => {
+    const txt = e.clipboardData && e.clipboardData.getData("text");
+    if (!txt) return;
+    e.preventDefault(); ta.value = txt; ta.scrollTop = 0; ta.scrollLeft = 0; schedule();
+  });
+  ta.addEventListener("input", schedule);
+  wrap.querySelector(".xbtn").onclick = () => {
+    const host = $(HOST[kind]);
+    if (host.children.length > 1) wrap.remove(); else ta.value = "";
+    run();
+  };
+  $(HOST[kind]).appendChild(wrap);
+  if (focus) ta.focus();
+}
+function boxLabel(box, cls, text) {
+  box.classList.toggle("filled", cls !== "idle");
+  const l = box.querySelector(".plabel"); l.className = "plabel " + cls; l.textContent = text;
+}
+function readClockBoxes() {
+  const seen = new Set(), texts = [];
+  for (const box of $(HOST.clock).children) {
+    const v = box.querySelector("textarea").value;
+    if (!v.trim()) { boxLabel(box, "idle", ""); continue; }
+    texts.push(v);
+    const r = parseClock(v).recs;
+    if (!r.length) { boxLabel(box, "bad", t("boxNone")); continue; }
+    const keys = r.map(x => x.day + "|" + x.id + "|" + x.side + "|" + x.tsMin);
+    const fresh = keys.filter(k => !seen.has(k)).length;
+    keys.forEach(k => seen.add(k));
+    const ds = r.map(x => x.day);
+    if (!fresh) boxLabel(box, "warn", t("boxDup"));
+    else boxLabel(box, "good", t("boxClock", { n: r.length, from: fmtDay(Math.min(...ds)), to: fmtDay(Math.max(...ds)) }));
+  }
+  return texts.join("\n");
+}
+function readSchedBoxes() {
+  const seen = new Set(), texts = [];
+  for (const box of $(HOST.sched).children) {
+    const v = box.querySelector("textarea").value;
+    if (!v.trim()) { boxLabel(box, "idle", ""); continue; }
+    texts.push(v);
+    const days = [...parseSchedule(v).byDay.keys()];
+    if (!days.length) { boxLabel(box, "bad", t("boxNone")); continue; }
+    const fresh = days.filter(d => !seen.has(d)).length;
+    days.forEach(d => seen.add(d));
+    const ms = [...new Set(days.map(monthKey))].sort().map(monthName).join(", ");
+    if (!fresh) boxLabel(box, "warn", t("boxDup"));
+    else boxLabel(box, "good", t("boxSched", { months: ms, n: days.length }));
+  }
+  return texts.join("\n");
 }
 
 function setStatus(el, cls, html) { el.className = "parse " + cls; el.innerHTML = html; }
@@ -462,17 +539,17 @@ const icoWarn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 
 function run() {
   const now = nowParts();
-  const cTxt = $("clockIn").value, sTxt = $("schedIn").value;
+  const cTxt = readClockBoxes(), sTxt = readSchedBoxes();
   const userClock = parseClock(cTxt), userSched = parseSchedule(sTxt);
 
   // input status lines
-  if (!cTxt.trim()) setStatus($("clockStatus"), "idle", t("waiting"));
+  if (!cTxt.trim()) setStatus($("clockStatus"), "idle", "");
   else if (!userClock.recs.length) setStatus($("clockStatus"), "bad", t("clockNone"));
   else {
     const ds = userClock.recs.map(r => r.day), ppl = new Set(userClock.recs.map(r => r.id));
     setStatus($("clockStatus"), "good", icoOk + esc(t("clockOk", { n: userClock.recs.length, from: fmtDay(Math.min(...ds)), to: fmtDay(Math.max(...ds)), p: ppl.size, dup: userClock.dup ? t("dupNote", { d: userClock.dup }) : "" })));
   }
-  if (!sTxt.trim()) setStatus($("schedStatus"), "idle", t("waiting"));
+  if (!sTxt.trim()) setStatus($("schedStatus"), "idle", "");
   else if (!userSched.byDay.size) setStatus($("schedStatus"), "bad", t("schedNone"));
   else {
     const ms = [...new Set([...userSched.byDay.keys()].map(monthKey))].sort().map(monthName).join(", ");
@@ -494,10 +571,7 @@ function run() {
 
   state.A = analyze(clock, sched, now);
   const monthsAvail = [...new Set(state.A.days.map(d => monthKey(d.day)).concat([...state.A.excByMonth.keys()]))].sort();
-  if (!state.scope || (state.scope !== "all" && !monthsAvail.includes(state.scope))) {
-    const firstCompared = state.A.days.find(d => d.compared);
-    state.scope = firstCompared ? monthKey(firstCompared.day) : (monthsAvail[monthsAvail.length - 1] || "all");
-  }
+  if (!state.scope || (state.scope !== "all" && !monthsAvail.includes(state.scope))) state.scope = "all";
   state.monthsAvail = monthsAvail;
   render();
 }
@@ -517,8 +591,8 @@ function render() {
   if (state.monthsAvail.length > 1) {
     mEl.hidden = false;
     mEl.innerHTML = `<span class="lbl">${esc(t("monthLbl"))}</span>` +
-      state.monthsAvail.slice().reverse().map(m => `<button type="button" class="chip-btn" data-scope="${m}" aria-pressed="${state.scope === m}">${esc(monthName(m))}</button>`).join("") +
-      `<button type="button" class="chip-btn" data-scope="all" aria-pressed="${state.scope === "all"}">${esc(t("allMonths"))}</button>`;
+      `<button type="button" class="chip-btn" data-scope="all" aria-pressed="${state.scope === "all"}">${esc(t("allMonths"))}</button>` +
+      state.monthsAvail.slice().reverse().map(m => `<button type="button" class="chip-btn" data-scope="${m}" aria-pressed="${state.scope === m}">${esc(monthName(m))}</button>`).join("");
   } else { mEl.hidden = true; mEl.innerHTML = ""; }
 
   // summary cards
@@ -630,19 +704,12 @@ function copySummary() {
 /* ---------- Boot ---------- */
 function boot() {
   applyStrings();
-  let timer;
-  const schedule = () => { clearTimeout(timer); timer = setTimeout(run, 200); };
-  for (const id of ["clockIn", "schedIn"]) {
-    const ta = $(id);
-    ta.addEventListener("input", schedule);
-    // when the box already has data, a new paste is appended so several pages can be stacked
-    ta.addEventListener("paste", e => {
-      const txt = e.clipboardData && e.clipboardData.getData("text");
-      if (!txt || !ta.value.trim() || ta.selectionStart !== ta.selectionEnd) return;
-      e.preventDefault(); ta.value = ta.value.replace(/\s*$/, "") + "\n" + txt; ta.scrollTop = ta.scrollHeight; schedule();
-    });
-  }
-  document.querySelectorAll("[data-clear]").forEach(b => b.addEventListener("click", () => { $(b.dataset.clear).value = ""; state.scope = null; run(); }));
+  addBox("clock"); addBox("sched");
+  $("addClock").onclick = () => addBox("clock", true);
+  $("addSched").onclick = () => addBox("sched", true);
+  document.querySelectorAll("[data-clearall]").forEach(b => b.addEventListener("click", () => {
+    const k = b.dataset.clearall; $(HOST[k]).innerHTML = ""; addBox(k); state.scope = null; run();
+  }));
   $("months").addEventListener("click", e => { const b = e.target.closest("[data-scope]"); if (b) { state.scope = b.dataset.scope; render(); } });
   $("fIssues").onclick = () => { state.filter = "issues"; render(); };
   $("fAll").onclick = () => { state.filter = "all"; render(); };
@@ -653,5 +720,5 @@ function boot() {
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
   run();
 }
-if (typeof document !== "undefined" && document.getElementById("clockIn")) boot();
+if (typeof document !== "undefined" && document.getElementById("clockBoxes")) boot();
 </script>
