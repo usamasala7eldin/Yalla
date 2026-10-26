@@ -80,6 +80,8 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .xbtn:hover{color:var(--bad);background:var(--bad-soft)}
 .addbtn{align-self:flex-start;border:1px dashed var(--line);background:none;border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--accent)}
 .addbtn:hover{border-color:var(--accent)}
+.savednote{font-size:12.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:7px 10px}
+.rowhint{grid-column:1/-1;font-size:12px;color:var(--bad);margin-top:-4px}
 
 /* Store bar */
 .storebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
@@ -238,6 +240,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
         <button class="linkbtn" type="button" data-clearall="sched" data-t="clearAll"></button>
       </div>
       <div class="hint" data-t="schedHint"></div>
+      <div class="savednote" id="schedSaved" hidden></div>
       <div class="boxes" id="schedBoxes"></div>
       <button class="addbtn" type="button" id="addSched">+ <span data-t="addMonth"></span></button>
       <div class="parse idle" id="schedStatus"></div>
@@ -315,7 +318,10 @@ const STR = { en: {
   save:"Save", saved:"Saved", saving:"Saving…", saveOk:"Saved for store {store}", saveFail:"Couldn't save. Check the internet and try again.",
   sbLoading:"Loading saved data for store {store}…", sbFinding:"Looking up the store from the pharmacists…",
   sbLoaded:"Store", sbLast:"Last saved {when}", sbNever:"Nothing saved yet for this store", sbSavedDays:"{p} saved punches · {d} saved schedule days",
-  sbChange:"Change store", sbAsk:"Which store is this? Enter the store code:", sbLoad:"Load", sbErr:"Couldn't reach the saved data. Check the internet and try again.", sbRetry:"Retry",
+  sbAsk:"We couldn't tell which store this is. Paste the Store Attendance Duty page too.", sbFromSched:"from the schedule", sbFromStaff:"detected from pharmacists",
+  schedSaved:"{months} schedule is saved. Paste it again only if you made a change.", schedMissing:"No schedule saved for {months}. Paste the Store Attendance Duty page for that month.",
+  rowHint:"Already made an exceptional duty? Paste the updated Store Attendance Duty page.",
+  sbErr:"Couldn't reach the saved data. Check the internet and try again.", sbRetry:"Retry",
   copied:"Summary copied", copyFail:"Copy blocked, text selected instead",
   cpHead:"Attendance check · Store {store} · {scope}", cpTotal:"Total delay: {t} min · Daily average {a} min (target under 1)",
   cpMissed:"Missed punches: {n}", cpExc:"Exceptional duties {m}: {n}/5", cpBy:"By pharmacist: {list}", cpIssues:"Issues:", cpNone:"No issues."
@@ -502,7 +508,7 @@ const state = { scope: null, filter: "issues", A: null, S: null, store: "" };
 /* ---------- Saving (Google Apps Script web app) ---------- */
 // Paste the Web app link that ends with /exec between the quotes.
 const API_URL = "https://script.google.com/macros/s/AKfycbxai2MWsrqVcLeKrvV4wa1dQYzbBI3eNEZM11Ke3pKl6NZDH39XInlJzBqO0uNdQLxcZA/exec";
-const cloud = { store: "", recs: [], byDay: new Map(), lastSaved: null, status: "idle", tried: "", manual: "", asking: false };
+const cloud = { store: "", recs: [], byDay: new Map(), lastSaved: null, status: "idle", tried: "", source: "" };
 
 const dateStr = day => { const x = ymd(day); return x.y + "-" + pad(x.m + 1) + "-" + pad(x.d); };
 const stampStr = min => dateStr(Math.floor(min / 1440)) + " " + pad(Math.floor((min % 1440) / 60)) + ":" + pad(min % 60);
@@ -554,7 +560,7 @@ async function loadCloud(params, key) {
   try {
     const res = await api(Object.assign({ action: "load" }, params));
     if (!res.store) { cloud.status = "ask"; cloud.store = ""; cloud.recs = []; cloud.byDay = new Map(); }
-    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded" }); }
+    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded", source: params.store ? "schedule" : "staff" }); }
   } catch (e) { cloud.status = "error"; }
   run();
 }
@@ -566,21 +572,15 @@ function renderStoreBar() {
   if (cloud.status === "loading") bar.innerHTML = spin + esc(t("sbLoading", { store: cloud.loadingStore }));
   else if (cloud.status === "finding") bar.innerHTML = spin + esc(t("sbFinding"));
   else if (cloud.status === "error") bar.innerHTML = `<span>${esc(t("sbErr"))}</span><button type="button" class="btn" id="sbRetry">${esc(t("sbRetry"))}</button>`;
-  else if (cloud.status === "ask" || cloud.asking) bar.innerHTML = `<span>${esc(t("sbAsk"))}</span><input id="sbCode" inputmode="numeric" autocomplete="off" value="${esc(cloud.manual)}"><button type="button" class="btn" id="sbLoad">${esc(t("sbLoad"))}</button>`;
+  else if (cloud.status === "ask") bar.innerHTML = `<span>${esc(t("sbAsk"))}</span>`;
   else {
     const when = cloud.lastSaved ? (() => { const d = new Date(cloud.lastSaved); return d.getDate() + " " + MONS[d.getMonth()] + ", " + fmt12(d.getHours() * 60 + d.getMinutes()); })() : null;
-    bar.innerHTML = `<span>${esc(t("sbLoaded"))} <span class="code">${esc(cloud.store)}</span></span><span class="muted">·</span>
+    const src = cloud.source === "schedule" ? t("sbFromSched") : t("sbFromStaff");
+    bar.innerHTML = `<span>${esc(t("sbLoaded"))} <span class="code">${esc(cloud.store)}</span></span><span class="muted">${esc(src)}</span><span class="muted">·</span>
       <span class="muted">${esc(when ? t("sbLast", { when }) : t("sbNever"))}</span><span class="muted">·</span>
-      <span class="muted">${esc(t("sbSavedDays", { p: cloud.recs.length, d: cloud.byDay.size }))}</span>
-      <button type="button" class="linkbtn" id="sbChange">${esc(t("sbChange"))}</button>`;
+      <span class="muted">${esc(t("sbSavedDays", { p: cloud.recs.length, d: cloud.byDay.size }))}</span>`;
   }
   const retry = $("sbRetry"); if (retry) retry.onclick = () => { cloud.tried = ""; run(); };
-  const ch = $("sbChange"); if (ch) ch.onclick = () => { cloud.asking = true; renderStoreBar(); $("sbCode").focus(); };
-  const go = $("sbLoad"), inp = $("sbCode");
-  if (go) {
-    const submit = () => { const v = inp.value.trim(); if (!/^\d{2,8}$/.test(v)) { inp.focus(); return; } cloud.manual = v; cloud.asking = false; cloud.tried = ""; run(); };
-    go.onclick = submit; inp.onkeydown = e => { if (e.key === "Enter") submit(); };
-  }
 }
 async function saveCloud() {
   const btn = $("saveBtn"); btn.disabled = true; $("saveLbl").textContent = t("saving");
@@ -701,8 +701,7 @@ function run() {
   // Work out which store this is, then load what was saved for it.
   if (API_URL) {
     const ids = [...new Set(userClock.recs.map(r => r.id))].sort();
-    let want = userSched.store || cloud.manual || "";
-    if (!want && cloud.store && ids.length && cloud.recs.some(r => ids.includes(r.id))) want = cloud.store;
+    const want = userSched.store || "";
     if (want) { if (cloud.tried !== "store:" + want) { loadCloud({ store: want }, "store:" + want); } }
     else if (ids.length >= 1) { const k = "ids:" + ids.join(","); if (cloud.tried !== k) loadCloud({ ids: ids.join(",") }, k); }
     else if (!userSched.byDay.size && !userClock.recs.length && cloud.status !== "loaded") { cloud.status = "idle"; }
@@ -712,6 +711,12 @@ function run() {
   const clock = useCloud ? mergeClock(cloud.recs, userClock.recs) : userClock;
   const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: userSched.store || (useCloud ? cloud.store : "") };
   const hasC = clock.recs.length > 0, hasS = sched.byDay.size > 0;
+  const savedMonths = useCloud ? [...new Set([...cloud.byDay.keys()].map(monthKey))].sort() : [];
+  const note = $("schedSaved");
+  note.hidden = !savedMonths.length;
+  note.textContent = savedMonths.length ? t("schedSaved", { months: savedMonths.map(monthName).join(", ") }) : "";
+  const schedMonths = new Set([...sched.byDay.keys()].map(monthKey));
+  state.missingMonths = [...new Set(clock.recs.map(r => monthKey(r.day)))].filter(m => !schedMonths.has(m)).sort();
   state.store = sched.store || "";
   const st = $("store"); st.hidden = !state.store; st.textContent = state.store ? "Store " + state.store : "";
   const ready = hasC && hasS;
@@ -741,6 +746,9 @@ function render() {
   const A = state.A, S = summarize(A, state.scope); state.S = S;
   // banner
   let b = "";
+  if (state.missingMonths && state.missingMonths.length) {
+    b += `<div class="banner sample" style="margin-bottom:8px">${icoInfo}<span>${esc(t("schedMissing", { months: state.missingMonths.map(monthName).join(", ") }))}</span></div>`;
+  }
   if (S.red.length) {
     const earliest = Math.min(...S.red.map(d => d.day)) + 4;
     b += `<div class="banner alert">${icoWarn}<span>${t("alert", { n: S.red.length, date: esc(fmtDayLong(earliest)) })}</span></div>`;
@@ -794,7 +802,7 @@ function render() {
 
   const rows = state.filter === "issues" ? issues : state.filter === "action" ? action : S.days;
   const head = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colOut"))}</span><span>${esc(t("colIn"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
-  $("days").innerHTML = rows.length ? head + rows.map(dayRow).join("") :
+  $("days").innerHTML = rows.length ? head + rows.map(d => dayRow(d, state.filter === "action")).join("") :
     `<div class="empty">${esc(!S.days.length ? t("noDays") : state.filter === "action" ? t("noAction") : t("noIssues"))}</div>`;
 }
 
@@ -810,7 +818,7 @@ function sideCell(c, labelKey) {
     ${who ? `<span class="who">${who}</span>` : ""}</div>`;
 }
 
-function dayRow(d) {
+function dayRow(d, hint) {
   const x = ymd(d.day);
   const tags = [];
   if (d.exc.counted) tags.push(`<span class="tag exc">${esc(t("tagExc"))}</span>`);
@@ -828,7 +836,8 @@ function dayRow(d) {
     <div class="date"><b>${x.d} ${MONS[x.m]}</b><span class="wd">${WDN[x.wd]}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
     ${sideCell(d.sides.out, "colOut")}
     ${sideCell(d.sides.in, "colIn")}
-    <div class="status">${pill}</div></div>`;
+    <div class="status">${pill}</div>
+    ${hint ? `<div class="rowhint">${esc(t("rowHint"))}</div>` : ""}</div>`;
 }
 
 function excRow(e, d) {
