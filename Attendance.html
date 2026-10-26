@@ -472,10 +472,12 @@ function analyze(clock, sched, now) {
   for (const s of [...sched.byDay.values()].sort((a, b) => b.day - a.day)) {
     const isExcType = s.type && !/target\s*submission/i.test(s.type);
     const editedAfter = s.updMin != null && s.updMin >= s.day * 1440;
-    const counted = isExcType && editedAfter;
+    const hol = (sched.holidays || []).find(h => s.day >= h.from && s.day <= h.to);
+    // On holidays set by the supervisor, schedule changes count as normal planned times.
+    const counted = isExcType && editedAfter && !hol;
     const editLag = s.updMin != null ? Math.floor(s.updMin / 1440) - s.day : null;
     const lateEdit = counted && editLag > 4;
-    const exc = { counted, lateEdit, editLag, rank: 0, over: false, planned: isExcType && !editedAfter, byId: s.byId, updMin: s.updMin, day: s.day, alt: null, added: 0, dayRef: null };
+    const exc = { counted, lateEdit, editLag, rank: 0, over: false, planned: isExcType && !editedAfter && !hol, holiday: hol ? hol.name : "", byId: s.byId, updMin: s.updMin, day: s.day, alt: null, added: 0, dayRef: null };
     if (counted) { const mk = monthKey(s.day); if (!excByMonth.has(mk)) excByMonth.set(mk, []); excByMonth.get(mk).push(exc); }
     if (s.day > today) continue;
 
@@ -550,7 +552,7 @@ const state = { scope: null, filter: "issues", A: null, S: null, store: "" };
 /* ---------- Saving (Google Apps Script web app) ---------- */
 // Paste the Web app link that ends with /exec between the quotes.
 const API_URL = "https://script.google.com/macros/s/AKfycbxai2MWsrqVcLeKrvV4wa1dQYzbBI3eNEZM11Ke3pKl6NZDH39XInlJzBqO0uNdQLxcZA/exec";
-const cloud = { store: "", recs: [], byDay: new Map(), lastSaved: null, status: "idle", tried: "", source: "" };
+const cloud = { store: "", recs: [], byDay: new Map(), lastSaved: null, status: "idle", tried: "", source: "", holidays: [] };
 
 const dateStr = day => { const x = ymd(day); return x.y + "-" + pad(x.m + 1) + "-" + pad(x.d); };
 const stampStr = min => dateStr(Math.floor(min / 1440)) + " " + pad(Math.floor((min % 1440) / 60)) + ":" + pad(min % 60);
@@ -601,6 +603,7 @@ async function loadCloud(params, key) {
   renderStoreBar();
   try {
     const res = await api(Object.assign({ action: "load" }, params));
+    cloud.holidays = (res.holidays || []).map(h => ({ from: isoDay(h.from), to: isoDay(h.to), name: h.name })).filter(h => h.from != null && h.to != null);
     if (!res.store) { cloud.status = "ask"; cloud.store = ""; cloud.recs = []; cloud.byDay = new Map(); }
     else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded", source: params.store ? "schedule" : "staff" }); }
   } catch (e) { cloud.status = "error"; }
@@ -751,7 +754,7 @@ function run() {
   renderStoreBar();
   const useCloud = API_URL && cloud.status === "loaded" && cloud.store && (!userSched.store || userSched.store === cloud.store);
   const clock = useCloud ? mergeClock(cloud.recs, userClock.recs) : userClock;
-  const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: userSched.store || (useCloud ? cloud.store : ""), template: userSched.template };
+  const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: userSched.store || (useCloud ? cloud.store : ""), template: userSched.template, holidays: API_URL ? cloud.holidays : [] };
   const hasC = clock.recs.length > 0, hasS = sched.byDay.size > 0;
   const savedMonths = useCloud ? [...new Set([...cloud.byDay.keys()].map(monthKey))].sort() : [];
   const note = $("schedSaved");
@@ -872,6 +875,7 @@ function dayRow(d, hint) {
   if (d.exc.lateEdit) tags.push(`<span class="tag late">${esc(t("tagLate"))}</span>`);
   if (d.exc.over) tags.push(`<span class="tag over">${esc(t("tagOver"))}</span>`);
   if (d.exc.planned) tags.push(`<span class="tag">${esc(t("tagPlanned"))}</span>`);
+  if (d.exc.holiday) tags.push(`<span class="tag exc"><bdi>${esc(d.exc.holiday)}</bdi></span>`);
   let pill;
   if (d.status === "red") pill = `<span class="pill red">${esc(d.left === 0 ? t("stRedToday") : t("stRed", { n: d.left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDay(d.day + 4) }))}</span>`;
   else if (d.status === "black") pill = `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${d.minutes} ${esc(t("minUnit"))}</span>`;
