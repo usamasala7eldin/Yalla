@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Attendance Check</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,7 +32,9 @@
   --shadow:none; color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
+[hidden]{display:none!important}
+.results{display:flex;flex-direction:column;gap:18px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
 .wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 .num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
@@ -207,6 +211,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
   </section>
 
   <div id="banner"></div>
+  <div class="results" id="results" hidden>
   <div class="months" id="months" hidden></div>
   <section class="summary" id="summary"></section>
   <div class="people" id="people"></div>
@@ -221,6 +226,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
     </div>
     <div class="days" id="days"></div>
   </section>
+  </div>
 </div>
 
 <div class="modal" id="modal" hidden><div class="box" role="dialog" aria-modal="true"><button class="x" type="button" id="modalX" aria-label="Close">×</button><div id="modalBody"></div></div></div>
@@ -236,7 +242,7 @@ const STR = { en: {
   clockOk:"{n} punches · {from} – {to} · {p} pharmacist(s){dup}", clockNone:"No punches found. Copy the whole clock-in-out page, including the table rows.",
   schedOk:"{n} days · {months}{dup}", schedNone:"No schedule days found. Copy the Monthly Schedule table, including the dated rows.",
   dupNote:" · {d} duplicate(s) ignored", waiting:"Waiting for paste",
-  sample:"You're looking at sample data. Paste your two reports above to check your store.",
+  empty:"Paste both reports above to see the results.",
   needSched:"Clock data loaded. Paste the monthly schedule to compare.", needClock:"Schedule loaded. Paste the clock-in-out report to compare.",
   alert:"<b>{n} day(s)</b> need an exceptional duty. Earliest deadline: <b>{date}</b>.",
   monthLbl:"Month", allMonths:"All",
@@ -438,32 +444,10 @@ function summarize(A, scope) {
   return { days, compared: compared.length, total, avg, missed, people: [...people.values()].sort((a, b) => b.mins - a.mins), exc, red };
 }
 
-/* ---------- Sample data (generated relative to today so colors stay meaningful) ---------- */
-function buildSample(now) {
-  const T = now.today, sl = [], cl = [];
-  const tmpl = { 6: [60, 900], 0: [60, 420], 1: [120, 420], 2: [120, 420], 3: [120, 420], 4: [120, 420], 5: [120, 900] };
-  const outOff = [-3, 4, -1, 6, 2, -2, 1, 8, -4, 3, 0, 5, -1, 2], inOff = [-12, 3, -5, 6, -20, 1, 8, -2, 4, -9, 2, 7, -15, 5];
-  const stamp = min => { const x = ymd(Math.floor(min / 1440)), m = ((min % 1440) + 1440) % 1440; return pad(x.d) + "-" + MON[x.m] + "-" + x.y + " " + pad(Math.floor(m / 60)) + ":" + pad(m % 60); };
-  const ppl = [["10001", "Ahmed"], ["10002", "Khaled"]];
-  for (let k = -13; k <= 2; k++) {
-    const day = T + k, x = ymd(day); let [o, i] = tmpl[x.wd]; let type = "Target Submission", upd = (day - 30) * 1440 + 60, by = "10001";
-    if (k === -9) { i += 30; type = "Exceptional Duty Change"; upd = (day + 1) * 1440 + 493; }
-    sl.push([" 9231", pad(x.d) + "-" + MON[x.m], WDN[x.wd], fmt12(o), fmt12(i), type, type === "Target Submission" ? "" : "Other", "", " 2", "private_message." + by + ".nahdiho@ops-center.opterus.net", stamp(upd)].join("\t"));
-    if (k > 0) continue;
-    const j = (k + 13) % 14, pOut = ppl[(j + 1) % 2], pIn = ppl[j % 2];
-    const biz = (x.m + 1) + "/" + x.d + "/" + x.y;
-    const outAt = day * 1440 + o + outOff[j];
-    let inAt = day * 1440 + i + (k === -2 ? 14 : k === -11 ? -27 : inOff[j]);
-    if (k !== -7 && now.nowMin > outAt) cl.push([biz, pOut[0], pOut[1], "PHARMACIST", "", "DAY OUT", stamp(outAt) + ":" + pad(17 + j)].join("\t"));
-    if (k < 0) cl.push([biz, pIn[0], pIn[1], "PHARMACIST", "", "DAY IN", stamp(inAt) + ":" + pad(31 + j)].join("\t"));
-  }
-  return { clock: cl.join("\n"), sched: sl.join("\n") };
-}
-
 /* ---------- UI ---------- */
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
-const state = { scope: null, filter: "issues", A: null, S: null, store: "", sample: false };
+const state = { scope: null, filter: "issues", A: null, S: null, store: "" };
 
 function applyStrings() {
   document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
@@ -496,13 +480,18 @@ function run() {
   }
 
   const hasC = userClock.recs.length > 0, hasS = userSched.byDay.size > 0;
-  let clock = userClock, sched = userSched, note = "";
-  state.sample = false;
-  if (!hasC && !hasS) { const smp = buildSample(now); clock = parseClock(smp.clock); sched = parseSchedule(smp.sched); state.sample = true; note = "sample"; }
-  else if (!hasS) note = "needSched";
-  else if (!hasC) note = "needClock";
-
+  const clock = userClock, sched = userSched;
   state.store = sched.store || "";
+  const st = $("store"); st.hidden = !state.store; st.textContent = state.store ? "Store " + state.store : "";
+  const ready = hasC && hasS;
+  $("results").hidden = !ready;
+  $("copyBtn").hidden = !ready;
+  if (!ready) {
+    const note = !hasC && !hasS ? "empty" : !hasS ? "needSched" : "needClock";
+    $("banner").innerHTML = `<div class="banner sample">${icoInfo}<span>${esc(t(note))}</span></div>`;
+    return;
+  }
+
   state.A = analyze(clock, sched, now);
   const monthsAvail = [...new Set(state.A.days.map(d => monthKey(d.day)).concat([...state.A.excByMonth.keys()]))].sort();
   if (!state.scope || (state.scope !== "all" && !monthsAvail.includes(state.scope))) {
@@ -510,20 +499,16 @@ function run() {
     state.scope = firstCompared ? monthKey(firstCompared.day) : (monthsAvail[monthsAvail.length - 1] || "all");
   }
   state.monthsAvail = monthsAvail;
-  state.note = note;
   render();
 }
 
 function render() {
   const A = state.A, S = summarize(A, state.scope); state.S = S;
-  // store
-  const st = $("store"); st.hidden = !state.store; st.textContent = state.store ? "Store " + state.store : "";
   // banner
   let b = "";
-  if (state.note) b += `<div class="banner sample">${icoInfo}<span>${esc(t(state.note))}</span></div>`;
   if (S.red.length) {
     const earliest = Math.min(...S.red.map(d => d.day)) + 4;
-    b += `<div class="banner alert" style="margin-top:${state.note ? 8 : 0}px">${icoWarn}<span>${t("alert", { n: S.red.length, date: esc(fmtDayLong(earliest)) })}</span></div>`;
+    b += `<div class="banner alert">${icoWarn}<span>${t("alert", { n: S.red.length, date: esc(fmtDayLong(earliest)) })}</span></div>`;
   }
   $("banner").innerHTML = b;
 
