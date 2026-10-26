@@ -81,6 +81,17 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .addbtn{align-self:flex-start;border:1px dashed var(--line);background:none;border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--accent)}
 .addbtn:hover{border-color:var(--accent)}
 
+/* Store bar */
+.storebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
+.storebar .code{font-family:var(--f-mono);font-weight:600}
+.storebar .muted{color:var(--muted)}
+.storebar.err{border-color:var(--bad);color:var(--bad)}
+.storebar input{font:inherit;font-family:var(--f-mono);width:96px;border:1px solid var(--line);border-radius:6px;padding:4px 8px;background:var(--surface-2);color:var(--ink)}
+.storebar .btn{padding:4px 10px}
+.btn[disabled]{opacity:.55;cursor:default}
+.spin{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 /* Banners */
 .banner{border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:500}
 .banner svg{flex:none;width:18px;height:18px}
@@ -122,7 +133,11 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 /* Day list */
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .list-head h2{font-family:var(--f-display);font-size:17px;font-weight:700;margin:0}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.res.warn{color:var(--warn);background:var(--warn-soft)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.tag.over{border-color:var(--bad);color:var(--bad)}
 .seg button{border:0;background:none;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
 .days{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
@@ -195,9 +210,13 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
       <button class="btn icon" id="rulesBtn" type="button" aria-label="Rules">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5" stroke-linecap="round"/></svg>
       </button>
-      <button class="btn primary" id="copyBtn" type="button">
+      <button class="btn" id="copyBtn" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
         <span data-t="copy"></span>
+      </button>
+      <button class="btn primary" id="saveBtn" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z" stroke-linejoin="round"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+        <span id="saveLbl"></span>
       </button>
     </div>
   </header>
@@ -225,6 +244,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
     </div>
   </section>
 
+  <div class="storebar" id="storeBar" hidden></div>
   <div id="banner"></div>
   <div class="results" id="results" hidden>
   <div class="months" id="months" hidden></div>
@@ -235,8 +255,10 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
     <div class="list-head" style="margin-bottom:10px">
       <h2 data-t="daysTitle"></h2>
       <div class="seg" role="group">
-        <button type="button" id="fIssues" aria-pressed="true"></button>
-        <button type="button" id="fAll" aria-pressed="false"></button>
+        <button type="button" id="fIssues" data-f="issues" aria-pressed="true"></button>
+        <button type="button" id="fAction" data-f="action" aria-pressed="false"></button>
+        <button type="button" id="fExc" data-f="exc" aria-pressed="false"></button>
+        <button type="button" id="fAll" data-f="all" aria-pressed="false"></button>
       </div>
     </div>
     <div class="days" id="days"></div>
@@ -266,7 +288,11 @@ const STR = { en: {
   missedK:"Missed punches", missedS:"Each counts as 30 min",
   excK:"Exceptional duties", excView:"View days", excLimit:"Limit 5 per month · late edits: {n}",
   peopleLbl:"By pharmacist", unassigned:"Unassigned",
-  daysTitle:"Days", fIssues:"Issues ({n})", fAll:"All days ({n})",
+  daysTitle:"Days", fIssues:"Issues ({n})", fAction:"Needs action ({n})", fExc:"Exceptional duties ({n})", fAll:"All days ({n})",
+  colEdited:"Edited", colRules:"Rules", excWithin:"Within 4 days", excAfter:"After {n} days", excRank:"{r} of 5", excOverRank:"{r} of 5 · over limit",
+  pillRulesOk:"Within rules", pillLate:"Late edit", pillOver:"Over limit", pillBoth:"Late and over limit",
+  excStill:"Still {m} min late", excClear:"No delay after edit", tagOver:"Over limit",
+  noAction:"Nothing needs action right now.", noExc:"No exceptional duties in this period.",
   colDate:"Date", colOut:"Clock out", colIn:"Clock in", colStatus:"Status",
   sched:"Planned", tagExc:"Exceptional", tagLate:"Late edit", tagPlanned:"Planned change",
   rOk:"On time", rMissed:"Missed · 30", rLate:"{m} min", rExcused:"Missed action", rPending:"Not yet", rNodata:"Not in report",
@@ -286,6 +312,10 @@ const STR = { en: {
   ],
   excTitle:"Exceptional duties", excCounted:"Counted", excNot:"Not counted (edited before the day)", excLateEdit:"Late edit, may not be approved",
   excEdited:"Edited {date} by {who}", excNone:"No exceptional duties in this period.",
+  save:"Save", saved:"Saved", saving:"Saving…", saveOk:"Saved for store {store}", saveFail:"Couldn't save. Check the internet and try again.",
+  sbLoading:"Loading saved data for store {store}…", sbFinding:"Looking up the store from the pharmacists…",
+  sbLoaded:"Store", sbLast:"Last saved {when}", sbNever:"Nothing saved yet for this store", sbSavedDays:"{p} saved punches · {d} saved schedule days",
+  sbChange:"Change store", sbAsk:"Which store is this? Enter the store code:", sbLoad:"Load", sbErr:"Couldn't reach the saved data. Check the internet and try again.", sbRetry:"Retry",
   copied:"Summary copied", copyFail:"Copy blocked, text selected instead",
   cpHead:"Attendance check · Store {store} · {scope}", cpTotal:"Total delay: {t} min · Daily average {a} min (target under 1)",
   cpMissed:"Missed punches: {n}", cpExc:"Exceptional duties {m}: {n}/5", cpBy:"By pharmacist: {list}", cpIssues:"Issues:", cpNone:"No issues."
@@ -402,7 +432,7 @@ function analyze(clock, sched, now) {
     const counted = isExcType && editedAfter;
     const editLag = s.updMin != null ? Math.floor(s.updMin / 1440) - s.day : null;
     const lateEdit = counted && editLag > 4;
-    const exc = { counted, lateEdit, planned: isExcType && !editedAfter, byId: s.byId, updMin: s.updMin, day: s.day };
+    const exc = { counted, lateEdit, editLag, rank: 0, over: false, planned: isExcType && !editedAfter, byId: s.byId, updMin: s.updMin, day: s.day };
     if (counted) { const mk = monthKey(s.day); if (!excByMonth.has(mk)) excByMonth.set(mk, []); excByMonth.get(mk).push(exc); }
     if (s.day > today) continue;
 
@@ -437,6 +467,11 @@ function analyze(clock, sched, now) {
     else if (list.every(c => c.state === "nodata")) status = "nodata";
     days.push({ day: s.day, sides, minutes, compared, issue, status, left, exc });
   }
+  // The monthly limit of 5 is counted in the order the edits were made.
+  for (const list of excByMonth.values()) {
+    list.sort((a, b) => (a.updMin ?? 0) - (b.updMin ?? 0) || a.day - b.day);
+    list.forEach((e, i) => { e.rank = i + 1; e.over = e.rank > 5; });
+  }
   return { days, excByMonth, names, minDay, maxDay };
 }
 
@@ -463,6 +498,112 @@ function summarize(A, scope) {
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 const state = { scope: null, filter: "issues", A: null, S: null, store: "" };
+
+/* ---------- Saving (Google Apps Script web app) ---------- */
+// Paste the Web app link that ends with /exec between the quotes.
+const API_URL = "https://script.google.com/macros/s/AKfycbxai2MWsrqVcLeKrvV4wa1dQYzbBI3eNEZM11Ke3pKl6NZDH39XInlJzBqO0uNdQLxcZA/exec";
+const cloud = { store: "", recs: [], byDay: new Map(), lastSaved: null, status: "idle", tried: "", manual: "", asking: false };
+
+const dateStr = day => { const x = ymd(day); return x.y + "-" + pad(x.m + 1) + "-" + pad(x.d); };
+const stampStr = min => dateStr(Math.floor(min / 1440)) + " " + pad(Math.floor((min % 1440) / 60)) + ":" + pad(min % 60);
+const isoDay = s => { const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? dayOf(+m[1], +m[2] - 1, +m[3]) : null; };
+const isoMin = s => { const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/); return m ? dayOf(+m[1], +m[2] - 1, +m[3]) * 1440 + +m[4] * 60 + +m[5] : null; };
+const recKey = r => r.day + "|" + r.id + "|" + r.side + "|" + r.tsMin;
+
+function fromSaved(res) {
+  const recs = [];
+  for (const x of res.punches || []) {
+    const day = isoDay(x.date), tsMin = isoMin(x.time);
+    if (day == null || tsMin == null || !/^(in|out)$/.test(x.side)) continue;
+    recs.push({ day, id: String(x.id), name: x.name || String(x.id), side: x.side, tsMin });
+  }
+  const byDay = new Map();
+  for (const x of res.schedule || []) {
+    const day = isoDay(x.date); if (day == null) continue;
+    byDay.set(day, { day, out: parseTime12(x.out), in: parseTime12(x.in), outText: x.out, inText: x.in, type: x.type || "", byId: x.by || "", updMin: isoMin(x.updated) });
+  }
+  return { recs, byDay };
+}
+function mergeClock(a, b) {
+  const seen = new Set(), recs = [];
+  for (const r of a.concat(b)) { const k = recKey(r); if (!seen.has(k)) { seen.add(k); recs.push(r); } }
+  return { recs, dup: 0 };
+}
+function mergeSched(base, extra) {
+  const m = new Map(base);
+  for (const [day, row] of extra) { const old = m.get(day); if (!old || (row.updMin ?? 0) >= (old.updMin ?? 0)) m.set(day, row); }
+  return m;
+}
+function hasNewData(pc, ps) {
+  if (!API_URL || !cloud.store) return false;
+  const keys = new Set(cloud.recs.map(recKey));
+  if (pc.recs.some(r => !keys.has(recKey(r)))) return true;
+  for (const [day, row] of ps.byDay) { const old = cloud.byDay.get(day); if (!old || (row.updMin ?? 0) > (old.updMin ?? 0)) return true; }
+  return false;
+}
+async function api(params, body) {
+  const url = API_URL + (params ? "?" + new URLSearchParams(params).toString() : "");
+  const res = await fetch(url, body ? { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) } : {});
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+async function loadCloud(params, key) {
+  cloud.tried = key; cloud.status = params.store ? "loading" : "finding"; cloud.loadingStore = params.store || "";
+  renderStoreBar();
+  try {
+    const res = await api(Object.assign({ action: "load" }, params));
+    if (!res.store) { cloud.status = "ask"; cloud.store = ""; cloud.recs = []; cloud.byDay = new Map(); }
+    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded" }); }
+  } catch (e) { cloud.status = "error"; }
+  run();
+}
+function renderStoreBar() {
+  const bar = $("storeBar");
+  if (!API_URL || cloud.status === "idle") { bar.hidden = true; return; }
+  bar.hidden = false; bar.classList.toggle("err", cloud.status === "error");
+  const spin = '<span class="spin" aria-hidden="true"></span>';
+  if (cloud.status === "loading") bar.innerHTML = spin + esc(t("sbLoading", { store: cloud.loadingStore }));
+  else if (cloud.status === "finding") bar.innerHTML = spin + esc(t("sbFinding"));
+  else if (cloud.status === "error") bar.innerHTML = `<span>${esc(t("sbErr"))}</span><button type="button" class="btn" id="sbRetry">${esc(t("sbRetry"))}</button>`;
+  else if (cloud.status === "ask" || cloud.asking) bar.innerHTML = `<span>${esc(t("sbAsk"))}</span><input id="sbCode" inputmode="numeric" autocomplete="off" value="${esc(cloud.manual)}"><button type="button" class="btn" id="sbLoad">${esc(t("sbLoad"))}</button>`;
+  else {
+    const when = cloud.lastSaved ? (() => { const d = new Date(cloud.lastSaved); return d.getDate() + " " + MONS[d.getMonth()] + ", " + fmt12(d.getHours() * 60 + d.getMinutes()); })() : null;
+    bar.innerHTML = `<span>${esc(t("sbLoaded"))} <span class="code">${esc(cloud.store)}</span></span><span class="muted">·</span>
+      <span class="muted">${esc(when ? t("sbLast", { when }) : t("sbNever"))}</span><span class="muted">·</span>
+      <span class="muted">${esc(t("sbSavedDays", { p: cloud.recs.length, d: cloud.byDay.size }))}</span>
+      <button type="button" class="linkbtn" id="sbChange">${esc(t("sbChange"))}</button>`;
+  }
+  const retry = $("sbRetry"); if (retry) retry.onclick = () => { cloud.tried = ""; run(); };
+  const ch = $("sbChange"); if (ch) ch.onclick = () => { cloud.asking = true; renderStoreBar(); $("sbCode").focus(); };
+  const go = $("sbLoad"), inp = $("sbCode");
+  if (go) {
+    const submit = () => { const v = inp.value.trim(); if (!/^\d{2,8}$/.test(v)) { inp.focus(); return; } cloud.manual = v; cloud.asking = false; cloud.tried = ""; run(); };
+    go.onclick = submit; inp.onkeydown = e => { if (e.key === "Enter") submit(); };
+  }
+}
+async function saveCloud() {
+  const btn = $("saveBtn"); btn.disabled = true; $("saveLbl").textContent = t("saving");
+  const pc = state.pasted.clock, ps = state.pasted.sched;
+  const days = state.A.days.filter(d => d.compared && d.day >= nowParts().today - 62).map(d => {
+    const side = c => ({ planned: c.schedText, actual: c.rec ? fmt12(c.rec.tsMin) : "", minutes: c.minutes, byId: c.rec ? c.rec.id : "", byName: c.rec ? c.rec.name : "" });
+    return { date: dateStr(d.day), weekday: WDN[ymd(d.day).wd], out: side(d.sides.out), in: side(d.sides.in), minutes: d.minutes, exceptional: d.exc.counted, lateEdit: d.exc.lateEdit };
+  });
+  const body = {
+    action: "save", store: state.store,
+    punches: pc.recs.map(r => ({ date: dateStr(r.day), id: r.id, name: r.name, side: r.side, time: stampStr(r.tsMin) })),
+    schedule: [...ps.byDay.values()].map(r => ({ date: dateStr(r.day), weekday: WDN[ymd(r.day).wd], out: r.outText, in: r.inText, type: r.type, by: r.byId, updated: r.updMin != null ? stampStr(r.updMin) : "" })),
+    days
+  };
+  try {
+    const res = await api(null, body);
+    cloud.store = state.store; cloud.recs = mergeClock(cloud.recs, pc.recs).recs; cloud.byDay = mergeSched(cloud.byDay, ps.byDay);
+    cloud.lastSaved = res.savedAt || new Date().toISOString(); cloud.status = "loaded"; cloud.tried = "store:" + state.store;
+    toast(t("saveOk", { store: state.store }));
+  } catch (e) { toast(t("saveFail")); }
+  btn.disabled = false;
+  run();
+}
 
 function applyStrings() {
   document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
@@ -556,13 +697,33 @@ function run() {
     setStatus($("schedStatus"), "good", icoOk + esc(t("schedOk", { n: userSched.byDay.size, months: ms, dup: userSched.dup ? t("dupNote", { d: userSched.dup }) : "" })));
   }
 
-  const hasC = userClock.recs.length > 0, hasS = userSched.byDay.size > 0;
-  const clock = userClock, sched = userSched;
+  state.pasted = { clock: userClock, sched: userSched };
+  // Work out which store this is, then load what was saved for it.
+  if (API_URL) {
+    const ids = [...new Set(userClock.recs.map(r => r.id))].sort();
+    let want = userSched.store || cloud.manual || "";
+    if (!want && cloud.store && ids.length && cloud.recs.some(r => ids.includes(r.id))) want = cloud.store;
+    if (want) { if (cloud.tried !== "store:" + want) { loadCloud({ store: want }, "store:" + want); } }
+    else if (ids.length >= 1) { const k = "ids:" + ids.join(","); if (cloud.tried !== k) loadCloud({ ids: ids.join(",") }, k); }
+    else if (!userSched.byDay.size && !userClock.recs.length && cloud.status !== "loaded") { cloud.status = "idle"; }
+  }
+  renderStoreBar();
+  const useCloud = API_URL && cloud.status === "loaded" && cloud.store && (!userSched.store || userSched.store === cloud.store);
+  const clock = useCloud ? mergeClock(cloud.recs, userClock.recs) : userClock;
+  const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: userSched.store || (useCloud ? cloud.store : "") };
+  const hasC = clock.recs.length > 0, hasS = sched.byDay.size > 0;
   state.store = sched.store || "";
   const st = $("store"); st.hidden = !state.store; st.textContent = state.store ? "Store " + state.store : "";
   const ready = hasC && hasS;
   $("results").hidden = !ready;
   $("copyBtn").hidden = !ready;
+  const canSave = !!API_URL && ready && /^\d{2,8}$/.test(state.store);
+  $("saveBtn").hidden = !canSave;
+  if (canSave && !$("saveBtn").disabled) {
+    const fresh = useCloud ? hasNewData(userClock, userSched) : (userClock.recs.length > 0 || userSched.byDay.size > 0);
+    $("saveLbl").textContent = fresh ? t("save") : t("saved");
+    $("saveBtn").classList.toggle("primary", fresh);
+  }
   if (!ready) {
     const note = !hasC && !hasS ? "empty" : !hasS ? "needSched" : "needClock";
     $("banner").innerHTML = `<div class="banner sample">${icoInfo}<span>${esc(t(note))}</span></div>`;
@@ -608,7 +769,7 @@ function render() {
     <div class="card ${avgBad ? "is-bad" : "is-ok"}"><div class="k">${esc(t("avgK"))}</div><div class="v">${S.avg.toFixed(2)}<small>${esc(t("minUnit"))}</small></div><div class="s">${esc(t("avgS"))}</div></div>
     <div class="card ${S.missed ? "is-bad" : ""}"><div class="k">${esc(t("missedK"))}</div><div class="v">${S.missed}</div><div class="s">${esc(t("missedS"))}</div></div>
     <div class="card"><div class="k"><span>${esc(t("excK"))}</span><button type="button" class="tiny" id="excBtn">${esc(t("excView"))}</button></div>${excRows}<div class="s">${esc(t("excLimit", { n: lateEdits }))}</div></div>`;
-  $("excBtn").onclick = openExc;
+  $("excBtn").onclick = () => { state.filter = "exc"; render(); $("days").scrollIntoView({ behavior: "smooth", block: "start" }); };
 
   // people
   $("people").innerHTML = S.people.length ? `<span class="lbl">${esc(t("peopleLbl"))}</span>` + S.people.map(p =>
@@ -616,15 +777,25 @@ function render() {
 
   // filter buttons
   const issues = S.days.filter(d => d.issue);
+  const action = S.days.filter(d => d.status === "red" && !d.exc.counted).sort((a, b) => a.day - b.day);
+  const excList = S.exc.flatMap(e => e.list).sort((a, b) => b.day - a.day);
   $("fIssues").textContent = t("fIssues", { n: issues.length });
+  $("fAction").textContent = t("fAction", { n: action.length });
+  $("fExc").textContent = t("fExc", { n: excList.length });
   $("fAll").textContent = t("fAll", { n: S.days.length });
-  $("fIssues").setAttribute("aria-pressed", state.filter === "issues");
-  $("fAll").setAttribute("aria-pressed", state.filter === "all");
+  for (const id of ["fIssues", "fAction", "fExc", "fAll"]) $(id).setAttribute("aria-pressed", state.filter === $(id).dataset.f);
 
-  const rows = state.filter === "issues" ? issues : S.days;
+  if (state.filter === "exc") {
+    const byDay = new Map(S.days.map(d => [d.day, d]));
+    const h = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colEdited"))}</span><span>${esc(t("colRules"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
+    $("days").innerHTML = excList.length ? h + excList.map(e => excRow(e, byDay.get(e.day))).join("") : `<div class="empty">${esc(t("noExc"))}</div>`;
+    return;
+  }
+
+  const rows = state.filter === "issues" ? issues : state.filter === "action" ? action : S.days;
   const head = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colOut"))}</span><span>${esc(t("colIn"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
   $("days").innerHTML = rows.length ? head + rows.map(dayRow).join("") :
-    `<div class="empty">${esc(S.days.length ? t("noIssues") : t("noDays"))}</div>`;
+    `<div class="empty">${esc(!S.days.length ? t("noDays") : state.filter === "action" ? t("noAction") : t("noIssues"))}</div>`;
 }
 
 function sideCell(c, labelKey) {
@@ -644,6 +815,7 @@ function dayRow(d) {
   const tags = [];
   if (d.exc.counted) tags.push(`<span class="tag exc">${esc(t("tagExc"))}</span>`);
   if (d.exc.lateEdit) tags.push(`<span class="tag late">${esc(t("tagLate"))}</span>`);
+  if (d.exc.over) tags.push(`<span class="tag over">${esc(t("tagOver"))}</span>`);
   if (d.exc.planned) tags.push(`<span class="tag">${esc(t("tagPlanned"))}</span>`);
   let pill;
   if (d.status === "red") pill = `<span class="pill red">${esc(d.left === 0 ? t("stRedToday") : t("stRed", { n: d.left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDay(d.day + 4) }))}</span>`;
@@ -657,6 +829,23 @@ function dayRow(d) {
     ${sideCell(d.sides.out, "colOut")}
     ${sideCell(d.sides.in, "colIn")}
     <div class="status">${pill}</div></div>`;
+}
+
+function excRow(e, d) {
+  const x = ymd(e.day);
+  const who = (state.A.names.get(e.byId) ? state.A.names.get(e.byId) + " · " : "") + e.byId;
+  const ed = e.updMin != null ? fmtDay(Math.floor(e.updMin / 1440)) + ", " + fmt12(e.updMin) : "—";
+  const timing = e.lateEdit ? `<span class="res warn">${esc(t("excAfter", { n: e.editLag }))}</span>` : `<span class="res ok">${esc(t("excWithin"))}</span>`;
+  const limit = e.over ? `<span class="res late">${esc(t("excOverRank", { r: e.rank }))}</span>` : `<span class="res ok">${esc(t("excRank", { r: e.rank }))}</span>`;
+  const pill = e.lateEdit && e.over ? `<span class="pill bad">${esc(t("pillBoth"))}</span>` : e.over ? `<span class="pill bad">${esc(t("pillOver"))}</span>`
+    : e.lateEdit ? `<span class="pill warn">${esc(t("pillLate"))}</span>` : `<span class="pill ok">${esc(t("pillRulesOk"))}</span>`;
+  const after = d ? `<span class="mins">${esc(d.minutes ? t("excStill", { m: d.minutes }) : t("excClear"))}</span>` : "";
+  const st = e.lateEdit || e.over ? "black" : "ok";
+  return `<div class="drow st-${st}">
+    <div class="date"><b>${x.d} ${MONS[x.m]}</b><span class="wd">${WDN[x.wd]}</span></div>
+    <div class="side"><span class="lab">${esc(t("colEdited"))}</span><span class="times"><span>${esc(ed)}</span></span><span class="who">${esc(who)}</span></div>
+    <div class="side"><span class="lab">${esc(t("colRules"))}</span><span class="times">${timing}${limit}</span></div>
+    <div class="status">${pill}${after}</div></div>`;
 }
 
 /* ---------- Modal, copy, toast ---------- */
@@ -711,10 +900,10 @@ function boot() {
     const k = b.dataset.clearall; $(HOST[k]).innerHTML = ""; addBox(k); state.scope = null; run();
   }));
   $("months").addEventListener("click", e => { const b = e.target.closest("[data-scope]"); if (b) { state.scope = b.dataset.scope; render(); } });
-  $("fIssues").onclick = () => { state.filter = "issues"; render(); };
-  $("fAll").onclick = () => { state.filter = "all"; render(); };
+  for (const id of ["fIssues", "fAction", "fExc", "fAll"]) $(id).onclick = () => { state.filter = $(id).dataset.f; render(); };
   $("rulesBtn").onclick = openRules;
   $("copyBtn").onclick = copySummary;
+  $("saveBtn").onclick = saveCloud;
   $("modalX").onclick = closeModal;
   $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
