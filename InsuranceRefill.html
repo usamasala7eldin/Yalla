@@ -15,6 +15,7 @@
     --red: #b42318; --red-bg: #fde3e1;
     --grey-bg: #eef0f3;
     --qr2: #1a8f4c;
+    --milk: #7c3aed; --milk-bg: #f1eafe;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -28,6 +29,7 @@
   .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 12px; }
   .btn:hover { border-color: var(--accent); }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
   .icon-btn { border: 1px solid var(--line); background: var(--card); border-radius: 8px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--muted); }
   .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
   .icon-btn svg { width: 16px; height: 16px; }
@@ -48,6 +50,9 @@
   .row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; cursor: pointer; }
   .row:hover { border-color: #c9d3e3; }
   .row.vc { background: #f1f6ff; border-color: #bcd3fb; border-left: 5px solid var(--accent); }
+  .row.milk { border-left: 5px solid var(--milk); }
+  .tag.milk { background: var(--milk-bg); color: var(--milk); font-weight: 600; }
+  .seg button.auto { background: var(--milk-bg); color: var(--milk); }
   .count { color: var(--muted); font-size: 12px; align-self: center; }
   .undo-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 8px 8px 8px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: center; z-index: 1001; }
   .undo-bar button { border: 0; background: #fff; color: var(--accent); font-weight: 700; border-radius: 6px; padding: 4px 12px; }
@@ -190,6 +195,22 @@
   </div>
 </dialog>
 
+<!-- Edit messages on phone -->
+<dialog id="dlgPhone" class="narrow">
+  <div class="dlg-head"><h2 data-i18n="phoneEdit"></h2><button class="icon-btn" data-close>✕</button></div>
+  <div class="dlg-body" style="text-align:center">
+    <p class="help" data-i18n="phoneHelp"></p>
+    <div id="phoneQr" style="display:flex;justify-content:center;margin:10px 0"></div>
+    <p class="help"><span data-i18n="phoneExpires"></span> <b id="phoneTimer">5:00</b></p>
+    <p class="msg" id="phoneStatus"></p>
+    <div id="phonePreview" class="qr-text" style="max-height:220px;overflow:auto" hidden></div>
+    <div class="row-flex" style="justify-content:center;margin-top:10px">
+      <button class="btn primary" id="btnPhoneUse" data-i18n="phoneUse" disabled></button>
+    </div>
+    <p class="help" data-i18n="phonePrivacy"></p>
+  </div>
+</dialog>
+
 <!-- Settings dialog -->
 <dialog id="dlgSettings">
   <div class="dlg-head"><h2 data-i18n="settings"></h2><button class="icon-btn" data-close>✕</button></div>
@@ -205,6 +226,7 @@
     <div class="row-flex" style="margin-top:8px">
       <button class="btn primary" id="btnSaveMessages" data-i18n="save"></button>
       <button class="btn" id="btnResetMessages" data-i18n="resetDefault"></button>
+      <button class="btn" id="btnPhoneEdit" data-i18n="phoneEdit"></button>
       <span class="msg ok" id="messagesMsg"></span>
     </div>
 
@@ -231,6 +253,10 @@ const THRESHOLDS = {
   '3M': { green: [-8, 5], yellow: [6, 12], red: [-11, -9] }
 };
 const EXCLUDED_INSURANCE = /promotion variance/i;
+// Milk (infant formula) diagnoses, as in the original spreadsheet. Milk invoices default to 1M.
+const MILK_CODES = ['K52.2', 'P92', 'E73.9', 'K90', 'P71', 'E73'];
+const MILK_DEFAULT_PERIOD = '1M';
+const NO_PERIOD = 'X'; // saved when the user clears the automatic Milk period
 
 // Default WhatsApp messages. {name} = contact name. Editable in Settings.
 const DEFAULT_MESSAGES = {
@@ -254,6 +280,16 @@ const I18N = {
     pasteNothing: 'No report rows were recognised. Copy the whole page including the Details table.',
     filters: { active: 'Active invoices', likely: 'Likely due now (not set)', due: 'Due now', soon: 'Coming soon', missed: 'Missed', notset: 'Refill not set', norefill: 'No refill', all: 'All invoices' },
     countOne: '1 invoice', countMany: '{n} invoices',
+    phoneEdit: 'Edit messages on phone',
+    phoneHelp: 'Scan this code with your phone, edit the messages, then press Save on the phone.',
+    phoneExpires: 'This link expires in',
+    phoneWaiting: 'Waiting for the phone…', phoneConnecting: 'Connecting…',
+    phoneReceived: 'Messages received from the phone. Check them, then press "Use these messages".',
+    phoneUse: 'Use these messages', phoneSaved: 'Messages saved.',
+    phoneExpired: 'The link has expired. Close this window and try again.',
+    phoneError: 'Could not connect. Check the internet connection and try again.',
+    phonePrivacy: 'Only the message texts are sent, encrypted, and deleted within 5 minutes. Patient data never leaves this browser.',
+    milk: 'Milk', milkAuto: 'Milk: 1M is set automatically. Click another period to change it.',
     undo: 'Undo', periodSet: '{inv}: {p}', periodCleared: '{inv}: refill cleared',
     welcomeHint: 'Write the pharmacy address after the pharmacy name, then the pharmacy Google Maps link on the next line.',
     stats: { due: 'Due now', soon: 'Coming soon', missed: 'Missed' },
@@ -444,9 +480,12 @@ function buildRows() {
       follow: store.follow[i.inv] || {}, items: store.items[i.inv] || [], dues,
       visits: visitsOf(i.card), contact: store.contacts[i.card] || {}
     });
+    row.milk = i.dx.some(c => MILK_CODES.some(m => c.toUpperCase().startsWith(m)));
+    row.period = effectivePeriod(row.follow.period, row.milk);
+    row.autoPeriod = row.milk && !row.follow.period; // 1M chosen automatically for Milk
     row.status = statusOf(row);
-    row.active = today - dayNum(i.date) <= ACTIVE_DAYS && row.follow.period !== 'NR';
-    row.likely = !row.follow.period && Object.values(dues).some(d => d.days >= LIKELY_WINDOW[0] && d.days <= LIKELY_WINDOW[1]);
+    row.active = today - dayNum(i.date) <= ACTIVE_DAYS && row.period !== 'NR';
+    row.likely = !row.period && Object.values(dues).some(d => d.days >= LIKELY_WINDOW[0] && d.days <= LIKELY_WINDOW[1]);
     return row;
   }).sort((a, b) => b.credit - a.credit);
 }
@@ -460,9 +499,14 @@ function colourFor(periodKey, days) {
   return '';
 }
 
-// A status exists only after the user chooses the refill period
+function effectivePeriod(saved, milk) {
+  if (saved === NO_PERIOD) return '';
+  return saved || (milk ? MILK_DEFAULT_PERIOD : '');
+}
+
+// A status exists only after a refill period is chosen (or Milk's automatic 1M)
 function statusOf(r) {
-  const p = r.follow.period;
+  const p = r.period;
   if (!p) return 'notset';
   if (p === 'NR') return 'norefill';
   const d = r.dues[p];
@@ -524,7 +568,7 @@ function renderStats() {
 }
 
 function duesHTML(r) {
-  const p = r.follow.period;
+  const p = r.period;
   if (p === 'NR') return `<div class="chip big">${esc(t('noRefill'))}</div>`;
   if (p) {
     const d = r.dues[p];
@@ -539,15 +583,17 @@ function duesHTML(r) {
 
 function rowHTML(r) {
   const inv = esc(r.inv);
-  const p = r.follow.period || '';
+  const p = r.period;
+  // Milk's automatic 1M is shown in purple until the user picks a period himself
   const segs = [...Object.keys(PERIODS), 'NR'].map(k =>
-    `<button class="${p === k ? 'on' : ''}" data-act="period" data-inv="${inv}" data-val="${k}">${k === 'NR' ? esc(t('noRefill')) : k}</button>`).join('');
+    `<button class="${p === k ? (r.autoPeriod ? 'auto' : 'on') : ''}" ${p === k && r.autoPeriod ? `title="${esc(t('milkAuto'))}"` : ''} data-act="period" data-inv="${inv}" data-val="${k}">${k === 'NR' ? esc(t('noRefill')) : k}</button>`).join('');
   const off = r.contact.phone ? '' : 'off';
-  return `<div class="row ${r.items.length ? 'vc' : ''}" data-row="${inv}">
+  return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''}" data-row="${inv}">
     <div class="who">
       <div class="inv-line">
         <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${inv}</button>
         ${r.items.length ? '<span class="tag vc">VC</span>' : ''}
+        ${r.milk ? `<span class="tag milk">🍼 ${esc(t('milk'))}</span>` : ''}
         <span class="tag visits">${esc(r.visits === 1 ? t('visit') : t('visits', { n: r.visits }))}</span>
       </div>
       <div class="small name" dir="auto">${esc(r.name)}</div>
@@ -591,12 +637,16 @@ function touchFollow(inv) {
   if (!f.period && !f.note && !f.qrW && !f.qrR) delete store.follow[inv];
 }
 function setPeriod(inv, val) {
+  const row = rowsCache.find(x => x.inv === inv);
+  const milk = !!(row && row.milk);
   const f = follow(inv);
   const before = f.period || '';
-  f.period = before === val ? '' : val; // click the same button again to clear
-  const label = f.period === 'NR' ? t('noRefill') : f.period;
+  // Clicking the period that is already shown clears it (for Milk this also clears the automatic 1M)
+  if (effectivePeriod(before, milk) === val) f.period = milk ? NO_PERIOD : '';
+  else f.period = val;
+  const now = effectivePeriod(f.period, milk);
   touchFollow(inv); saveStore(); render();
-  showUndo(f.period ? t('periodSet', { inv, p: label }) : t('periodCleared', { inv }), () => {
+  showUndo(now ? t('periodSet', { inv, p: now === 'NR' ? t('noRefill') : now }) : t('periodCleared', { inv }), () => {
     follow(inv).period = before; touchFollow(inv); saveStore(); render();
   });
 }
@@ -753,6 +803,116 @@ function saveMessages() {
   saveStore(); $('messagesMsg').textContent = t('saved');
 }
 
+/* ===================== Edit messages on phone ===================== */
+// The phone opens InsuranceWA.html. Both pages share a temporary, end-to-end encrypted document
+// (same idea and Firebase project as sync.html). Only message texts are sent; it is deleted within 5 minutes.
+const PHONE_PAGE = 'InsuranceWA.html';
+const SESSION_TTL = 5 * 60 * 1000;
+const FIREBASE_URL = 'https://www.gstatic.com/firebasejs/10.12.2/';
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyD-QSolp7uoEr0z_0NkOBIeEFAgllmi0ro',
+  authDomain: 'sync-df6ca.firebaseapp.com',
+  projectId: 'sync-df6ca',
+  storageBucket: 'sync-df6ca.firebasestorage.app',
+  messagingSenderId: '1091721719210',
+  appId: '1:1091721719210:web:567cd4ce4056bfce45cfd3'
+};
+const MESSAGE_KEYS = ['welcomeAr', 'welcomeEn', 'refillAr', 'refillEn'];
+
+let fb = null; // Firebase is loaded only when this feature is used
+async function loadFirebase() {
+  if (fb) return fb;
+  const app = await import(FIREBASE_URL + 'firebase-app.js');
+  const fs = await import(FIREBASE_URL + 'firebase-firestore.js');
+  fb = { fs, db: fs.getFirestore(app.initializeApp(FIREBASE_CONFIG, 'insurance-wa')) };
+  return fb;
+}
+
+const te = new TextEncoder(), td = new TextDecoder();
+const toB64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+const toB64u = b => toB64(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function deriveSession(secretBytes) {
+  const base = await crypto.subtle.importKey('raw', secretBytes, 'HKDF', false, ['deriveBits', 'deriveKey']);
+  const salt = te.encode('insurance-wa-v1');
+  const idBits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('page-id') }, base, 128);
+  const key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('content-key') },
+    base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  return { id: toB64u(new Uint8Array(idBits)), key };
+}
+async function encJSON(obj, key) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)));
+  return toB64(iv) + '.' + toB64(new Uint8Array(ct));
+}
+async function decJSON(str, key) {
+  const [iv, ct] = str.split('.');
+  return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(iv) }, key, fromB64(ct))));
+}
+
+const phone = { id: null, key: null, ref: null, expiresAt: 0, unsub: null, timer: null, received: null };
+function phoneStatus(text, cls) { $('phoneStatus').className = 'msg ' + (cls || ''); $('phoneStatus').textContent = text; }
+
+async function startPhoneSession() {
+  endPhoneSession();
+  $('phoneQr').innerHTML = ''; $('phonePreview').hidden = true; $('btnPhoneUse').disabled = true;
+  $('phoneTimer').textContent = '5:00';
+  phoneStatus(t('phoneConnecting'));
+  $('dlgPhone').showModal();
+  try {
+    const { fs, db } = await loadFirebase();
+    const secret = crypto.getRandomValues(new Uint8Array(32));
+    const s = await deriveSession(secret);
+    Object.assign(phone, { id: s.id, key: s.key, ref: fs.doc(db, 'pages', s.id), expiresAt: Date.now() + SESSION_TTL, received: null });
+    const current = {}; const m = messages();
+    for (const k of MESSAGE_KEYS) current[k] = m[k];
+    await fs.setDoc(phone.ref, { text: await encJSON({ from: 'pos', messages: current }, phone.key), createdAt: fs.serverTimestamp(), expiresAt: fs.Timestamp.fromMillis(phone.expiresAt) });
+    const link = new URL(PHONE_PAGE, location.href).href + '#' + toB64u(secret);
+    const qr = qrcode(0, 'M'); qr.addData(link); qr.make();
+    $('phoneQr').innerHTML = qr.createImgTag(5, 8);
+    phoneStatus(t('phoneWaiting'));
+    phone.timer = setInterval(phoneTick, 1000);
+    const myId = phone.id;
+    phone.unsub = fs.onSnapshot(phone.ref, async snap => {
+      if (phone.id !== myId || !snap.exists() || snap.metadata.hasPendingWrites) return;
+      try {
+        const data = await decJSON(snap.data().text || '', phone.key);
+        if (data.from !== 'phone' || !data.messages) return;
+        const got = {};
+        for (const k of MESSAGE_KEYS) got[k] = typeof data.messages[k] === 'string' ? data.messages[k] : '';
+        phone.received = got;
+        $('phonePreview').textContent = MESSAGE_KEYS.map(k => `— ${t(k)} —\n${got[k]}`).join('\n\n');
+        $('phonePreview').hidden = false; $('btnPhoneUse').disabled = false;
+        phoneStatus(t('phoneReceived'), 'ok');
+      } catch (e) { /* ignore anything that cannot be decrypted */ }
+    }, () => {});
+  } catch (e) {
+    phoneStatus(t('phoneError'), 'err');
+  }
+}
+function phoneTick() {
+  const left = phone.expiresAt - Date.now();
+  if (left <= 0) { endPhoneSession(); phoneStatus(t('phoneExpired'), 'err'); $('phoneQr').innerHTML = ''; $('btnPhoneUse').disabled = !phone.received; return; }
+  const s = Math.ceil(left / 1000);
+  $('phoneTimer').textContent = `${Math.floor(s / 60)}:${pad(s % 60)}`;
+}
+function endPhoneSession() {
+  if (phone.unsub) phone.unsub();
+  clearInterval(phone.timer);
+  if (phone.ref && fb) fb.fs.deleteDoc(phone.ref).catch(() => {});
+  Object.assign(phone, { id: null, ref: null, unsub: null, timer: null });
+}
+function usePhoneMessages() {
+  if (!phone.received) return;
+  store.messages = Object.assign({}, phone.received);
+  saveStore();
+  phone.received = null;
+  endPhoneSession();
+  $('dlgPhone').close();
+  renderSettings();
+  toast(t('phoneSaved'));
+}
+
 /* ===================== Events ===================== */
 function bind() {
   $('btnPaste').onclick = () => { $('pasteMsg').textContent = ''; $('dlgPaste').showModal(); $('pasteBox').focus(); };
@@ -762,6 +922,9 @@ function bind() {
   $('fileImport').onchange = e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; };
   $('btnSettings').onclick = () => { renderSettings(); $('dlgSettings').showModal(); };
   $('btnSaveMessages').onclick = saveMessages;
+  $('btnPhoneEdit').onclick = startPhoneSession;
+  $('btnPhoneUse').onclick = usePhoneMessages;
+  $('dlgPhone').addEventListener('close', () => { phone.received = null; endPhoneSession(); });
   $('btnResetMessages').onclick = () => { store.messages = {}; saveStore(); renderSettings(); };
   $('btnClearAll').onclick = () => { if (confirm(t('clearConfirm'))) { store = emptyStore(); saveStore(); renderSettings(); render(); } };
   document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
