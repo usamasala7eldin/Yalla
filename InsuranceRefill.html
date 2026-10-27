@@ -4,103 +4,111 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Insurance Refill</title>
+<script src="qrcode.js"></script>
+<script src="icd10.js" defer></script>
 <style>
   :root {
-    --bg: #f5f6f8; --card: #fff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec;
+    --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #6b7385; --line: #e2e5eb;
     --accent: #1f6feb; --accent-soft: #e8f0fe;
-    --green: #1a7f37; --green-bg: #dcf5e3;
-    --yellow: #8a6100; --yellow-bg: #fff4c2;
-    --red: #b42318; --red-bg: #fde3e1;
-    --grey-bg: #eef0f3;
-    --wa: #128c4a;
+    --green: #1a7f37; --green-bg: #d4f3dd;
+    --yellow: #7a5600; --yellow-bg: #fff1b8;
+    --red: #b42318; --red-bg: #fde0dd;
+    --qr2: #1a8f4c;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
   button, input, select, textarea { font: inherit; }
   button { cursor: pointer; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 12px 16px 40px; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 12px 16px 40px; }
 
-  header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   header h1 { font-size: 18px; margin: 0; flex: 1 1 auto; }
   .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 12px; }
   .btn:hover { border-color: var(--accent); }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .icon-btn { border: 1px solid var(--line); background: var(--card); border-radius: 8px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--muted); }
-  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
-  .icon-btn.done { background: var(--green-bg); color: var(--green); border-color: var(--green); }
-  .icon-btn.wa { color: var(--wa); }
-  .icon-btn svg { width: 16px; height: 16px; }
 
   .banner { background: var(--yellow-bg); color: var(--yellow); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .banner .btn { padding: 3px 10px; }
 
-  .stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 110px; cursor: pointer; }
-  .stat b { font-size: 20px; display: block; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; display: flex; gap: 6px; align-items: baseline; }
+  .stat b { font-size: 16px; }
   .stat span { color: var(--muted); font-size: 12px; }
   .stat.due b { color: var(--green); } .stat.soon b { color: var(--yellow); } .stat.missed b { color: var(--red); }
   .stat.active { outline: 2px solid var(--accent); }
+  .bar select { border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; background: var(--card); margin-left: auto; }
 
-  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .toolbar input[type=search] { flex: 1 1 220px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; background: var(--card); }
-  .toolbar select { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
+  .table-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+  table.main { width: 100%; border-collapse: collapse; }
+  table.main th { position: sticky; top: 0; background: #f9fafb; color: var(--muted); font-weight: 600; font-size: 12px; text-align: left; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.main td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.main tr:hover td { background: #fafbfc; }
+  .num { text-align: right; white-space: nowrap; }
+  .nowrap { white-space: nowrap; }
 
-  .list { display: flex; flex-direction: column; gap: 6px; }
-  .row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; }
-  .row.contacted { opacity: .6; }
-  .who { min-width: 0; }
-  .who .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .who .meta { color: var(--muted); font-size: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-  .tag { display: inline-block; border-radius: 6px; padding: 0 6px; font-size: 11px; line-height: 18px; background: var(--grey-bg); color: var(--muted); }
-  .tag.vc { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-  .tag.visits { background: #efe7fd; color: #5b2bb5; }
-  .dx { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inv { font-family: ui-monospace, Consolas, monospace; font-size: 13px; border: 0; background: none; padding: 0; color: var(--text); text-align: left; }
+  .inv:hover { color: var(--accent); text-decoration: underline; }
+  .inv.vc { font-weight: 700; }
+  .sub { color: var(--muted); font-size: 11px; line-height: 1.35; max-width: 360px; }
+  .sub.name { color: #4a5263; }
+  .sub.dx { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-  .dues { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-  .chip { border-radius: 8px; padding: 3px 8px; font-size: 12px; min-width: 58px; text-align: center; background: var(--grey-bg); color: var(--muted); border: 1px solid transparent; }
-  .chip small { display: block; font-size: 10px; opacity: .8; }
-  .chip.green { background: var(--green-bg); color: var(--green); border-color: var(--green); font-weight: 600; }
-  .chip.yellow { background: var(--yellow-bg); color: var(--yellow); border-color: #e0b400; }
-  .chip.red { background: var(--red-bg); color: var(--red); border-color: var(--red); }
-  .chip.off { opacity: .45; }
-  .chip.nr { background: var(--grey-bg); }
-  .amount { font-weight: 600; text-align: right; min-width: 70px; }
+  .due { text-align: center; white-space: nowrap; font-size: 12px; color: var(--muted); border-radius: 6px; }
+  .due.chosen { font-weight: 700; font-size: 13px; color: var(--text); }
+  .due.green { background: var(--green-bg); color: var(--green); }
+  .due.yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .due.red { background: var(--red-bg); color: var(--red); }
 
-  .actions { display: flex; gap: 4px; align-items: center; grid-column: 1 / -1; justify-content: space-between; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 6px; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-  .seg button { border: 0; background: var(--card); padding: 4px 9px; font-size: 12px; color: var(--muted); border-right: 1px solid var(--line); }
-  .seg button:last-child { border-right: 0; }
-  .seg button.on { background: var(--accent); color: #fff; }
-  .actions .right { display: flex; gap: 4px; align-items: center; }
-  .note-preview { color: var(--muted); font-size: 12px; font-style: italic; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  select.period { border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; background: var(--card); }
+  select.period.set { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 
-  .empty { text-align: center; color: var(--muted); padding: 40px 10px; background: var(--card); border: 1px dashed var(--line); border-radius: 10px; }
+  .contact { border: 0; background: none; padding: 0; text-align: left; color: var(--text); }
+  .contact .ph { color: var(--muted); font-size: 11px; display: block; }
+  .contact.empty { color: var(--accent); font-size: 12px; }
+  .qr-btns { display: flex; gap: 4px; }
+  .qr-btn { border: 0; border-radius: 6px; padding: 4px 8px; font-size: 12px; color: #fff; background: var(--accent); white-space: nowrap; }
+  .qr-btn.second { background: var(--qr2); }
+  .qr-btn.off { opacity: .35; }
+  .note { border: 0; background: none; padding: 0; color: var(--muted); font-size: 12px; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .note.empty { color: var(--accent); }
+  .icon-btn { border: 1px solid var(--line); background: var(--card); border-radius: 6px; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--muted); }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn svg { width: 14px; height: 14px; }
 
-  dialog { border: 0; border-radius: 12px; padding: 0; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 40px); box-shadow: 0 10px 40px rgba(0,0,0,.25); color: var(--text); }
+  .empty-state { text-align: center; color: var(--muted); padding: 40px 10px; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 8px 16px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 1000; }
+  .toast.show { opacity: 1; }
+
+  dialog { border: 0; border-radius: 12px; padding: 0; width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 40px); box-shadow: 0 10px 40px rgba(0,0,0,.25); color: var(--text); }
+  dialog.small { width: min(380px, calc(100vw - 32px)); }
   dialog::backdrop { background: rgba(20,25,35,.45); }
-  .dlg-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; }
-  .dlg-head h2 { font-size: 16px; margin: 0; flex: 1; }
+  .dlg-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; z-index: 1; }
+  .dlg-head h2 { font-size: 15px; margin: 0; flex: 1; }
   .dlg-body { padding: 12px 16px 16px; }
-  .dlg-body h3 { font-size: 13px; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
-  .dlg-body textarea, .dlg-body input[type=text], .dlg-body input[type=tel] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .dlg-body h3 { font-size: 12px; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .dlg-body textarea, .dlg-body input[type=text], .dlg-body input[type=tel] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; }
   .dlg-body textarea.paste { height: 180px; font-family: ui-monospace, monospace; font-size: 12px; }
-  .help { color: var(--muted); font-size: 12px; margin: 6px 0; }
-  .msg { margin-top: 8px; font-size: 13px; }
+  .help { color: var(--muted); font-size: 12px; margin: 4px 0; }
+  .msg { font-size: 13px; }
   .msg.ok { color: var(--green); } .msg.err { color: var(--red); }
   table.mini { width: 100%; border-collapse: collapse; font-size: 12px; }
   table.mini td, table.mini th { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
   table.mini th { color: var(--muted); font-weight: 500; }
-  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
-  .kv span:nth-child(odd) { color: var(--muted); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; }
+  .kv > span:nth-child(odd) { color: var(--muted); }
   .row-flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid2 label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 3px; }
+  #qrBox { display: flex; justify-content: center; margin: 12px 0; }
+  #qrBox img { width: 260px; height: 260px; image-rendering: pixelated; }
+  .qr-text { white-space: pre-wrap; background: #f6f7f9; border-radius: 8px; padding: 8px; font-size: 12px; }
+  .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .lang-switch button { border: 0; background: var(--card); padding: 5px 14px; }
+  .lang-switch button.on { background: var(--accent); color: #fff; }
 
-  @media (max-width: 640px) {
-    .row { grid-template-columns: 1fr auto; }
-    .dues { grid-column: 1 / -1; justify-content: flex-start; }
-    .amount { grid-row: 1; grid-column: 2; }
-    .note-preview { display: none; }
-  }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .bar select { margin-left: 0; } }
 </style>
 </head>
 <body>
@@ -108,10 +116,7 @@
   <header>
     <h1 data-i18n="appTitle"></h1>
     <button class="btn primary" id="btnPaste" data-i18n="pasteData"></button>
-    <button class="btn" id="btnBackup" data-i18n="backup"></button>
-    <button class="icon-btn" id="btnSettings" data-i18n-title="settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-    </button>
+    <button class="btn" id="btnSettings" data-i18n="settings"></button>
   </header>
 
   <div id="backupBanner" class="banner" hidden>
@@ -119,16 +124,21 @@
     <button class="btn" id="btnBannerBackup" data-i18n="exportNow"></button>
   </div>
 
-  <div class="stats" id="stats"></div>
-
-  <div class="toolbar">
-    <input type="search" id="search" data-i18n-placeholder="searchPlaceholder">
+  <div class="bar">
+    <div id="stats" class="row-flex"></div>
     <select id="filter"></select>
-    <select id="sort"></select>
   </div>
 
-  <div class="list" id="list"></div>
+  <div class="table-wrap">
+    <table class="main">
+      <thead><tr id="headRow"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" hidden></div>
+  </div>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <!-- Paste dialog -->
 <dialog id="dlgPaste">
@@ -150,25 +160,46 @@
   <div class="dlg-body" id="detBody"></div>
 </dialog>
 
-<!-- Settings / backup dialog -->
+<!-- QR dialog -->
+<dialog id="dlgQr" class="small">
+  <div class="dlg-head"><h2 id="qrTitle"></h2><button class="icon-btn" data-close>✕</button></div>
+  <div class="dlg-body" style="text-align:center">
+    <div class="lang-switch" id="qrLang">
+      <button data-lang="ar">العربية</button>
+      <button data-lang="en">English</button>
+    </div>
+    <div id="qrBox"></div>
+    <div class="qr-text" id="qrText" dir="auto" style="text-align:start"></div>
+  </div>
+</dialog>
+
+<!-- Settings dialog -->
 <dialog id="dlgSettings">
   <div class="dlg-head"><h2 data-i18n="settings"></h2><button class="icon-btn" data-close>✕</button></div>
   <div class="dlg-body">
+    <h3 data-i18n="messagesSection"></h3>
+    <p class="help" data-i18n="messagesHelp"></p>
+    <div class="grid2">
+      <div><label data-i18n="welcomeAr"></label><textarea id="setWelcomeAr" rows="5" dir="rtl"></textarea></div>
+      <div><label data-i18n="welcomeEn"></label><textarea id="setWelcomeEn" rows="5" dir="ltr"></textarea></div>
+      <div><label data-i18n="refillAr"></label><textarea id="setRefillAr" rows="5" dir="rtl"></textarea></div>
+      <div><label data-i18n="refillEn"></label><textarea id="setRefillEn" rows="5" dir="ltr"></textarea></div>
+      <div><label data-i18n="medicineAr"></label><input type="text" id="setMedAr" dir="rtl"></div>
+      <div><label data-i18n="medicineEn"></label><input type="text" id="setMedEn" dir="ltr"></div>
+    </div>
+    <div class="row-flex" style="margin-top:8px">
+      <button class="btn primary" id="btnSaveMessages" data-i18n="save"></button>
+      <button class="btn" id="btnResetMessages" data-i18n="resetDefault"></button>
+      <span class="msg ok" id="messagesMsg"></span>
+    </div>
+
     <h3 data-i18n="backupSection"></h3>
     <p class="help" id="lastBackupText"></p>
     <div class="row-flex">
       <button class="btn primary" id="btnExport" data-i18n="exportBackup"></button>
       <button class="btn" id="btnImport" data-i18n="importBackup"></button>
       <input type="file" id="fileImport" accept=".json,application/json" hidden>
-    </div>
-    <span class="msg" id="importMsg"></span>
-
-    <h3 data-i18n="waSection"></h3>
-    <p class="help" data-i18n="waHelp"></p>
-    <textarea id="waTemplate" rows="4" dir="auto"></textarea>
-    <div class="row-flex" style="margin-top:6px">
-      <button class="btn" id="btnSaveTemplate" data-i18n="save"></button>
-      <button class="btn" id="btnResetTemplate" data-i18n="resetDefault"></button>
+      <span class="msg" id="importMsg"></span>
     </div>
 
     <h3 data-i18n="dataSection"></h3>
@@ -179,11 +210,11 @@
 
 <script>
 /* ===================== Configuration ===================== */
-const STORAGE_KEY = 'insuranceRefill.v1';
+const STORAGE_KEY = 'insuranceRefill.v2';
 const KEEP_DAYS = 120;           // invoices older than this are removed automatically
 const BACKUP_REMINDER_DAYS = 7;  // remind to export a backup after this many days
-const EXPIRE_AFTER = -15;        // a refill date older than this is no longer shown
-const PERIODS = { '1M': 28, '2M': 56, '3M': 84 };
+const EXPIRE_AFTER = -15;        // like the spreadsheet: older than 15 days past the refill date shows "-"
+const PERIODS = { '1M': 28, '2M': 56, '3M': 84 }; // days added to the invoice date
 // Colour ranges (days remaining) copied from the original spreadsheet
 const THRESHOLDS = {
   '1M': { green: [-4, 5], yellow: [6, 11], red: [-9, -5] },
@@ -192,63 +223,70 @@ const THRESHOLDS = {
 };
 const EXCLUDED_INSURANCE = /promotion variance/i;
 
+// Default patient messages (Arabic in Modern Standard Arabic). Editable in Settings.
+const DEFAULT_MESSAGES = {
+  welcomeAr: 'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف هنا اسم الفرع ورابط الموقع)',
+  welcomeEn: 'Hello,\nThis is Nahdi Pharmacy.\n(Add the branch name and location link here)',
+  refillAr: 'الأستاذ/ة {name}\nنرجو أن تكونوا بخير.\nنودّ تذكيركم بموعد تكرار {medicine} هذا الأسبوع،\nوهو متوفر لدينا في الفرع 👈',
+  refillEn: 'Dear {name},\nWe hope you are well.\nThis is a reminder that your {medicine} refill is due this week,\nand it is available at our branch 👈',
+  medicineAr: 'دواء التأمين',
+  medicineEn: 'insurance medication'
+};
+
 /* ===================== Localisation ===================== */
 const I18N = {
   en: {
     appTitle: 'Insurance Refill Tracker',
-    pasteData: 'Paste data', backup: 'Backup', settings: 'Settings',
-    exportNow: 'Export now',
-    searchPlaceholder: 'Search name, card no., invoice or insurance…',
+    pasteData: 'Paste data', settings: 'Settings & backup', exportNow: 'Export now',
     pasteTitle: 'Paste dashboard reports',
     pasteHelp1: 'Open "On Account by User" or "Transaction Reference" on the KSA Pharmacy Dashboard, press Ctrl+A then Ctrl+C, and paste here.',
-    pasteHelp2: 'Paste one report at a time. New data is merged with what is already saved; nothing is lost.',
+    pasteHelp2: 'Paste one report at a time. New data is merged with the saved data.',
     pastePlaceholder: 'Paste the whole page here (Ctrl+V)…',
     process: 'Process',
     pasteResult: 'On Account: {inv} invoices ({newInv} new). Transaction Reference: {items} items for {itemInv} invoices.',
-    pasteNothing: 'No report rows were recognised. Make sure you copied the whole page including the Details table.',
-    filters: {
-      action: 'Needs action', due: 'Due now', soon: 'Coming soon', missed: 'Missed',
-      upcoming: 'Upcoming', notset: 'Period not set', contacted: 'Contacted', norefill: 'No refill',
-      expired: 'Expired', all: 'All'
-    },
-    sorts: { amount: 'Sort: amount', due: 'Sort: nearest refill', date: 'Sort: newest invoice', visits: 'Sort: visits' },
-    stats: { due: 'Due now', soon: 'Coming soon', missed: 'Missed', notset: 'Period not set' },
-    visits: '{n} visits', visit: '1 visit',
-    days: 'days', today: 'Today',
-    noRefill: 'No refill', expiredChip: 'Expired',
-    contacted: 'Contacted', markContacted: 'Mark as contacted', unmarkContacted: 'Undo contacted',
-    details: 'Details', whatsapp: 'Send WhatsApp reminder', addPhone: 'Add a phone number in Details to enable WhatsApp',
-    emptyNoData: 'No data yet. Click "Paste data" to add the On Account by User report.',
-    emptyFilter: 'Nothing matches this filter.',
-    invoiceDate: 'Invoice date', card: 'Card no.', insurance: 'Insurance', company: 'Company',
+    pasteNothing: 'No report rows were recognised. Copy the whole page including the Details table.',
+    cols: { invoice: 'Invoice No', amount: 'Amount', date: 'Date', insurance: 'Insurance', period: 'Refill', visits: 'Visits', contact: 'Contact', qr: 'WhatsApp QR', notes: 'Notes' },
+    filters: { all: 'All invoices', due: 'Due now', soon: 'Coming soon', missed: 'Missed', notset: 'Refill not set', norefill: 'No refill' },
+    stats: { due: 'Due now', soon: 'Coming soon', missed: 'Missed' },
+    after: 'After {n} days', afterOne: 'After 1 day', today: 'Today', ago: '{n} days ago', agoOne: '1 day ago',
+    periodNone: '—', noRefill: 'No refill',
+    copied: 'Copied {v}',
+    addContact: '+ Add', addNote: '+ Note',
+    qrWelcome: 'Welcome', qrRefill: 'Refill',
+    qrTitleWelcome: 'Welcome message', qrTitleRefill: 'Refill message',
+    qrNoPhone: 'Add the contact phone number first.',
+    qrNoLib: 'The QR library did not load. Check the internet connection and reload the page.',
+    details: 'Details',
+    detPatient: 'Patient', card: 'Card no.', invoiceDate: 'Invoice date', insurance: 'Insurance', company: 'Company',
     amount: 'Credit amount', copay: 'Co-payment', employee: 'Emp ID', reference: 'Reference',
-    invoices: 'Invoices', diagnoses: 'Diagnoses', items: 'Items (VC only)', noItems: 'No items — items are only available for VC (clinic reference) invoices.',
-    follow: 'Follow-up', refillPeriod: 'Refill period', phone: 'Phone', note: 'Note', save: 'Save', saved: 'Saved',
+    contactSection: 'Contact (linked to card no.)', contactName: 'Contact name', phone: 'Phone',
+    contactHelp: 'Saved for this card number and reused on all its invoices.',
+    noteSection: 'Note (this invoice)', save: 'Save', saved: 'Saved',
+    diagnoses: 'Diagnoses', items: 'Items (VC)', noItems: 'No items. Items are only available for VC invoices.',
     item: 'Item', qty: 'Qty', value: 'Value',
-    contactedOn: 'Contacted on {d}',
-    backupSection: 'Backup', waSection: 'WhatsApp message', dataSection: 'Data',
-    exportBackup: 'Export backup', importBackup: 'Import backup',
-    lastBackup: 'Last backup: {d}', neverBackedUp: 'No backup exported yet.',
-    backupReminder: 'Your follow-up data lives only in this browser. Last backup: {d}.',
-    backupReminderNever: 'Your follow-up data lives only in this browser and has never been backed up.',
-    importDone: 'Imported: {inv} invoices, {fol} follow-ups.', importFail: 'This file is not a valid backup.',
-    waHelp: 'Use {name} for the patient name and {date} for the refill date.',
+    messagesSection: 'WhatsApp messages',
+    messagesHelp: 'Use {name} for the contact name and {medicine} for the medicine text.',
+    welcomeAr: 'Welcome message (Arabic)', welcomeEn: 'Welcome message (English)',
+    refillAr: 'Refill message (Arabic)', refillEn: 'Refill message (English)',
+    medicineAr: 'Medicine text (Arabic)', medicineEn: 'Medicine text (English)',
     resetDefault: 'Reset to default',
-    dataInfo: '{inv} invoices and {fol} follow-ups saved. Invoices older than {keep} days are removed automatically.',
-    clearAll: 'Delete all saved data', clearConfirm: 'Delete all invoices and follow-up data from this browser? Export a backup first if you need it.',
+    backupSection: 'Backup', exportBackup: 'Export backup', importBackup: 'Import backup',
+    lastBackup: 'Last backup: {d}', neverBackedUp: 'No backup exported yet.',
+    backupReminder: 'Your data lives only in this browser. Last backup: {d}.',
+    backupReminderNever: 'Your data lives only in this browser and has never been backed up.',
+    importDone: 'Imported: {inv} new invoices, {fol} refill settings, {con} contacts.', importFail: 'This file is not a valid backup.',
+    dataSection: 'Data',
+    dataInfo: '{inv} invoices, {fol} refill settings and {con} contacts saved. Invoices older than {keep} days are removed automatically.',
+    clearAll: 'Delete all saved data', clearConfirm: 'Delete all data from this browser? Export a backup first if you need it.',
     storageFull: 'Browser storage is full. Export a backup, then delete old data.',
-    clearPeriod: 'Clear period',
-    icdLoading: 'loading…'
+    emptyNoData: 'No data yet. Click "Paste data" and paste the On Account by User report.',
+    emptyFilter: 'No invoices in this filter.'
   }
 };
-// Default patient message: Modern Standard Arabic
-const DEFAULT_WA_TEMPLATE = 'السلام عليكم ورحمة الله {name}،\nنود تذكيركم بأن موعد إعادة صرف علاجكم عبر التأمين هو {date}.\nيسعدنا استقبالكم في الصيدلية.';
-
 let LANG = 'en';
 function t(key, vars) {
-  const parts = key.split('.');
   let s = I18N[LANG];
-  for (const p of parts) s = s ? s[p] : undefined;
+  for (const p of key.split('.')) s = s ? s[p] : undefined;
   if (s === undefined) return key;
   if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
   return s;
@@ -256,81 +294,78 @@ function t(key, vars) {
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
-  document.querySelectorAll('[data-i18n-title]').forEach(el => el.title = t(el.dataset.i18nTitle));
   document.title = t('appTitle');
 }
 
 /* ===================== Storage ===================== */
-function emptyStore() { return { v: 1, invoices: {}, items: {}, follow: {}, settings: {}, lastBackup: null }; }
+// invoices: by invoice no. | items: by invoice no. | follow: refill settings by invoice no.
+// contacts: by card no. | messages: WhatsApp templates
+function emptyStore() { return { v: 2, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, lastBackup: null }; }
 let store = loadStore();
 function loadStore() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyStore();
-    const s = JSON.parse(raw);
-    return Object.assign(emptyStore(), s);
+    return raw ? Object.assign(emptyStore(), JSON.parse(raw)) : emptyStore();
   } catch (e) { return emptyStore(); }
 }
 function saveStore() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); return true; }
   catch (e) { alert(t('storageFull')); return false; }
 }
+function messages() { return Object.assign({}, DEFAULT_MESSAGES, store.messages); }
 
 /* ===================== Date helpers ===================== */
 const MONTHS = { JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6, JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12 };
 const pad = n => String(n).padStart(2, '0');
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
-function isoToDayNum(iso) { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; }
-function dayNumToISO(n) { const d = new Date(n * 86400000); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
+function dayNum(iso) { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; }
 function fmtDate(iso) {
   if (!iso) return '';
-  const d = new Date(isoToDayNum(iso) * 86400000);
-  return d.toLocaleDateString(LANG, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  return new Date(dayNum(iso) * 86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 function parseDashDate(s) { // 01-OCT-2026 00:00:00
   const m = /^(\d{1,2})-([A-Za-z]{3})-(\d{4})/.exec(s.trim());
-  if (!m) return null;
-  const mon = MONTHS[m[2].toUpperCase()];
+  const mon = m && MONTHS[m[2].toUpperCase()];
   return mon ? `${m[3]}-${pad(mon)}-${pad(m[1])}` : null;
+}
+function daysLabel(days) {
+  if (days === 0) return t('today');
+  if (days > 0) return days === 1 ? t('afterOne') : t('after', { n: days });
+  return days === -1 ? t('agoOne') : t('ago', { n: -days });
 }
 
 /* ===================== Parsing ===================== */
 const INVOICE_RE = /^\d{15,}$/;
-function num(s) { const n = parseFloat(String(s).replace(/,/g, '')); return isNaN(n) ? 0 : n; }
+const num = s => { const n = parseFloat(String(s).replace(/,/g, '')); return isNaN(n) ? 0 : n; };
 
 function parseReport(text) {
   const result = { invoices: [], items: {} };
-  const lines = text.split(/\r?\n/);
-  for (const line of lines) {
+  for (const line of text.split(/\r?\n/)) {
     if (!line.includes('\t')) continue;
     const c = line.split('\t').map(x => x.trim());
     // On Account by User — Details: EmpID, DateTime, InvoiceNo, Insurance, Company, Patient, Card, CoPay, Credit, Diagnosis
     if (c.length >= 9 && INVOICE_RE.test(c[2]) && parseDashDate(c[1])) {
-      const dxRaw = (c[9] || '').split(',')[0];
       result.invoices.push({
         inv: c[2], emp: c[0], date: parseDashDate(c[1]), ins: c[3], company: c[4],
         name: c[5], card: c[6], copay: num(c[7]), credit: num(c[8]),
-        dx: dxRaw.split(';').map(x => x.trim()).filter(Boolean)
+        dx: (c[9] || '').split(',')[0].split(';').map(x => x.trim()).filter(Boolean)
       });
       continue;
     }
     // Transaction Reference — Detail: EmpID, InvoiceNo, Date, Reference, ItemID, Barcode, Desc, Qty, Value, PrescriptionID
     if (c.length >= 9 && INVOICE_RE.test(c[1]) && /^\d{4}-\d{2}-\d{2}$/.test(c[2])) {
-      (result.items[c[1]] = result.items[c[1]] || []).push({
-        ref: c[3], itemId: c[4], desc: c[6], qty: num(c[7]), value: num(c[8]), rx: c[9] || ''
-      });
+      (result.items[c[1]] = result.items[c[1]] || []).push({ ref: c[3], desc: c[6], qty: num(c[7]), value: num(c[8]) });
     }
   }
   return result;
 }
 
 function mergeParsed(parsed) {
-  let newInv = 0;
+  let newInv = 0, itemCount = 0;
   for (const inv of parsed.invoices) {
     if (!store.invoices[inv.inv]) newInv++;
     store.invoices[inv.inv] = inv;
   }
-  let itemCount = 0;
   for (const [inv, list] of Object.entries(parsed.items)) {
     store.items[inv] = list; // replace, so pasting the same report twice does not duplicate items
     itemCount += list.length;
@@ -340,59 +375,45 @@ function mergeParsed(parsed) {
 }
 
 function pruneOld() {
-  const limit = isoToDayNum(todayISO()) - KEEP_DAYS;
-  for (const [k, inv] of Object.entries(store.invoices)) if (isoToDayNum(inv.date) < limit) delete store.invoices[k];
-  for (const k of Object.keys(store.items)) {
-    // Invoice numbers end with yyyymmdd
-    const m = /(\d{4})(\d{2})(\d{2})$/.exec(k);
-    if (m && isoToDayNum(`${m[1]}-${m[2]}-${m[3]}`) < limit) delete store.items[k];
+  const limit = dayNum(todayISO()) - KEEP_DAYS;
+  for (const [k, inv] of Object.entries(store.invoices)) if (dayNum(inv.date) < limit) delete store.invoices[k];
+  for (const k of [...Object.keys(store.items), ...Object.keys(store.follow)]) {
+    const m = /(\d{4})(\d{2})(\d{2})$/.exec(k); // invoice numbers end with yyyymmdd
+    if (m && dayNum(`${m[1]}-${m[2]}-${m[3]}`) < limit) { delete store.items[k]; delete store.follow[k]; }
   }
-  for (const [k, f] of Object.entries(store.follow)) {
-    const date = k.split('|')[1];
-    if (date && isoToDayNum(date) < limit) delete store.follow[k];
-  }
+  // contacts are kept: they belong to the card number, not to an invoice
 }
 
 /* ===================== Building rows ===================== */
 function buildRows() {
   const all = Object.values(store.invoices).filter(i => !EXCLUDED_INSURANCE.test(i.ins));
-  // Remove returns: every negative invoice cancels the latest matching positive one (same card + same amount)
+  // Returns: each negative invoice cancels the latest matching positive one (same card, same amount)
   const excluded = new Set();
-  const negatives = all.filter(i => i.credit < 0).sort((a, b) => a.date.localeCompare(b.date));
-  for (const neg of negatives) {
+  for (const neg of all.filter(i => i.credit < 0).sort((a, b) => a.date.localeCompare(b.date))) {
     excluded.add(neg.inv);
     const match = all
-      .filter(p => p.credit > 0 && !excluded.has(p.inv) && p.card === neg.card &&
-        Math.abs(p.credit + neg.credit) < 0.01 && p.date <= neg.date)
+      .filter(p => p.credit > 0 && !excluded.has(p.inv) && p.card === neg.card && Math.abs(p.credit + neg.credit) < 0.01 && p.date <= neg.date)
       .sort((a, b) => b.date.localeCompare(a.date) || b.inv.localeCompare(a.inv))[0];
     if (match) excluded.add(match.inv);
   }
   const valid = all.filter(i => !excluded.has(i.inv) && i.credit > 0);
 
-  // Visits per card = distinct dates
   const visits = {};
-  for (const i of valid) (visits[i.card] = visits[i.card] || new Set()).add(i.date);
+  for (const i of valid) visits[i.card] = (visits[i.card] || 0) + 1;
 
-  // Group same patient + same day into one follow-up row
-  const groups = {};
-  for (const i of valid) {
-    const key = `${i.card}|${i.date}`;
-    const g = groups[key] = groups[key] || { key, card: i.card, date: i.date, name: i.name, invoices: [], ins: new Set(), company: new Set(), dx: [], credit: 0, copay: 0, refs: new Set(), items: [] };
-    g.invoices.push(i);
-    g.ins.add(i.ins); if (i.company) g.company.add(i.company);
-    for (const d of i.dx) if (!g.dx.includes(d)) g.dx.push(d);
-    g.credit += i.credit; g.copay += i.copay;
-    for (const it of (store.items[i.inv] || [])) { g.items.push(Object.assign({ inv: i.inv }, it)); if (it.ref) g.refs.add(it.ref); }
-  }
-
-  const today = isoToDayNum(todayISO());
-  return Object.values(groups).map(g => {
-    g.visits = visits[g.card] ? visits[g.card].size : 1;
-    g.follow = store.follow[g.key] || {};
-    g.dues = computeDues(g, today);
-    g.status = computeStatus(g);
-    return g;
-  });
+  const today = dayNum(todayISO());
+  return valid.map(i => {
+    const follow = store.follow[i.inv] || {};
+    const items = store.items[i.inv] || [];
+    const dues = {};
+    for (const [k, d] of Object.entries(PERIODS)) {
+      const days = dayNum(i.date) + d - today;
+      dues[k] = { days, expired: days < EXPIRE_AFTER, colour: colourFor(k, days) };
+    }
+    const row = Object.assign({}, i, { follow, items, dues, visits: visits[i.card], contact: store.contacts[i.card] || {} });
+    row.status = statusOf(row);
+    return row;
+  }).sort((a, b) => b.credit - a.credit);
 }
 
 function colourFor(periodKey, days) {
@@ -404,33 +425,14 @@ function colourFor(periodKey, days) {
   return '';
 }
 
-function computeDues(g, today) {
-  const base = isoToDayNum(g.date);
-  const chosen = g.follow.period;
-  const keys = chosen && PERIODS[chosen] ? [chosen] : Object.keys(PERIODS);
-  return keys.map(k => {
-    const dueDay = base + PERIODS[k];
-    const days = dueDay - today;
-    return { period: k, days, dueISO: dayNumToISO(dueDay), colour: colourFor(k, days), expired: days < EXPIRE_AFTER };
-  });
-}
-
-function computeStatus(g) {
-  if (g.follow.period === 'NR') return 'norefill';
-  if (g.follow.contacted) return 'contacted';
-  const live = g.dues.filter(d => !d.expired);
-  if (!live.length) return 'expired';
-  if (live.some(d => d.colour === 'green')) return 'due';
-  if (live.some(d => d.colour === 'yellow')) return 'soon';
-  if (live.some(d => d.colour === 'red')) return 'missed';
-  if (live.some(d => d.days > 0)) return 'upcoming';
-  return 'expired';
-}
-
-function nearestDays(g) {
-  const live = g.dues.filter(d => !d.expired);
-  if (!live.length) return 99999;
-  return Math.min(...live.map(d => Math.abs(d.days)));
+// Status exists only when the user has chosen the refill period
+function statusOf(r) {
+  const p = r.follow.period;
+  if (!p) return 'notset';
+  if (p === 'NR') return 'norefill';
+  const d = r.dues[p];
+  if (d.expired) return 'expired';
+  return { green: 'due', yellow: 'soon', red: 'missed' }[d.colour] || 'other';
 }
 
 /* ===================== Rendering ===================== */
@@ -439,114 +441,91 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&
 const money = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 let rowsCache = [];
-const ui = { filter: 'action', sort: 'amount', search: '' };
-try { Object.assign(ui, JSON.parse(localStorage.getItem(STORAGE_KEY + '.ui') || '{}')); ui.search = ''; } catch (e) {}
-function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringify({ filter: ui.filter, sort: ui.sort })); } catch (e) {} }
+const ui = { filter: 'all' };
+try { Object.assign(ui, JSON.parse(localStorage.getItem(STORAGE_KEY + '.ui') || '{}')); } catch (e) {}
+function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringify(ui)); } catch (e) {} }
 
-function setupControls() {
-  const f = $('filter');
-  f.innerHTML = Object.keys(I18N[LANG].filters).map(k => `<option value="${k}">${esc(t('filters.' + k))}</option>`).join('');
-  f.value = ui.filter;
-  const s = $('sort');
-  s.innerHTML = Object.keys(I18N[LANG].sorts).map(k => `<option value="${k}">${esc(t('sorts.' + k))}</option>`).join('');
-  s.value = ui.sort;
+function setupStatic() {
+  const c = I18N[LANG].cols;
+  $('headRow').innerHTML = [
+    `<th>${esc(c.invoice)}</th>`, `<th class="num">${esc(c.amount)}</th>`, `<th>${esc(c.date)}</th>`, `<th>${esc(c.insurance)}</th>`,
+    ...Object.keys(PERIODS).map(k => `<th style="text-align:center">${k}</th>`),
+    `<th>${esc(c.period)}</th>`, `<th class="num">${esc(c.visits)}</th>`, `<th>${esc(c.contact)}</th>`, `<th>${esc(c.qr)}</th>`, `<th>${esc(c.notes)}</th>`, '<th></th>'
+  ].join('');
+  $('filter').innerHTML = Object.keys(I18N[LANG].filters).map(k => `<option value="${k}">${esc(t('filters.' + k))}</option>`).join('');
+  $('filter').value = ui.filter;
 }
 
 function matchesFilter(r) {
-  switch (ui.filter) {
-    case 'all': return true;
-    case 'action': return ['due', 'soon', 'missed'].includes(r.status);
-    case 'notset': return !r.follow.period && !['expired', 'contacted'].includes(r.status);
-    default: return r.status === ui.filter;
-  }
-}
-function matchesSearch(r) {
-  if (!ui.search) return true;
-  const q = ui.search.toLowerCase();
-  return [r.name, r.card, ...r.ins, ...r.invoices.map(i => i.inv), r.follow.phone || '', r.follow.note || '']
-    .some(v => String(v).toLowerCase().includes(q));
+  if (ui.filter === 'all') return true;
+  return r.status === ui.filter;
 }
 
 function render() {
   rowsCache = buildRows();
   renderStats();
   renderBackupBanner();
-  const list = $('list');
-  if (!rowsCache.length) { list.innerHTML = `<div class="empty">${esc(t('emptyNoData'))}</div>`; return; }
-  let rows = rowsCache.filter(r => matchesFilter(r) && matchesSearch(r));
-  const sorters = {
-    amount: (a, b) => b.credit - a.credit,
-    due: (a, b) => nearestDays(a) - nearestDays(b) || b.credit - a.credit,
-    date: (a, b) => b.date.localeCompare(a.date) || b.credit - a.credit,
-    visits: (a, b) => b.visits - a.visits || b.credit - a.credit
-  };
-  rows.sort(sorters[ui.sort] || sorters.amount);
-  if (!rows.length) { list.innerHTML = `<div class="empty">${esc(t('emptyFilter'))}</div>`; return; }
-  list.innerHTML = rows.map(rowHTML).join('');
-  fillDxPreviews();
+  const rows = rowsCache.filter(matchesFilter);
+  $('tbody').innerHTML = rows.map(rowHTML).join('');
+  $('emptyState').hidden = rows.length > 0;
+  $('emptyState').textContent = rowsCache.length ? t('emptyFilter') : t('emptyNoData');
 }
 
 function renderStats() {
-  const count = s => rowsCache.filter(r => r.status === s).length;
-  const notset = rowsCache.filter(r => !r.follow.period && !['expired', 'contacted'].includes(r.status)).length;
-  const items = [['due', count('due')], ['soon', count('soon')], ['missed', count('missed')], ['notset', notset]];
-  $('stats').innerHTML = items.map(([k, n]) =>
-    `<div class="stat ${k} ${ui.filter === k ? 'active' : ''}" data-filter="${k}"><b>${n}</b><span>${esc(t('stats.' + k))}</span></div>`).join('');
+  const n = s => rowsCache.filter(r => r.status === s).length;
+  $('stats').innerHTML = ['due', 'soon', 'missed'].map(k =>
+    `<div class="stat ${k} ${ui.filter === k ? 'active' : ''}" data-filter="${k}"><b>${n(k)}</b><span>${esc(t('stats.' + k))}</span></div>`).join('');
 }
 
-function chipHTML(d, chosen) {
-  if (d.expired) return `<div class="chip off">${d.period}<small>${esc(t('expiredChip'))}</small></div>`;
-  const label = d.days === 0 ? t('today') : `${d.days > 0 ? '+' : ''}${d.days} ${t('days')}`;
-  return `<div class="chip ${d.colour}" title="${esc(fmtDate(d.dueISO))}">${d.period}<small>${esc(label)}</small></div>`;
+function dueCell(r, k) {
+  const p = r.follow.period;
+  const d = r.dues[k];
+  if (p === 'NR' || (p && p !== k)) return '<td class="due"></td>';
+  if (d.expired) return `<td class="due ${p === k ? 'chosen' : ''}">-</td>`;
+  if (p === k) return `<td class="due chosen ${d.colour}">${esc(daysLabel(d.days))}</td>`;
+  return `<td class="due">${esc(daysLabel(d.days))}</td>`; // not chosen yet: plain, no colour
 }
 
-const ICONS = {
-  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
-  wa: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.2.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>'
-};
+function dxNames(codes) {
+  return codes.map(c => icdDesc(c) || c).join(' · ');
+}
 
 function rowHTML(r) {
-  const chosen = r.follow.period || '';
-  const segs = [...Object.keys(PERIODS), 'NR'].map(p =>
-    `<button class="${chosen === p ? 'on' : ''}" data-act="period" data-key="${esc(r.key)}" data-val="${p}">${p === 'NR' ? esc(t('noRefill')) : p}</button>`).join('');
-  const dues = r.follow.period === 'NR'
-    ? `<div class="chip nr">${esc(t('noRefill'))}</div>`
-    : r.dues.map(d => chipHTML(d, chosen)).join('');
-  const ins = [...r.ins].join(' / ');
-  const vc = r.refs.size ? `<span class="tag vc" title="${esc([...r.refs].join(', '))}">VC</span>` : '';
-  const visits = `<span class="tag visits">${esc(r.visits === 1 ? t('visit') : t('visits', { n: r.visits }))}</span>`;
-  const phone = r.follow.phone;
-  const waBtn = phone
-    ? `<button class="icon-btn wa" title="${esc(t('whatsapp'))}" data-act="wa" data-key="${esc(r.key)}">${ICONS.wa}</button>`
-    : `<button class="icon-btn" title="${esc(t('addPhone'))}" data-act="details" data-key="${esc(r.key)}" style="opacity:.4">${ICONS.wa}</button>`;
-  const contacted = !!r.follow.contacted;
-  return `<div class="row ${contacted ? 'contacted' : ''}">
-    <div class="who">
-      <div class="name" dir="auto">${esc(r.name)} ${vc} ${visits}</div>
-      <div class="meta"><span>${esc(fmtDate(r.date))}</span><span>${esc(r.card)}</span><span>${esc(ins)}</span>${r.invoices.length > 1 ? `<span>${r.invoices.length} ${esc(t('invoices').toLowerCase())}</span>` : ''}</div>
-      <div class="dx" data-dx="${esc(r.dx.join(';'))}">${esc(r.dx.join(', '))}</div>
-    </div>
-    <div class="dues">${dues}</div>
-    <div class="amount">${money(r.credit)}</div>
-    <div class="actions">
-      <div class="row-flex"><div class="seg">${segs}</div>${chosen ? '' : ''}<span class="note-preview" dir="auto">${esc(r.follow.note || '')}</span></div>
-      <div class="right">
-        ${waBtn}
-        <button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-key="${esc(r.key)}">${ICONS.info}</button>
-        <button class="icon-btn ${contacted ? 'done' : ''}" title="${esc(contacted ? t('contactedOn', { d: fmtDate(r.follow.contacted) }) + ' — ' + t('unmarkContacted') : t('markContacted'))}" data-act="contacted" data-key="${esc(r.key)}">${ICONS.check}</button>
-      </div>
-    </div>
-  </div>`;
+  const inv = esc(r.inv);
+  const periodOpts = [['', t('periodNone')], ...Object.keys(PERIODS).map(k => [k, k]), ['NR', t('noRefill')]]
+    .map(([v, l]) => `<option value="${v}" ${r.follow.period === v || (!r.follow.period && v === '') ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  const contact = r.contact.name || r.contact.phone
+    ? `<button class="contact" data-act="details" data-inv="${inv}" dir="auto">${esc(r.contact.name || '')}<span class="ph">${esc(r.contact.phone || '')}</span></button>`
+    : `<button class="contact empty" data-act="details" data-inv="${inv}">${esc(t('addContact'))}</button>`;
+  const off = r.contact.phone ? '' : 'off';
+  const note = r.follow.note
+    ? `<button class="note" data-act="details" data-inv="${inv}" title="${esc(r.follow.note)}" dir="auto">${esc(r.follow.note)}</button>`
+    : `<button class="note empty" data-act="details" data-inv="${inv}">${esc(t('addNote'))}</button>`;
+  return `<tr>
+    <td>
+      <button class="inv ${r.items.length ? 'vc' : ''}" data-act="copy" data-inv="${inv}" title="Copy">${inv}</button>
+      <div class="sub name" dir="auto">${esc(r.name)}</div>
+      <div class="sub dx" title="${esc(dxNames(r.dx))}">${esc(dxNames(r.dx))}</div>
+    </td>
+    <td class="num"><b>${money(r.credit)}</b></td>
+    <td class="nowrap">${esc(fmtDate(r.date))}</td>
+    <td class="nowrap">${esc(r.ins)}</td>
+    ${Object.keys(PERIODS).map(k => dueCell(r, k)).join('')}
+    <td><select class="period ${r.follow.period ? 'set' : ''}" data-act="period" data-inv="${inv}">${periodOpts}</select></td>
+    <td class="num">${r.visits}</td>
+    <td>${contact}</td>
+    <td><div class="qr-btns">
+      <button class="qr-btn ${off} ${r.follow.qrW ? 'done' : ''}" data-act="qr" data-type="welcome" data-inv="${inv}">${r.follow.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
+      <button class="qr-btn second ${off}" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>
+    </div></td>
+    <td>${note}</td>
+    <td><button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-inv="${inv}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button></td>
+  </tr>`;
 }
 
-/* ===================== ICD-10 descriptions ===================== */
-let icd = null, icdPromise = null;
-function loadIcd() {
-  if (!icdPromise) icdPromise = fetch('icd10.json').then(r => r.ok ? r.json() : {}).then(d => (icd = d)).catch(() => (icd = {}));
-  return icdPromise;
-}
+/* ===================== ICD-10 ===================== */
 function icdDesc(code) {
+  const icd = window.ICD10;
   if (!icd) return '';
   let c = code.toUpperCase();
   while (c.length >= 3) {
@@ -555,34 +534,33 @@ function icdDesc(code) {
   }
   return '';
 }
-function fillDxPreviews() {
-  if (!icd) { loadIcd().then(fillDxPreviews); return; }
-  document.querySelectorAll('.dx[data-dx]').forEach(el => {
-    const codes = el.dataset.dx.split(';').filter(Boolean);
-    if (!codes.length) return;
-    el.textContent = codes.map(c => { const d = icdDesc(c); return d ? `${c} ${d}` : c; }).join(' · ');
-    el.title = el.textContent;
-  });
-}
 
-/* ===================== Follow-up actions ===================== */
-function getFollow(key) { return store.follow[key] = store.follow[key] || {}; }
-function touch(key) {
-  const f = store.follow[key];
-  if (f) {
-    f.updatedAt = new Date().toISOString();
-    if (!f.period && !f.phone && !f.note && !f.contacted) delete store.follow[key];
-  }
+/* ===================== Actions ===================== */
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 1400);
 }
-function setPeriod(key, val) {
-  const f = getFollow(key);
-  f.period = f.period === val ? '' : val; // click again to clear
-  touch(key); saveStore(); render();
+function copyText(v) {
+  const done = () => toast(t('copied', { v }));
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(v).then(done, () => fallbackCopy(v, done));
+  else fallbackCopy(v, done);
 }
-function toggleContacted(key) {
-  const f = getFollow(key);
-  f.contacted = f.contacted ? '' : todayISO();
-  touch(key); saveStore(); render();
+function fallbackCopy(v, done) {
+  const ta = document.createElement('textarea'); ta.value = v; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  ta.remove();
+}
+function follow(inv) { return store.follow[inv] = store.follow[inv] || {}; }
+function touchFollow(inv) {
+  const f = store.follow[inv];
+  if (!f) return;
+  f.updatedAt = new Date().toISOString();
+  if (!f.period && !f.note && !f.qrW && !f.qrR) delete store.follow[inv];
+}
+function setPeriod(inv, val) {
+  follow(inv).period = val;
+  touchFollow(inv); saveStore(); render();
 }
 function normalisePhone(p) {
   let d = String(p || '').replace(/\D/g, '');
@@ -591,133 +569,162 @@ function normalisePhone(p) {
   else if (d.startsWith('5') && d.length === 9) d = '966' + d;
   return d;
 }
-function sendWhatsApp(key) {
-  const r = rowsCache.find(x => x.key === key);
-  if (!r || !r.follow.phone) return;
-  const due = r.dues.find(d => !d.expired) || r.dues[0];
-  const tpl = store.settings.waTemplate || DEFAULT_WA_TEMPLATE;
-  const text = tpl.replace(/\{name\}/g, r.name).replace(/\{date\}/g, due ? fmtDate(due.dueISO) : '');
-  window.open(`https://wa.me/${normalisePhone(r.follow.phone)}?text=${encodeURIComponent(text)}`, '_blank');
+
+/* ===================== QR dialog ===================== */
+const qrState = { inv: null, type: null, lang: 'ar' };
+function openQr(inv, type) {
+  const r = rowsCache.find(x => x.inv === inv);
+  if (!r) return;
+  if (!r.contact.phone) { toast(t('qrNoPhone')); openDetails(inv); return; }
+  qrState.inv = inv; qrState.type = type;
+  const f = follow(inv);
+  if (type === 'welcome') f.qrW = true; else f.qrR = true;
+  touchFollow(inv); saveStore(); render();
+  $('dlgQr').showModal();
+  renderQr();
+}
+function buildMessage(r, type, lang) {
+  const m = messages();
+  if (type === 'welcome') return lang === 'en' ? m.welcomeEn : m.welcomeAr;
+  const tpl = lang === 'en' ? m.refillEn : m.refillAr;
+  return tpl.replace(/\{name\}/g, r.contact.name || '').replace(/\{medicine\}/g, lang === 'en' ? m.medicineEn : m.medicineAr);
+}
+function renderQr() {
+  const r = rowsCache.find(x => x.inv === qrState.inv);
+  if (!r) return;
+  document.querySelectorAll('#qrLang button').forEach(b => b.classList.toggle('on', b.dataset.lang === qrState.lang));
+  const text = buildMessage(r, qrState.type, qrState.lang);
+  $('qrTitle').textContent = `${t(qrState.type === 'welcome' ? 'qrTitleWelcome' : 'qrTitleRefill')} — ${r.contact.name || r.contact.phone}`;
+  $('qrText').textContent = text;
+  const link = `https://wa.me/${normalisePhone(r.contact.phone)}?text=${encodeURIComponent(text)}`;
+  if (typeof qrcode !== 'function') { $('qrBox').textContent = t('qrNoLib'); return; }
+  const qr = qrcode(0, 'L'); qr.addData(link, 'Byte'); qr.make();
+  $('qrBox').innerHTML = qr.createImgTag(6, 8);
 }
 
 /* ===================== Details dialog ===================== */
-function openDetails(key) {
-  const r = rowsCache.find(x => x.key === key);
+function openDetails(inv) {
+  const r = rowsCache.find(x => x.inv === inv);
   if (!r) return;
-  $('detTitle').textContent = r.name;
-  $('detTitle').dir = 'auto';
-  const f = r.follow;
-  const dxRows = r.dx.map(c => `<tr><td>${esc(c)}</td><td>${esc(icdDesc(c) || (icd ? '' : t('icdLoading')))}</td></tr>`).join('');
-  const invRows = r.invoices.map(i => `<tr><td>${esc(i.inv)}</td><td>${esc(i.ins)}</td><td>${esc(i.emp)}</td><td>${money(i.copay)}</td><td>${money(i.credit)}</td></tr>`).join('');
-  const itemRows = r.items.map(it => `<tr><td dir="auto">${esc(it.desc)}</td><td>${esc(it.qty)}</td><td>${money(it.value)}</td><td>${esc(it.ref)}</td></tr>`).join('');
+  $('detTitle').textContent = r.inv;
+  const dxRows = r.dx.map(c => `<tr><td>${esc(icdDesc(c) || c)}</td><td style="color:var(--muted)">${esc(c)}</td></tr>`).join('');
+  const itemRows = r.items.map(it => `<tr><td dir="auto">${esc(it.desc)}</td><td>${esc(it.qty)}</td><td>${money(it.value)}</td></tr>`).join('');
+  const refs = [...new Set(r.items.map(it => it.ref).filter(Boolean))].join(', ');
   $('detBody').innerHTML = `
     <div class="kv">
+      <span>${esc(t('detPatient'))}</span><span dir="auto">${esc(r.name)}</span>
       <span>${esc(t('card'))}</span><span>${esc(r.card)}</span>
       <span>${esc(t('invoiceDate'))}</span><span>${esc(fmtDate(r.date))}</span>
-      <span>${esc(t('insurance'))}</span><span>${esc([...r.ins].join(' / '))}</span>
-      <span>${esc(t('company'))}</span><span>${esc([...r.company].join(' / '))}</span>
+      <span>${esc(t('insurance'))}</span><span>${esc(r.ins)}</span>
+      <span>${esc(t('company'))}</span><span>${esc(r.company)}</span>
       <span>${esc(t('amount'))}</span><span>${money(r.credit)} (${esc(t('copay'))}: ${money(r.copay)})</span>
+      <span>${esc(t('employee'))}</span><span>${esc(r.emp)}</span>
+      ${refs ? `<span>${esc(t('reference'))}</span><span><b>${esc(refs)}</b></span>` : ''}
     </div>
-    <h3>${esc(t('follow'))}</h3>
-    <div class="kv" style="align-items:center">
-      <span>${esc(t('phone'))}</span><input type="tel" id="detPhone" value="${esc(f.phone || '')}" placeholder="05xxxxxxxx">
-      <span>${esc(t('note'))}</span><textarea id="detNote" rows="2" dir="auto">${esc(f.note || '')}</textarea>
+    <h3>${esc(t('contactSection'))}</h3>
+    <div class="kv">
+      <span>${esc(t('contactName'))}</span><input type="text" id="detName" value="${esc(r.contact.name || '')}" dir="auto">
+      <span>${esc(t('phone'))}</span><input type="tel" id="detPhone" value="${esc(r.contact.phone || '')}" placeholder="05xxxxxxxx">
     </div>
+    <p class="help">${esc(t('contactHelp'))}</p>
+    <h3>${esc(t('noteSection'))}</h3>
+    <textarea id="detNote" rows="2" dir="auto">${esc(r.follow.note || '')}</textarea>
     <div class="row-flex" style="margin-top:8px"><button class="btn primary" id="detSave">${esc(t('save'))}</button><span class="msg ok" id="detMsg"></span></div>
     <h3>${esc(t('diagnoses'))}</h3>
-    <table class="mini"><tbody id="detDx">${dxRows || '<tr><td>—</td></tr>'}</tbody></table>
-    <h3>${esc(t('invoices'))}</h3>
-    <table class="mini"><thead><tr><th>#</th><th>${esc(t('insurance'))}</th><th>${esc(t('employee'))}</th><th>${esc(t('copay'))}</th><th>${esc(t('amount'))}</th></tr></thead><tbody>${invRows}</tbody></table>
+    <table class="mini"><tbody>${dxRows || '<tr><td>—</td></tr>'}</tbody></table>
     <h3>${esc(t('items'))}</h3>
-    ${itemRows ? `<table class="mini"><thead><tr><th>${esc(t('item'))}</th><th>${esc(t('qty'))}</th><th>${esc(t('value'))}</th><th>${esc(t('reference'))}</th></tr></thead><tbody>${itemRows}</tbody></table>` : `<p class="help">${esc(t('noItems'))}</p>`}
+    ${itemRows ? `<table class="mini"><thead><tr><th>${esc(t('item'))}</th><th>${esc(t('qty'))}</th><th>${esc(t('value'))}</th></tr></thead><tbody>${itemRows}</tbody></table>` : `<p class="help">${esc(t('noItems'))}</p>`}
   `;
   $('detSave').onclick = () => {
-    const ff = getFollow(key);
-    ff.phone = $('detPhone').value.trim();
-    ff.note = $('detNote').value.trim();
-    touch(key); saveStore();
+    const name = $('detName').value.trim(), phone = $('detPhone').value.trim();
+    if (name || phone) store.contacts[r.card] = { name, phone, updatedAt: new Date().toISOString() };
+    else delete store.contacts[r.card];
+    follow(inv).note = $('detNote').value.trim();
+    touchFollow(inv); saveStore(); render();
     $('detMsg').textContent = t('saved');
-    render();
   };
-  $('dlgDetails').showModal();
-  if (!icd) loadIcd().then(() => { if ($('dlgDetails').open) { $('detDx').innerHTML = r.dx.map(c => `<tr><td>${esc(c)}</td><td>${esc(icdDesc(c))}</td></tr>`).join(''); } });
+  if (!$('dlgDetails').open) $('dlgDetails').showModal();
 }
 
-/* ===================== Backup ===================== */
+/* ===================== Settings & backup ===================== */
 function renderBackupBanner() {
-  const hasData = Object.keys(store.invoices).length > 0;
+  const has = Object.keys(store.follow).length || Object.keys(store.contacts).length;
   const last = store.lastBackup;
-  const old = !last || (isoToDayNum(todayISO()) - isoToDayNum(last)) >= BACKUP_REMINDER_DAYS;
-  const hasFollow = Object.keys(store.follow).length > 0;
-  $('backupBanner').hidden = !(hasData && hasFollow && old);
+  const old = !last || (dayNum(todayISO()) - dayNum(last)) >= BACKUP_REMINDER_DAYS;
+  $('backupBanner').hidden = !(has && old);
   $('backupBannerText').textContent = last ? t('backupReminder', { d: fmtDate(last) }) : t('backupReminderNever');
+}
+function renderSettings() {
+  const m = messages();
+  $('setWelcomeAr').value = m.welcomeAr; $('setWelcomeEn').value = m.welcomeEn;
+  $('setRefillAr').value = m.refillAr; $('setRefillEn').value = m.refillEn;
+  $('setMedAr').value = m.medicineAr; $('setMedEn').value = m.medicineEn;
+  $('messagesMsg').textContent = '';
+  $('lastBackupText').textContent = store.lastBackup ? t('lastBackup', { d: fmtDate(store.lastBackup) }) : t('neverBackedUp');
+  $('dataInfo').textContent = t('dataInfo', { inv: Object.keys(store.invoices).length, fol: Object.keys(store.follow).length, con: Object.keys(store.contacts).length, keep: KEEP_DAYS });
+}
+function saveMessages() {
+  store.messages = {
+    welcomeAr: $('setWelcomeAr').value, welcomeEn: $('setWelcomeEn').value,
+    refillAr: $('setRefillAr').value, refillEn: $('setRefillEn').value,
+    medicineAr: $('setMedAr').value.trim(), medicineEn: $('setMedEn').value.trim()
+  };
+  saveStore(); $('messagesMsg').textContent = t('saved');
 }
 function exportBackup() {
   store.lastBackup = todayISO();
   saveStore();
-  const blob = new Blob([JSON.stringify(store)], { type: 'application/json' });
+  const data = Object.assign({}, store, { messages: messages() }); // always include the messages in use
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `insurance-refill-backup-${todayISO()}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  renderSettingsInfo(); renderBackupBanner();
+  renderSettings(); renderBackupBanner();
 }
+const newer = (a, b) => !b || (a.updatedAt || '') > (b.updatedAt || '');
 function importBackup(file) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      if (!data || typeof data.invoices !== 'object' || typeof data.follow !== 'object') throw new Error('bad');
-      let inv = 0, fol = 0;
-      for (const [k, v] of Object.entries(data.invoices)) { if (!store.invoices[k]) inv++; store.invoices[k] = v; }
+      if (!data || typeof data.invoices !== 'object') throw new Error('bad');
+      let inv = 0, fol = 0, con = 0;
+      for (const [k, v] of Object.entries(data.invoices)) { if (!store.invoices[k]) { store.invoices[k] = v; inv++; } }
       for (const [k, v] of Object.entries(data.items || {})) if (!store.items[k]) store.items[k] = v;
-      for (const [k, v] of Object.entries(data.follow)) {
-        const cur = store.follow[k];
-        if (!cur || (v.updatedAt || '') > (cur.updatedAt || '')) { store.follow[k] = v; fol++; }
-      }
-      if (data.settings && data.settings.waTemplate && !store.settings.waTemplate) store.settings.waTemplate = data.settings.waTemplate;
+      for (const [k, v] of Object.entries(data.follow || {})) if (newer(v, store.follow[k])) { store.follow[k] = v; fol++; }
+      for (const [k, v] of Object.entries(data.contacts || {})) if (newer(v, store.contacts[k])) { store.contacts[k] = v; con++; }
+      if (data.messages && Object.keys(data.messages).length) store.messages = data.messages;
       pruneOld(); saveStore();
-      $('importMsg').className = 'msg ok';
-      $('importMsg').textContent = t('importDone', { inv, fol });
-      render(); renderSettingsInfo();
+      $('importMsg').className = 'msg ok'; $('importMsg').textContent = t('importDone', { inv, fol, con });
+      render(); renderSettings();
     } catch (e) {
-      $('importMsg').className = 'msg err';
-      $('importMsg').textContent = t('importFail');
+      $('importMsg').className = 'msg err'; $('importMsg').textContent = t('importFail');
     }
   };
   reader.readAsText(file);
-}
-function renderSettingsInfo() {
-  $('lastBackupText').textContent = store.lastBackup ? t('lastBackup', { d: fmtDate(store.lastBackup) }) : t('neverBackedUp');
-  $('dataInfo').textContent = t('dataInfo', { inv: Object.keys(store.invoices).length, fol: Object.keys(store.follow).length, keep: KEEP_DAYS });
-  $('waTemplate').value = store.settings.waTemplate || DEFAULT_WA_TEMPLATE;
 }
 
 /* ===================== Events ===================== */
 function bind() {
   $('btnPaste').onclick = () => { $('pasteMsg').textContent = ''; $('dlgPaste').showModal(); $('pasteBox').focus(); };
-  $('btnBackup').onclick = () => { renderSettingsInfo(); $('importMsg').textContent = ''; $('dlgSettings').showModal(); };
-  $('btnSettings').onclick = $('btnBackup').onclick;
+  $('btnSettings').onclick = () => { renderSettings(); $('importMsg').textContent = ''; $('dlgSettings').showModal(); };
   $('btnBannerBackup').onclick = exportBackup;
   $('btnExport').onclick = exportBackup;
   $('btnImport').onclick = () => $('fileImport').click();
   $('fileImport').onchange = e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; };
-  $('btnSaveTemplate').onclick = () => { store.settings.waTemplate = $('waTemplate').value; saveStore(); };
-  $('btnResetTemplate').onclick = () => { delete store.settings.waTemplate; saveStore(); $('waTemplate').value = DEFAULT_WA_TEMPLATE; };
-  $('btnClearAll').onclick = () => {
-    if (!confirm(t('clearConfirm'))) return;
-    store = emptyStore(); saveStore(); renderSettingsInfo(); render();
-  };
+  $('btnSaveMessages').onclick = saveMessages;
+  $('btnResetMessages').onclick = () => { store.messages = {}; saveStore(); renderSettings(); };
+  $('btnClearAll').onclick = () => { if (confirm(t('clearConfirm'))) { store = emptyStore(); saveStore(); renderSettings(); render(); } };
   document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
   document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+  $('qrLang').onclick = e => { const b = e.target.closest('[data-lang]'); if (b) { qrState.lang = b.dataset.lang; renderQr(); } };
 
   $('btnProcess').onclick = () => {
     const parsed = parseReport($('pasteBox').value);
     const msg = $('pasteMsg');
-    if (!parsed.invoices.length && !Object.keys(parsed.items).length) {
-      msg.className = 'msg err'; msg.textContent = t('pasteNothing'); return;
-    }
+    if (!parsed.invoices.length && !Object.keys(parsed.items).length) { msg.className = 'msg err'; msg.textContent = t('pasteNothing'); return; }
     const res = mergeParsed(parsed);
     saveStore();
     msg.className = 'msg ok'; msg.textContent = t('pasteResult', res);
@@ -725,34 +732,33 @@ function bind() {
     render();
   };
 
-  $('search').oninput = e => { ui.search = e.target.value.trim(); render(); };
   $('filter').onchange = e => { ui.filter = e.target.value; saveUi(); render(); };
-  $('sort').onchange = e => { ui.sort = e.target.value; saveUi(); render(); };
   $('stats').onclick = e => {
     const s = e.target.closest('[data-filter]');
     if (!s) return;
-    ui.filter = ui.filter === s.dataset.filter ? 'action' : s.dataset.filter;
+    ui.filter = ui.filter === s.dataset.filter ? 'all' : s.dataset.filter;
     $('filter').value = ui.filter; saveUi(); render();
   };
-  $('list').onclick = e => {
+  $('tbody').addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
-    if (!b) return;
-    const key = b.dataset.key;
-    switch (b.dataset.act) {
-      case 'period': setPeriod(key, b.dataset.val); break;
-      case 'contacted': toggleContacted(key); break;
-      case 'details': openDetails(key); break;
-      case 'wa': sendWhatsApp(key); break;
-    }
-  };
+    if (!b || b.tagName === 'SELECT') return;
+    const inv = b.dataset.inv;
+    if (b.dataset.act === 'copy') copyText(inv);
+    else if (b.dataset.act === 'details') openDetails(inv);
+    else if (b.dataset.act === 'qr') openQr(inv, b.dataset.type);
+  });
+  $('tbody').addEventListener('change', e => {
+    if (e.target.dataset.act === 'period') setPeriod(e.target.dataset.inv, e.target.value);
+  });
 }
 
 applyI18n();
-setupControls();
+setupStatic();
 bind();
 pruneOld();
 render();
-loadIcd();
+// Diagnosis names arrive with icd10.js (deferred); redraw once it is ready
+window.addEventListener('DOMContentLoaded', () => { if (window.ICD10) render(); });
 </script>
 </body>
 </html>
