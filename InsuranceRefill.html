@@ -4,111 +4,120 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Insurance Refill</title>
-<script src="qrcode.js"></script>
-<script src="icd10.js" defer></script>
+<script src="qrcode.js?v=3"></script>
+<script src="icd10.js?v=3" defer></script>
 <style>
   :root {
-    --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #6b7385; --line: #e2e5eb;
+    --bg: #f5f6f8; --card: #fff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec;
     --accent: #1f6feb; --accent-soft: #e8f0fe;
-    --green: #1a7f37; --green-bg: #d4f3dd;
-    --yellow: #7a5600; --yellow-bg: #fff1b8;
-    --red: #b42318; --red-bg: #fde0dd;
+    --green: #1a7f37; --green-bg: #dcf5e3;
+    --yellow: #8a6100; --yellow-bg: #fff4c2;
+    --red: #b42318; --red-bg: #fde3e1;
+    --grey-bg: #eef0f3;
     --qr2: #1a8f4c;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
   button, input, select, textarea { font: inherit; }
   button { cursor: pointer; }
-  .wrap { max-width: 1400px; margin: 0 auto; padding: 12px 16px 40px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 12px 16px 40px; }
 
   header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   header h1 { font-size: 18px; margin: 0; flex: 1 1 auto; }
   .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 12px; }
   .btn:hover { border-color: var(--accent); }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .icon-btn { border: 1px solid var(--line); background: var(--card); border-radius: 8px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--muted); }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn svg { width: 16px; height: 16px; }
 
   .banner { background: var(--yellow-bg); color: var(--yellow); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .banner.err { background: var(--red-bg); color: var(--red); }
   .banner .btn { padding: 3px 10px; }
 
-  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; display: flex; gap: 6px; align-items: baseline; }
-  .stat b { font-size: 16px; }
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: stretch; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 110px; cursor: pointer; }
+  .stat b { font-size: 20px; display: block; }
   .stat span { color: var(--muted); font-size: 12px; }
   .stat.due b { color: var(--green); } .stat.soon b { color: var(--yellow); } .stat.missed b { color: var(--red); }
   .stat.active { outline: 2px solid var(--accent); }
-  .bar select { border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; background: var(--card); margin-left: auto; }
+  .stats select { margin-left: auto; align-self: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
 
-  .table-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
-  table.main { width: 100%; border-collapse: collapse; }
-  table.main th { position: sticky; top: 0; background: #f9fafb; color: var(--muted); font-weight: 600; font-size: 12px; text-align: left; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  table.main td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  table.main tr:hover td { background: #fafbfc; }
-  .num { text-align: right; white-space: nowrap; }
-  .nowrap { white-space: nowrap; }
+  .list { display: flex; flex-direction: column; gap: 6px; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; }
+  .who { min-width: 0; }
+  .inv-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .inv { font-family: ui-monospace, Consolas, monospace; font-size: 17px; font-weight: 700; border: 0; background: none; padding: 0; color: var(--text); letter-spacing: .02em; }
+  .inv:hover { color: var(--accent); }
+  .tag { display: inline-block; border-radius: 6px; padding: 0 6px; font-size: 11px; line-height: 18px; background: var(--grey-bg); color: var(--muted); }
+  .tag.vc { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .tag.visits { background: #efe7fd; color: #5b2bb5; }
+  .small { color: var(--muted); font-size: 12px; }
+  .small.name { color: #4a5263; }
+  .small.dx { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .meta { color: var(--muted); font-size: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .inv { font-family: ui-monospace, Consolas, monospace; font-size: 13px; border: 0; background: none; padding: 0; color: var(--text); text-align: left; }
-  .inv:hover { color: var(--accent); text-decoration: underline; }
-  .inv.vc { font-weight: 700; }
-  .sub { color: var(--muted); font-size: 11px; line-height: 1.35; max-width: 360px; }
-  .sub.name { color: #4a5263; }
-  .sub.dx { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .dues { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .chip { border-radius: 8px; padding: 3px 8px; font-size: 12px; min-width: 72px; text-align: center; background: var(--grey-bg); color: var(--muted); border: 1px solid transparent; }
+  .chip small { display: block; font-size: 11px; }
+  .chip.big { font-size: 13px; min-width: 120px; padding: 5px 12px; color: var(--text); border-color: var(--line); background: var(--card); }
+  .chip.big small { font-size: 15px; font-weight: 700; }
+  .chip.big.green { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+  .chip.big.yellow { background: var(--yellow-bg); color: var(--yellow); border-color: #e0b400; }
+  .chip.big.red { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+  .amount { font-weight: 700; font-size: 15px; text-align: right; min-width: 80px; }
 
-  .due { text-align: center; white-space: nowrap; font-size: 12px; color: var(--muted); border-radius: 6px; }
-  .due.chosen { font-weight: 700; font-size: 13px; color: var(--text); }
-  .due.green { background: var(--green-bg); color: var(--green); }
-  .due.yellow { background: var(--yellow-bg); color: var(--yellow); }
-  .due.red { background: var(--red-bg); color: var(--red); }
-
-  select.period { border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; background: var(--card); }
-  select.period.set { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-
-  .contact { border: 0; background: none; padding: 0; text-align: left; color: var(--text); }
-  .contact .ph { color: var(--muted); font-size: 11px; display: block; }
-  .contact.empty { color: var(--accent); font-size: 12px; }
-  .qr-btns { display: flex; gap: 4px; }
-  .qr-btn { border: 0; border-radius: 6px; padding: 4px 8px; font-size: 12px; color: #fff; background: var(--accent); white-space: nowrap; }
+  .actions { display: flex; gap: 6px; align-items: center; grid-column: 1 / -1; justify-content: space-between; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 6px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: var(--card); padding: 4px 10px; font-size: 12px; color: var(--muted); border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .actions .right { display: flex; gap: 4px; align-items: center; }
+  .note-preview { color: var(--muted); font-size: 12px; font-style: italic; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qr-btn { border: 0; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #fff; background: var(--accent); white-space: nowrap; }
   .qr-btn.second { background: var(--qr2); }
-  .qr-btn.off { opacity: .35; }
-  .note { border: 0; background: none; padding: 0; color: var(--muted); font-size: 12px; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
-  .note.empty { color: var(--accent); }
-  .icon-btn { border: 1px solid var(--line); background: var(--card); border-radius: 6px; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--muted); }
-  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
-  .icon-btn svg { width: 14px; height: 14px; }
+  .qr-btn.off { opacity: .4; }
 
-  .empty-state { text-align: center; color: var(--muted); padding: 40px 10px; }
-
+  .empty { text-align: center; color: var(--muted); padding: 40px 10px; background: var(--card); border: 1px dashed var(--line); border-radius: 10px; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 8px 16px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 1000; }
   .toast.show { opacity: 1; }
 
-  dialog { border: 0; border-radius: 12px; padding: 0; width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 40px); box-shadow: 0 10px 40px rgba(0,0,0,.25); color: var(--text); }
-  dialog.small { width: min(380px, calc(100vw - 32px)); }
+  dialog { border: 0; border-radius: 12px; padding: 0; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 40px); box-shadow: 0 10px 40px rgba(0,0,0,.25); color: var(--text); }
+  dialog.narrow { width: min(380px, calc(100vw - 32px)); }
   dialog::backdrop { background: rgba(20,25,35,.45); }
   .dlg-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; z-index: 1; }
-  .dlg-head h2 { font-size: 15px; margin: 0; flex: 1; }
+  .dlg-head h2 { font-size: 16px; margin: 0; flex: 1; }
   .dlg-body { padding: 12px 16px 16px; }
-  .dlg-body h3 { font-size: 12px; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
-  .dlg-body textarea, .dlg-body input[type=text], .dlg-body input[type=tel] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; }
+  .dlg-body h3 { font-size: 13px; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .dlg-body textarea, .dlg-body input[type=text], .dlg-body input[type=tel] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
   .dlg-body textarea.paste { height: 180px; font-family: ui-monospace, monospace; font-size: 12px; }
-  .help { color: var(--muted); font-size: 12px; margin: 4px 0; }
+  .help { color: var(--muted); font-size: 12px; margin: 6px 0; }
   .msg { font-size: 13px; }
   .msg.ok { color: var(--green); } .msg.err { color: var(--red); }
   table.mini { width: 100%; border-collapse: collapse; font-size: 12px; }
   table.mini td, table.mini th { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
   table.mini th { color: var(--muted); font-weight: 500; }
-  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; font-size: 13px; }
   .kv > span:nth-child(odd) { color: var(--muted); }
   .row-flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .grid2 label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 3px; }
   #qrBox { display: flex; justify-content: center; margin: 12px 0; }
   #qrBox img { width: 260px; height: 260px; image-rendering: pixelated; }
-  .qr-text { white-space: pre-wrap; background: #f6f7f9; border-radius: 8px; padding: 8px; font-size: 12px; }
+  .qr-text { white-space: pre-wrap; background: #f6f7f9; border-radius: 8px; padding: 8px; font-size: 12px; text-align: start; }
   .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
   .lang-switch button { border: 0; background: var(--card); padding: 5px 14px; }
   .lang-switch button.on { background: var(--accent); color: #fff; }
 
-  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .bar select { margin-left: 0; } }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 1fr auto; }
+    .dues { grid-column: 1 / -1; justify-content: flex-start; }
+    .amount { grid-row: 1; grid-column: 2; }
+    .note-preview { display: none; }
+    .grid2 { grid-template-columns: 1fr; }
+    .stats select { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
@@ -116,26 +125,27 @@
   <header>
     <h1 data-i18n="appTitle"></h1>
     <button class="btn primary" id="btnPaste" data-i18n="pasteData"></button>
-    <button class="btn" id="btnSettings" data-i18n="settings"></button>
+    <button class="btn" id="btnExport" data-i18n="exportBackup"></button>
+    <button class="btn" id="btnImport" data-i18n="importBackup"></button>
+    <input type="file" id="fileImport" accept=".json,application/json" hidden>
+    <button class="icon-btn" id="btnSettings" data-i18n-title="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
   </header>
 
+  <div id="icdBanner" class="banner err" hidden data-i18n="icdMissing"></div>
+  <div id="importBanner" class="banner" hidden></div>
   <div id="backupBanner" class="banner" hidden>
     <span id="backupBannerText"></span>
     <button class="btn" id="btnBannerBackup" data-i18n="exportNow"></button>
   </div>
 
-  <div class="bar">
+  <div class="stats">
     <div id="stats" class="row-flex"></div>
     <select id="filter"></select>
   </div>
 
-  <div class="table-wrap">
-    <table class="main">
-      <thead><tr id="headRow"></tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="empty-state" id="emptyState" hidden></div>
-  </div>
+  <div class="list" id="list"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -161,15 +171,15 @@
 </dialog>
 
 <!-- QR dialog -->
-<dialog id="dlgQr" class="small">
-  <div class="dlg-head"><h2 id="qrTitle"></h2><button class="icon-btn" data-close>✕</button></div>
+<dialog id="dlgQr" class="narrow">
+  <div class="dlg-head"><h2 id="qrTitle" dir="auto"></h2><button class="icon-btn" data-close>✕</button></div>
   <div class="dlg-body" style="text-align:center">
     <div class="lang-switch" id="qrLang">
       <button data-lang="ar">العربية</button>
       <button data-lang="en">English</button>
     </div>
     <div id="qrBox"></div>
-    <div class="qr-text" id="qrText" dir="auto" style="text-align:start"></div>
+    <div class="qr-text" id="qrText" dir="auto"></div>
   </div>
 </dialog>
 
@@ -182,24 +192,13 @@
     <div class="grid2">
       <div><label data-i18n="welcomeAr"></label><textarea id="setWelcomeAr" rows="5" dir="rtl"></textarea></div>
       <div><label data-i18n="welcomeEn"></label><textarea id="setWelcomeEn" rows="5" dir="ltr"></textarea></div>
-      <div><label data-i18n="refillAr"></label><textarea id="setRefillAr" rows="5" dir="rtl"></textarea></div>
-      <div><label data-i18n="refillEn"></label><textarea id="setRefillEn" rows="5" dir="ltr"></textarea></div>
-      <div><label data-i18n="medicineAr"></label><input type="text" id="setMedAr" dir="rtl"></div>
-      <div><label data-i18n="medicineEn"></label><input type="text" id="setMedEn" dir="ltr"></div>
+      <div><label data-i18n="refillAr"></label><textarea id="setRefillAr" rows="6" dir="rtl"></textarea></div>
+      <div><label data-i18n="refillEn"></label><textarea id="setRefillEn" rows="6" dir="ltr"></textarea></div>
     </div>
     <div class="row-flex" style="margin-top:8px">
       <button class="btn primary" id="btnSaveMessages" data-i18n="save"></button>
       <button class="btn" id="btnResetMessages" data-i18n="resetDefault"></button>
       <span class="msg ok" id="messagesMsg"></span>
-    </div>
-
-    <h3 data-i18n="backupSection"></h3>
-    <p class="help" id="lastBackupText"></p>
-    <div class="row-flex">
-      <button class="btn primary" id="btnExport" data-i18n="exportBackup"></button>
-      <button class="btn" id="btnImport" data-i18n="importBackup"></button>
-      <input type="file" id="fileImport" accept=".json,application/json" hidden>
-      <span class="msg" id="importMsg"></span>
     </div>
 
     <h3 data-i18n="dataSection"></h3>
@@ -213,7 +212,7 @@
 const STORAGE_KEY = 'insuranceRefill.v2';
 const KEEP_DAYS = 120;           // invoices older than this are removed automatically
 const BACKUP_REMINDER_DAYS = 7;  // remind to export a backup after this many days
-const EXPIRE_AFTER = -15;        // like the spreadsheet: older than 15 days past the refill date shows "-"
+const EXPIRE_AFTER = -15;        // like the spreadsheet: more than 15 days past the refill date shows "-"
 const PERIODS = { '1M': 28, '2M': 56, '3M': 84 }; // days added to the invoice date
 // Colour ranges (days remaining) copied from the original spreadsheet
 const THRESHOLDS = {
@@ -223,21 +222,19 @@ const THRESHOLDS = {
 };
 const EXCLUDED_INSURANCE = /promotion variance/i;
 
-// Default patient messages (Arabic in Modern Standard Arabic). Editable in Settings.
+// Default WhatsApp messages. {name} = contact name. Editable in Settings.
 const DEFAULT_MESSAGES = {
-  welcomeAr: 'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف هنا اسم الفرع ورابط الموقع)',
-  welcomeEn: 'Hello,\nThis is Nahdi Pharmacy.\n(Add the branch name and location link here)',
-  refillAr: 'الأستاذ/ة {name}\nنرجو أن تكونوا بخير.\nنودّ تذكيركم بموعد تكرار {medicine} هذا الأسبوع،\nوهو متوفر لدينا في الفرع 👈',
-  refillEn: 'Dear {name},\nWe hope you are well.\nThis is a reminder that your {medicine} refill is due this week,\nand it is available at our branch 👈',
-  medicineAr: 'دواء التأمين',
-  medicineEn: 'insurance medication'
+  welcomeAr: 'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف رابط موقع الصيدلية على جوجل)',
+  welcomeEn: 'Hello,\nThis is Nahdi Pharmacy.\n(Add the pharmacy Google Maps link)',
+  refillAr: 'أ/ {name}\nكيف حال حضرتك\nموعد تكرار دواء التأمين\nهذا الاسبوع\nوهو متوفر لدينا بالفرع👆',
+  refillEn: 'Mr./Ms. {name}\nHow are you?\nYour insurance medication refill is due\nthis week\nand it is available at our branch👆'
 };
 
 /* ===================== Localisation ===================== */
 const I18N = {
   en: {
     appTitle: 'Insurance Refill Tracker',
-    pasteData: 'Paste data', settings: 'Settings & backup', exportNow: 'Export now',
+    pasteData: 'Paste data', exportBackup: 'Export', importBackup: 'Import', settings: 'Settings', exportNow: 'Export now',
     pasteTitle: 'Paste dashboard reports',
     pasteHelp1: 'Open "On Account by User" or "Transaction Reference" on the KSA Pharmacy Dashboard, press Ctrl+A then Ctrl+C, and paste here.',
     pasteHelp2: 'Paste one report at a time. New data is merged with the saved data.',
@@ -245,40 +242,35 @@ const I18N = {
     process: 'Process',
     pasteResult: 'On Account: {inv} invoices ({newInv} new). Transaction Reference: {items} items for {itemInv} invoices.',
     pasteNothing: 'No report rows were recognised. Copy the whole page including the Details table.',
-    cols: { invoice: 'Invoice No', amount: 'Amount', date: 'Date', insurance: 'Insurance', period: 'Refill', visits: 'Visits', contact: 'Contact', qr: 'WhatsApp QR', notes: 'Notes' },
     filters: { all: 'All invoices', due: 'Due now', soon: 'Coming soon', missed: 'Missed', notset: 'Refill not set', norefill: 'No refill' },
     stats: { due: 'Due now', soon: 'Coming soon', missed: 'Missed' },
     after: 'After {n} days', afterOne: 'After 1 day', today: 'Today', ago: '{n} days ago', agoOne: '1 day ago',
-    periodNone: '—', noRefill: 'No refill',
-    copied: 'Copied {v}',
-    addContact: '+ Add', addNote: '+ Note',
-    qrWelcome: 'Welcome', qrRefill: 'Refill',
+    noRefill: 'No refill', visits: '{n} visits', visit: '1 visit',
+    copied: 'Copied {v}', copyHint: 'Click to copy',
+    qrWelcome: 'Welcome QR', qrRefill: 'Refill QR',
     qrTitleWelcome: 'Welcome message', qrTitleRefill: 'Refill message',
     qrNoPhone: 'Add the contact phone number first.',
-    qrNoLib: 'The QR library did not load. Check the internet connection and reload the page.',
+    qrNoLib: 'qrcode.js did not load. Make sure it is next to this page.',
     details: 'Details',
     detPatient: 'Patient', card: 'Card no.', invoiceDate: 'Invoice date', insurance: 'Insurance', company: 'Company',
     amount: 'Credit amount', copay: 'Co-payment', employee: 'Emp ID', reference: 'Reference',
     contactSection: 'Contact (linked to card no.)', contactName: 'Contact name', phone: 'Phone',
-    contactHelp: 'Saved for this card number and reused on all its invoices.',
+    contactHelp: 'Saved for this card number and shown on all its invoices.',
     noteSection: 'Note (this invoice)', save: 'Save', saved: 'Saved',
     diagnoses: 'Diagnoses', items: 'Items (VC)', noItems: 'No items. Items are only available for VC invoices.',
     item: 'Item', qty: 'Qty', value: 'Value',
-    messagesSection: 'WhatsApp messages',
-    messagesHelp: 'Use {name} for the contact name and {medicine} for the medicine text.',
+    messagesSection: 'WhatsApp messages', messagesHelp: '{name} is replaced by the contact name.',
     welcomeAr: 'Welcome message (Arabic)', welcomeEn: 'Welcome message (English)',
     refillAr: 'Refill message (Arabic)', refillEn: 'Refill message (English)',
-    medicineAr: 'Medicine text (Arabic)', medicineEn: 'Medicine text (English)',
     resetDefault: 'Reset to default',
-    backupSection: 'Backup', exportBackup: 'Export backup', importBackup: 'Import backup',
-    lastBackup: 'Last backup: {d}', neverBackedUp: 'No backup exported yet.',
-    backupReminder: 'Your data lives only in this browser. Last backup: {d}.',
-    backupReminderNever: 'Your data lives only in this browser and has never been backed up.',
+    backupReminder: 'Your data lives only in this browser. Last export: {d}.',
+    backupReminderNever: 'Your data lives only in this browser and has never been exported.',
     importDone: 'Imported: {inv} new invoices, {fol} refill settings, {con} contacts.', importFail: 'This file is not a valid backup.',
     dataSection: 'Data',
     dataInfo: '{inv} invoices, {fol} refill settings and {con} contacts saved. Invoices older than {keep} days are removed automatically.',
-    clearAll: 'Delete all saved data', clearConfirm: 'Delete all data from this browser? Export a backup first if you need it.',
-    storageFull: 'Browser storage is full. Export a backup, then delete old data.',
+    clearAll: 'Delete all saved data', clearConfirm: 'Delete all data from this browser? Export first if you need it.',
+    storageFull: 'Browser storage is full. Export, then delete old data.',
+    icdMissing: 'Diagnosis names file (icd10.js) did not load. Make sure it is next to this page, then reload with Ctrl+F5.',
     emptyNoData: 'No data yet. Click "Paste data" and paste the On Account by User report.',
     emptyFilter: 'No invoices in this filter.'
   }
@@ -294,19 +286,27 @@ function t(key, vars) {
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
+  document.querySelectorAll('[data-i18n-title]').forEach(el => el.title = t(el.dataset.i18nTitle));
   document.title = t('appTitle');
 }
 
 /* ===================== Storage ===================== */
-// invoices: by invoice no. | items: by invoice no. | follow: refill settings by invoice no.
-// contacts: by card no. | messages: WhatsApp templates
-function emptyStore() { return { v: 2, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, lastBackup: null }; }
+// invoices / items / follow are keyed by invoice no.; contacts by card no.; messages = WhatsApp templates
+function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, lastBackup: null }; }
 let store = loadStore();
 function loadStore() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? Object.assign(emptyStore(), JSON.parse(raw)) : emptyStore();
+    return raw ? cleanMessages(Object.assign(emptyStore(), JSON.parse(raw))) : emptyStore();
   } catch (e) { return emptyStore(); }
+}
+// Earlier versions used a {medicine} placeholder; drop those templates so the fixed text is used
+function cleanMessages(s) {
+  const m = s.messages || {};
+  for (const k of ['refillAr', 'refillEn']) if (m[k] && m[k].includes('{medicine}')) delete m[k];
+  delete m.medicineAr; delete m.medicineEn;
+  s.messages = m;
+  return s;
 }
 function saveStore() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); return true; }
@@ -403,14 +403,15 @@ function buildRows() {
 
   const today = dayNum(todayISO());
   return valid.map(i => {
-    const follow = store.follow[i.inv] || {};
-    const items = store.items[i.inv] || [];
     const dues = {};
     for (const [k, d] of Object.entries(PERIODS)) {
       const days = dayNum(i.date) + d - today;
       dues[k] = { days, expired: days < EXPIRE_AFTER, colour: colourFor(k, days) };
     }
-    const row = Object.assign({}, i, { follow, items, dues, visits: visits[i.card], contact: store.contacts[i.card] || {} });
+    const row = Object.assign({}, i, {
+      follow: store.follow[i.inv] || {}, items: store.items[i.inv] || [], dues,
+      visits: visits[i.card], contact: store.contacts[i.card] || {}
+    });
     row.status = statusOf(row);
     return row;
   }).sort((a, b) => b.credit - a.credit);
@@ -425,7 +426,7 @@ function colourFor(periodKey, days) {
   return '';
 }
 
-// Status exists only when the user has chosen the refill period
+// A status exists only after the user chooses the refill period
 function statusOf(r) {
   const p = r.follow.period;
   if (!p) return 'notset';
@@ -433,94 +434,6 @@ function statusOf(r) {
   const d = r.dues[p];
   if (d.expired) return 'expired';
   return { green: 'due', yellow: 'soon', red: 'missed' }[d.colour] || 'other';
-}
-
-/* ===================== Rendering ===================== */
-const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-const money = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-let rowsCache = [];
-const ui = { filter: 'all' };
-try { Object.assign(ui, JSON.parse(localStorage.getItem(STORAGE_KEY + '.ui') || '{}')); } catch (e) {}
-function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringify(ui)); } catch (e) {} }
-
-function setupStatic() {
-  const c = I18N[LANG].cols;
-  $('headRow').innerHTML = [
-    `<th>${esc(c.invoice)}</th>`, `<th class="num">${esc(c.amount)}</th>`, `<th>${esc(c.date)}</th>`, `<th>${esc(c.insurance)}</th>`,
-    ...Object.keys(PERIODS).map(k => `<th style="text-align:center">${k}</th>`),
-    `<th>${esc(c.period)}</th>`, `<th class="num">${esc(c.visits)}</th>`, `<th>${esc(c.contact)}</th>`, `<th>${esc(c.qr)}</th>`, `<th>${esc(c.notes)}</th>`, '<th></th>'
-  ].join('');
-  $('filter').innerHTML = Object.keys(I18N[LANG].filters).map(k => `<option value="${k}">${esc(t('filters.' + k))}</option>`).join('');
-  $('filter').value = ui.filter;
-}
-
-function matchesFilter(r) {
-  if (ui.filter === 'all') return true;
-  return r.status === ui.filter;
-}
-
-function render() {
-  rowsCache = buildRows();
-  renderStats();
-  renderBackupBanner();
-  const rows = rowsCache.filter(matchesFilter);
-  $('tbody').innerHTML = rows.map(rowHTML).join('');
-  $('emptyState').hidden = rows.length > 0;
-  $('emptyState').textContent = rowsCache.length ? t('emptyFilter') : t('emptyNoData');
-}
-
-function renderStats() {
-  const n = s => rowsCache.filter(r => r.status === s).length;
-  $('stats').innerHTML = ['due', 'soon', 'missed'].map(k =>
-    `<div class="stat ${k} ${ui.filter === k ? 'active' : ''}" data-filter="${k}"><b>${n(k)}</b><span>${esc(t('stats.' + k))}</span></div>`).join('');
-}
-
-function dueCell(r, k) {
-  const p = r.follow.period;
-  const d = r.dues[k];
-  if (p === 'NR' || (p && p !== k)) return '<td class="due"></td>';
-  if (d.expired) return `<td class="due ${p === k ? 'chosen' : ''}">-</td>`;
-  if (p === k) return `<td class="due chosen ${d.colour}">${esc(daysLabel(d.days))}</td>`;
-  return `<td class="due">${esc(daysLabel(d.days))}</td>`; // not chosen yet: plain, no colour
-}
-
-function dxNames(codes) {
-  return codes.map(c => icdDesc(c) || c).join(' · ');
-}
-
-function rowHTML(r) {
-  const inv = esc(r.inv);
-  const periodOpts = [['', t('periodNone')], ...Object.keys(PERIODS).map(k => [k, k]), ['NR', t('noRefill')]]
-    .map(([v, l]) => `<option value="${v}" ${r.follow.period === v || (!r.follow.period && v === '') ? 'selected' : ''}>${esc(l)}</option>`).join('');
-  const contact = r.contact.name || r.contact.phone
-    ? `<button class="contact" data-act="details" data-inv="${inv}" dir="auto">${esc(r.contact.name || '')}<span class="ph">${esc(r.contact.phone || '')}</span></button>`
-    : `<button class="contact empty" data-act="details" data-inv="${inv}">${esc(t('addContact'))}</button>`;
-  const off = r.contact.phone ? '' : 'off';
-  const note = r.follow.note
-    ? `<button class="note" data-act="details" data-inv="${inv}" title="${esc(r.follow.note)}" dir="auto">${esc(r.follow.note)}</button>`
-    : `<button class="note empty" data-act="details" data-inv="${inv}">${esc(t('addNote'))}</button>`;
-  return `<tr>
-    <td>
-      <button class="inv ${r.items.length ? 'vc' : ''}" data-act="copy" data-inv="${inv}" title="Copy">${inv}</button>
-      <div class="sub name" dir="auto">${esc(r.name)}</div>
-      <div class="sub dx" title="${esc(dxNames(r.dx))}">${esc(dxNames(r.dx))}</div>
-    </td>
-    <td class="num"><b>${money(r.credit)}</b></td>
-    <td class="nowrap">${esc(fmtDate(r.date))}</td>
-    <td class="nowrap">${esc(r.ins)}</td>
-    ${Object.keys(PERIODS).map(k => dueCell(r, k)).join('')}
-    <td><select class="period ${r.follow.period ? 'set' : ''}" data-act="period" data-inv="${inv}">${periodOpts}</select></td>
-    <td class="num">${r.visits}</td>
-    <td>${contact}</td>
-    <td><div class="qr-btns">
-      <button class="qr-btn ${off} ${r.follow.qrW ? 'done' : ''}" data-act="qr" data-type="welcome" data-inv="${inv}">${r.follow.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
-      <button class="qr-btn second ${off}" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>
-    </div></td>
-    <td>${note}</td>
-    <td><button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-inv="${inv}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button></td>
-  </tr>`;
 }
 
 /* ===================== ICD-10 ===================== */
@@ -534,11 +447,88 @@ function icdDesc(code) {
   }
   return '';
 }
+const dxNames = codes => codes.map(c => icdDesc(c) || c).join(' · ');
+
+/* ===================== Rendering ===================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const money = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+let rowsCache = [];
+const ui = { filter: 'all' };
+try { Object.assign(ui, JSON.parse(localStorage.getItem(STORAGE_KEY + '.ui') || '{}')); } catch (e) {}
+if (!I18N[LANG].filters[ui.filter]) ui.filter = 'all';
+function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringify(ui)); } catch (e) {} }
+
+function setupFilter() {
+  $('filter').innerHTML = Object.keys(I18N[LANG].filters).map(k => `<option value="${k}">${esc(t('filters.' + k))}</option>`).join('');
+  $('filter').value = ui.filter;
+}
+
+function render() {
+  rowsCache = buildRows();
+  renderStats();
+  renderBackupBanner();
+  const list = $('list');
+  if (!rowsCache.length) { list.innerHTML = `<div class="empty">${esc(t('emptyNoData'))}</div>`; return; }
+  const rows = rowsCache.filter(r => ui.filter === 'all' || r.status === ui.filter);
+  list.innerHTML = rows.length ? rows.map(rowHTML).join('') : `<div class="empty">${esc(t('emptyFilter'))}</div>`;
+}
+
+function renderStats() {
+  const n = s => rowsCache.filter(r => r.status === s).length;
+  $('stats').innerHTML = ['due', 'soon', 'missed'].map(k =>
+    `<div class="stat ${k} ${ui.filter === k ? 'active' : ''}" data-filter="${k}"><b>${n(k)}</b><span>${esc(t('stats.' + k))}</span></div>`).join('');
+}
+
+function duesHTML(r) {
+  const p = r.follow.period;
+  if (p === 'NR') return `<div class="chip big">${esc(t('noRefill'))}</div>`;
+  if (p) {
+    const d = r.dues[p];
+    return `<div class="chip big ${d.expired ? '' : d.colour}">${p}<small>${d.expired ? '-' : esc(daysLabel(d.days))}</small></div>`;
+  }
+  // Period not chosen yet: show all three, plain, no colour
+  return Object.keys(PERIODS).map(k => {
+    const d = r.dues[k];
+    return `<div class="chip">${k}<small>${d.expired ? '-' : esc(daysLabel(d.days))}</small></div>`;
+  }).join('');
+}
+
+function rowHTML(r) {
+  const inv = esc(r.inv);
+  const p = r.follow.period || '';
+  const segs = [...Object.keys(PERIODS), 'NR'].map(k =>
+    `<button class="${p === k ? 'on' : ''}" data-act="period" data-inv="${inv}" data-val="${k}">${k === 'NR' ? esc(t('noRefill')) : k}</button>`).join('');
+  const off = r.contact.phone ? '' : 'off';
+  return `<div class="row">
+    <div class="who">
+      <div class="inv-line">
+        <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${inv}</button>
+        ${r.items.length ? '<span class="tag vc">VC</span>' : ''}
+        <span class="tag visits">${esc(r.visits === 1 ? t('visit') : t('visits', { n: r.visits }))}</span>
+      </div>
+      <div class="small name" dir="auto">${esc(r.name)}</div>
+      <div class="small dx" title="${esc(dxNames(r.dx))}">${esc(dxNames(r.dx))}</div>
+      <div class="meta"><span>${esc(fmtDate(r.date))}</span><span>${esc(r.ins)}</span></div>
+    </div>
+    <div class="dues">${duesHTML(r)}</div>
+    <div class="amount">${money(r.credit)}</div>
+    <div class="actions">
+      <div class="row-flex"><div class="seg">${segs}</div><span class="note-preview" dir="auto">${esc(r.follow.note || '')}</span></div>
+      <div class="right">
+        <button class="qr-btn ${off}" data-act="qr" data-type="welcome" data-inv="${inv}">${r.follow.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
+        <button class="qr-btn second ${off}" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>
+        <button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-inv="${inv}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
+      </div>
+    </div>
+  </div>`;
+}
 
 /* ===================== Actions ===================== */
 function toast(msg) {
   const el = $('toast'); el.textContent = msg; el.classList.add('show');
-  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 1400);
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 1500);
 }
 function copyText(v) {
   const done = () => toast(t('copied', { v }));
@@ -559,7 +549,8 @@ function touchFollow(inv) {
   if (!f.period && !f.note && !f.qrW && !f.qrR) delete store.follow[inv];
 }
 function setPeriod(inv, val) {
-  follow(inv).period = val;
+  const f = follow(inv);
+  f.period = f.period === val ? '' : val; // click the same button again to clear
   touchFollow(inv); saveStore(); render();
 }
 function normalisePhone(p) {
@@ -586,8 +577,7 @@ function openQr(inv, type) {
 function buildMessage(r, type, lang) {
   const m = messages();
   if (type === 'welcome') return lang === 'en' ? m.welcomeEn : m.welcomeAr;
-  const tpl = lang === 'en' ? m.refillEn : m.refillAr;
-  return tpl.replace(/\{name\}/g, r.contact.name || '').replace(/\{medicine\}/g, lang === 'en' ? m.medicineEn : m.medicineAr);
+  return (lang === 'en' ? m.refillEn : m.refillAr).replace(/\{name\}/g, r.contact.name || '');
 }
 function renderQr() {
   const r = rowsCache.find(x => x.inv === qrState.inv);
@@ -596,9 +586,10 @@ function renderQr() {
   const text = buildMessage(r, qrState.type, qrState.lang);
   $('qrTitle').textContent = `${t(qrState.type === 'welcome' ? 'qrTitleWelcome' : 'qrTitleRefill')} — ${r.contact.name || r.contact.phone}`;
   $('qrText').textContent = text;
-  const link = `https://wa.me/${normalisePhone(r.contact.phone)}?text=${encodeURIComponent(text)}`;
   if (typeof qrcode !== 'function') { $('qrBox').textContent = t('qrNoLib'); return; }
-  const qr = qrcode(0, 'L'); qr.addData(link, 'Byte'); qr.make();
+  const qr = qrcode(0, 'L');
+  qr.addData(`https://wa.me/${normalisePhone(r.contact.phone)}?text=${encodeURIComponent(text)}`, 'Byte');
+  qr.make();
   $('qrBox').innerHTML = qr.createImgTag(6, 8);
 }
 
@@ -646,7 +637,7 @@ function openDetails(inv) {
   if (!$('dlgDetails').open) $('dlgDetails').showModal();
 }
 
-/* ===================== Settings & backup ===================== */
+/* ===================== Export / import / settings ===================== */
 function renderBackupBanner() {
   const has = Object.keys(store.follow).length || Object.keys(store.contacts).length;
   const last = store.lastBackup;
@@ -654,41 +645,29 @@ function renderBackupBanner() {
   $('backupBanner').hidden = !(has && old);
   $('backupBannerText').textContent = last ? t('backupReminder', { d: fmtDate(last) }) : t('backupReminderNever');
 }
-function renderSettings() {
-  const m = messages();
-  $('setWelcomeAr').value = m.welcomeAr; $('setWelcomeEn').value = m.welcomeEn;
-  $('setRefillAr').value = m.refillAr; $('setRefillEn').value = m.refillEn;
-  $('setMedAr').value = m.medicineAr; $('setMedEn').value = m.medicineEn;
-  $('messagesMsg').textContent = '';
-  $('lastBackupText').textContent = store.lastBackup ? t('lastBackup', { d: fmtDate(store.lastBackup) }) : t('neverBackedUp');
-  $('dataInfo').textContent = t('dataInfo', { inv: Object.keys(store.invoices).length, fol: Object.keys(store.follow).length, con: Object.keys(store.contacts).length, keep: KEEP_DAYS });
-}
-function saveMessages() {
-  store.messages = {
-    welcomeAr: $('setWelcomeAr').value, welcomeEn: $('setWelcomeEn').value,
-    refillAr: $('setRefillAr').value, refillEn: $('setRefillEn').value,
-    medicineAr: $('setMedAr').value.trim(), medicineEn: $('setMedEn').value.trim()
-  };
-  saveStore(); $('messagesMsg').textContent = t('saved');
-}
 function exportBackup() {
   store.lastBackup = todayISO();
   saveStore();
-  const data = Object.assign({}, store, { messages: messages() }); // always include the messages in use
+  const data = Object.assign({}, store, { messages: messages() }); // include the messages in use
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `insurance-refill-backup-${todayISO()}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  renderSettings(); renderBackupBanner();
+  renderBackupBanner();
 }
 const newer = (a, b) => !b || (a.updatedAt || '') > (b.updatedAt || '');
+function showImportResult(text, isErr) {
+  const b = $('importBanner');
+  b.textContent = text; b.classList.toggle('err', !!isErr); b.hidden = false;
+  clearTimeout(showImportResult._t); showImportResult._t = setTimeout(() => (b.hidden = true), 6000);
+}
 function importBackup(file) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const data = JSON.parse(reader.result);
+      const data = cleanMessages(JSON.parse(reader.result));
       if (!data || typeof data.invoices !== 'object') throw new Error('bad');
       let inv = 0, fol = 0, con = 0;
       for (const [k, v] of Object.entries(data.invoices)) { if (!store.invoices[k]) { store.invoices[k] = v; inv++; } }
@@ -696,24 +675,38 @@ function importBackup(file) {
       for (const [k, v] of Object.entries(data.follow || {})) if (newer(v, store.follow[k])) { store.follow[k] = v; fol++; }
       for (const [k, v] of Object.entries(data.contacts || {})) if (newer(v, store.contacts[k])) { store.contacts[k] = v; con++; }
       if (data.messages && Object.keys(data.messages).length) store.messages = data.messages;
-      pruneOld(); saveStore();
-      $('importMsg').className = 'msg ok'; $('importMsg').textContent = t('importDone', { inv, fol, con });
-      render(); renderSettings();
+      if (data.lastBackup && (!store.lastBackup || data.lastBackup > store.lastBackup)) store.lastBackup = data.lastBackup;
+      pruneOld(); saveStore(); render();
+      showImportResult(t('importDone', { inv, fol, con }));
     } catch (e) {
-      $('importMsg').className = 'msg err'; $('importMsg').textContent = t('importFail');
+      showImportResult(t('importFail'), true);
     }
   };
   reader.readAsText(file);
+}
+function renderSettings() {
+  const m = messages();
+  $('setWelcomeAr').value = m.welcomeAr; $('setWelcomeEn').value = m.welcomeEn;
+  $('setRefillAr').value = m.refillAr; $('setRefillEn').value = m.refillEn;
+  $('messagesMsg').textContent = '';
+  $('dataInfo').textContent = t('dataInfo', { inv: Object.keys(store.invoices).length, fol: Object.keys(store.follow).length, con: Object.keys(store.contacts).length, keep: KEEP_DAYS });
+}
+function saveMessages() {
+  store.messages = {
+    welcomeAr: $('setWelcomeAr').value, welcomeEn: $('setWelcomeEn').value,
+    refillAr: $('setRefillAr').value, refillEn: $('setRefillEn').value
+  };
+  saveStore(); $('messagesMsg').textContent = t('saved');
 }
 
 /* ===================== Events ===================== */
 function bind() {
   $('btnPaste').onclick = () => { $('pasteMsg').textContent = ''; $('dlgPaste').showModal(); $('pasteBox').focus(); };
-  $('btnSettings').onclick = () => { renderSettings(); $('importMsg').textContent = ''; $('dlgSettings').showModal(); };
-  $('btnBannerBackup').onclick = exportBackup;
   $('btnExport').onclick = exportBackup;
+  $('btnBannerBackup').onclick = exportBackup;
   $('btnImport').onclick = () => $('fileImport').click();
   $('fileImport').onchange = e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; };
+  $('btnSettings').onclick = () => { renderSettings(); $('dlgSettings').showModal(); };
   $('btnSaveMessages').onclick = saveMessages;
   $('btnResetMessages').onclick = () => { store.messages = {}; saveStore(); renderSettings(); };
   $('btnClearAll').onclick = () => { if (confirm(t('clearConfirm'))) { store = emptyStore(); saveStore(); renderSettings(); render(); } };
@@ -739,26 +732,30 @@ function bind() {
     ui.filter = ui.filter === s.dataset.filter ? 'all' : s.dataset.filter;
     $('filter').value = ui.filter; saveUi(); render();
   };
-  $('tbody').addEventListener('click', e => {
+  $('list').onclick = e => {
     const b = e.target.closest('[data-act]');
-    if (!b || b.tagName === 'SELECT') return;
+    if (!b) return;
     const inv = b.dataset.inv;
-    if (b.dataset.act === 'copy') copyText(inv);
-    else if (b.dataset.act === 'details') openDetails(inv);
-    else if (b.dataset.act === 'qr') openQr(inv, b.dataset.type);
-  });
-  $('tbody').addEventListener('change', e => {
-    if (e.target.dataset.act === 'period') setPeriod(e.target.dataset.inv, e.target.value);
-  });
+    switch (b.dataset.act) {
+      case 'copy': copyText(inv); break;
+      case 'period': setPeriod(inv, b.dataset.val); break;
+      case 'details': openDetails(inv); break;
+      case 'qr': openQr(inv, b.dataset.type); break;
+    }
+  };
 }
 
 applyI18n();
-setupStatic();
+setupFilter();
 bind();
 pruneOld();
+saveStore();
 render();
-// Diagnosis names arrive with icd10.js (deferred); redraw once it is ready
-window.addEventListener('DOMContentLoaded', () => { if (window.ICD10) render(); });
+// Diagnosis names arrive with icd10.js (deferred): redraw when ready, warn if missing
+window.addEventListener('DOMContentLoaded', () => {
+  $('icdBanner').hidden = !!window.ICD10;
+  if (window.ICD10) render();
+});
 </script>
 </body>
 </html>
