@@ -45,7 +45,12 @@
   .stats select { margin-left: auto; align-self: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
 
   .list { display: flex; flex-direction: column; gap: 6px; }
-  .row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; cursor: pointer; }
+  .row:hover { border-color: #c9d3e3; }
+  .row.vc { background: #f1f6ff; border-color: #bcd3fb; border-left: 5px solid var(--accent); }
+  .count { color: var(--muted); font-size: 12px; align-self: center; }
+  .undo-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 8px 8px 8px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: center; z-index: 1001; }
+  .undo-bar button { border: 0; background: #fff; color: var(--accent); font-weight: 700; border-radius: 6px; padding: 4px 12px; }
   .who { min-width: 0; }
   .inv-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .inv { font-family: ui-monospace, Consolas, monospace; font-size: 17px; font-weight: 700; border: 0; background: none; padding: 0; color: var(--text); letter-spacing: .02em; }
@@ -143,12 +148,14 @@
   <div class="stats">
     <div id="stats" class="row-flex"></div>
     <select id="filter"></select>
+    <span class="count" id="count"></span>
   </div>
 
   <div class="list" id="list"></div>
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="undo-bar" id="undoBar" hidden><span id="undoText"></span><button id="btnUndo" data-i18n="undo"></button></div>
 
 <!-- Paste dialog -->
 <dialog id="dlgPaste">
@@ -190,8 +197,8 @@
     <h3 data-i18n="messagesSection"></h3>
     <p class="help" data-i18n="messagesHelp"></p>
     <div class="grid2">
-      <div><label data-i18n="welcomeAr"></label><textarea id="setWelcomeAr" rows="5" dir="rtl"></textarea></div>
-      <div><label data-i18n="welcomeEn"></label><textarea id="setWelcomeEn" rows="5" dir="ltr"></textarea></div>
+      <div><label data-i18n="welcomeAr"></label><textarea id="setWelcomeAr" rows="5" dir="rtl"></textarea><p class="help" data-i18n="welcomeHint"></p></div>
+      <div><label data-i18n="welcomeEn"></label><textarea id="setWelcomeEn" rows="5" dir="ltr"></textarea><p class="help" data-i18n="welcomeHint"></p></div>
       <div><label data-i18n="refillAr"></label><textarea id="setRefillAr" rows="6" dir="rtl"></textarea></div>
       <div><label data-i18n="refillEn"></label><textarea id="setRefillEn" rows="6" dir="ltr"></textarea></div>
     </div>
@@ -210,7 +217,10 @@
 <script>
 /* ===================== Configuration ===================== */
 const STORAGE_KEY = 'insuranceRefill.v2';
-const KEEP_DAYS = 120;           // invoices older than this are removed automatically
+const KEEP_DAYS = 365;           // invoices older than this are removed automatically
+const ACTIVE_DAYS = 120;         // "Active invoices" = invoices from the last 120 days (except No refill)
+const LIKELY_WINDOW = [-5, 7];   // "Likely due now": period not set and a 1M/2M/3M date within these days
+const UNDO_SECONDS = 5;
 const BACKUP_REMINDER_DAYS = 7;  // remind to export a backup after this many days
 const EXPIRE_AFTER = -15;        // like the spreadsheet: more than 15 days past the refill date shows "-"
 const PERIODS = { '1M': 28, '2M': 56, '3M': 84 }; // days added to the invoice date
@@ -224,8 +234,8 @@ const EXCLUDED_INSURANCE = /promotion variance/i;
 
 // Default WhatsApp messages. {name} = contact name. Editable in Settings.
 const DEFAULT_MESSAGES = {
-  welcomeAr: 'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف رابط موقع الصيدلية على جوجل)',
-  welcomeEn: 'Hello,\nThis is Nahdi Pharmacy.\n(Add the pharmacy Google Maps link)',
+  welcomeAr: 'السلام عليكم\nمع حضرتك صيدلية النهدي (عنوان الصيدلية)\n(رابط موقع الصيدلية على Google Maps)',
+  welcomeEn: 'Hello,\nThis is Nahdi Pharmacy (pharmacy address)\n(pharmacy Google Maps link)',
   refillAr: 'أ/ {name}\nكيف حال حضرتك\nموعد تكرار دواء التأمين\nهذا الاسبوع\nوهو متوفر لدينا بالفرع👆',
   refillEn: 'Mr./Ms. {name}\nHow are you?\nYour insurance medication refill is due\nthis week\nand it is available at our branch👆'
 };
@@ -242,7 +252,10 @@ const I18N = {
     process: 'Process',
     pasteResult: 'On Account: {inv} invoices ({newInv} new). Transaction Reference: {items} items for {itemInv} invoices.',
     pasteNothing: 'No report rows were recognised. Copy the whole page including the Details table.',
-    filters: { all: 'All invoices', due: 'Due now', soon: 'Coming soon', missed: 'Missed', notset: 'Refill not set', norefill: 'No refill' },
+    filters: { active: 'Active invoices', likely: 'Likely due now (not set)', due: 'Due now', soon: 'Coming soon', missed: 'Missed', notset: 'Refill not set', norefill: 'No refill', all: 'All invoices' },
+    countOne: '1 invoice', countMany: '{n} invoices',
+    undo: 'Undo', periodSet: '{inv}: {p}', periodCleared: '{inv}: refill cleared',
+    welcomeHint: 'Write the pharmacy address after the pharmacy name, then the pharmacy Google Maps link on the next line.',
     stats: { due: 'Due now', soon: 'Coming soon', missed: 'Missed' },
     after: 'After {n} days', afterOne: 'After 1 day', today: 'Today', ago: '{n} days ago', agoOne: '1 day ago',
     noRefill: 'No refill', visits: '{n} visits', visit: '1 visit',
@@ -293,17 +306,29 @@ function applyI18n() {
 /* ===================== Storage ===================== */
 // invoices / items / follow are keyed by invoice no.; contacts by card no.; messages = WhatsApp templates
 function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, lastBackup: null }; }
+// Templates saved by earlier versions: drop the old defaults so the current defaults are used
+const OLD_DEFAULT_WELCOME = [
+  'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف هنا اسم الفرع ورابط الموقع)',
+  'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف رابط موقع الصيدلية على جوجل)',
+  'Hello,\nThis is Nahdi Pharmacy.\n(Add the branch name and location link here)',
+  'Hello,\nThis is Nahdi Pharmacy.\n(Add the pharmacy Google Maps link)'
+];
 let store = loadStore();
 function loadStore() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return emptyStore();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? cleanMessages(Object.assign(emptyStore(), JSON.parse(raw))) : emptyStore();
-  } catch (e) { return emptyStore(); }
+    return cleanMessages(Object.assign(emptyStore(), JSON.parse(raw)));
+  } catch (e) {
+    // Never lose saved data: keep an untouched copy if it cannot be read
+    try { localStorage.setItem(STORAGE_KEY + '.unreadable', raw); } catch (e2) {}
+    return emptyStore();
+  }
 }
-// Earlier versions used a {medicine} placeholder; drop those templates so the fixed text is used
 function cleanMessages(s) {
   const m = s.messages || {};
   for (const k of ['refillAr', 'refillEn']) if (m[k] && m[k].includes('{medicine}')) delete m[k];
+  for (const k of ['welcomeAr', 'welcomeEn']) if (OLD_DEFAULT_WELCOME.includes(m[k])) delete m[k];
   delete m.medicineAr; delete m.medicineEn;
   s.messages = m;
   return s;
@@ -398,8 +423,15 @@ function buildRows() {
   }
   const valid = all.filter(i => !excluded.has(i.inv) && i.credit > 0);
 
-  const visits = {};
-  for (const i of valid) visits[i.card] = (visits[i.card] || 0) + 1;
+  // Visits: count by card no. and by the saved contact phone; show the larger
+  const phoneOf = card => normalisePhone((store.contacts[card] || {}).phone);
+  const byCard = {}, byPhone = {};
+  for (const i of valid) {
+    byCard[i.card] = (byCard[i.card] || 0) + 1;
+    const ph = phoneOf(i.card);
+    if (ph) byPhone[ph] = (byPhone[ph] || 0) + 1;
+  }
+  const visitsOf = card => Math.max(byCard[card] || 0, byPhone[phoneOf(card)] || 0);
 
   const today = dayNum(todayISO());
   return valid.map(i => {
@@ -410,9 +442,11 @@ function buildRows() {
     }
     const row = Object.assign({}, i, {
       follow: store.follow[i.inv] || {}, items: store.items[i.inv] || [], dues,
-      visits: visits[i.card], contact: store.contacts[i.card] || {}
+      visits: visitsOf(i.card), contact: store.contacts[i.card] || {}
     });
     row.status = statusOf(row);
+    row.active = today - dayNum(i.date) <= ACTIVE_DAYS && row.follow.period !== 'NR';
+    row.likely = !row.follow.period && Object.values(dues).some(d => d.days >= LIKELY_WINDOW[0] && d.days <= LIKELY_WINDOW[1]);
     return row;
   }).sort((a, b) => b.credit - a.credit);
 }
@@ -455,9 +489,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&
 const money = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 let rowsCache = [];
-const ui = { filter: 'all' };
-try { Object.assign(ui, JSON.parse(localStorage.getItem(STORAGE_KEY + '.ui') || '{}')); } catch (e) {}
-if (!I18N[LANG].filters[ui.filter]) ui.filter = 'all';
+const ui = { filter: 'active' }; // always opens on Active invoices
 function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringify(ui)); } catch (e) {} }
 
 function setupFilter() {
@@ -470,9 +502,19 @@ function render() {
   renderStats();
   renderBackupBanner();
   const list = $('list');
+  const rows = rowsCache.filter(matchesFilter);
+  $('count').textContent = rows.length === 1 ? t('countOne') : t('countMany', { n: rows.length });
   if (!rowsCache.length) { list.innerHTML = `<div class="empty">${esc(t('emptyNoData'))}</div>`; return; }
-  const rows = rowsCache.filter(r => ui.filter === 'all' || r.status === ui.filter);
   list.innerHTML = rows.length ? rows.map(rowHTML).join('') : `<div class="empty">${esc(t('emptyFilter'))}</div>`;
+}
+
+function matchesFilter(r) {
+  switch (ui.filter) {
+    case 'all': return true;
+    case 'active': return r.active;
+    case 'likely': return r.likely;
+    default: return r.status === ui.filter;
+  }
 }
 
 function renderStats() {
@@ -501,7 +543,7 @@ function rowHTML(r) {
   const segs = [...Object.keys(PERIODS), 'NR'].map(k =>
     `<button class="${p === k ? 'on' : ''}" data-act="period" data-inv="${inv}" data-val="${k}">${k === 'NR' ? esc(t('noRefill')) : k}</button>`).join('');
   const off = r.contact.phone ? '' : 'off';
-  return `<div class="row">
+  return `<div class="row ${r.items.length ? 'vc' : ''}" data-row="${inv}">
     <div class="who">
       <div class="inv-line">
         <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${inv}</button>
@@ -550,8 +592,21 @@ function touchFollow(inv) {
 }
 function setPeriod(inv, val) {
   const f = follow(inv);
-  f.period = f.period === val ? '' : val; // click the same button again to clear
+  const before = f.period || '';
+  f.period = before === val ? '' : val; // click the same button again to clear
+  const label = f.period === 'NR' ? t('noRefill') : f.period;
   touchFollow(inv); saveStore(); render();
+  showUndo(f.period ? t('periodSet', { inv, p: label }) : t('periodCleared', { inv }), () => {
+    follow(inv).period = before; touchFollow(inv); saveStore(); render();
+  });
+}
+let undoAction = null;
+function showUndo(text, action) {
+  undoAction = action;
+  $('undoText').textContent = text;
+  $('undoBar').hidden = false;
+  clearTimeout(showUndo._t);
+  showUndo._t = setTimeout(() => { $('undoBar').hidden = true; undoAction = null; }, UNDO_SECONDS * 1000);
 }
 function normalisePhone(p) {
   let d = String(p || '').replace(/\D/g, '');
@@ -623,8 +678,7 @@ function openDetails(inv) {
     <div class="row-flex" style="margin-top:8px"><button class="btn primary" id="detSave">${esc(t('save'))}</button><span class="msg ok" id="detMsg"></span></div>
     <h3>${esc(t('diagnoses'))}</h3>
     <table class="mini"><tbody>${dxRows || '<tr><td>—</td></tr>'}</tbody></table>
-    <h3>${esc(t('items'))}</h3>
-    ${itemRows ? `<table class="mini"><thead><tr><th>${esc(t('item'))}</th><th>${esc(t('qty'))}</th><th>${esc(t('value'))}</th></tr></thead><tbody>${itemRows}</tbody></table>` : `<p class="help">${esc(t('noItems'))}</p>`}
+    ${itemRows ? `<h3>${esc(t('items'))}</h3><table class="mini"><thead><tr><th>${esc(t('item'))}</th><th>${esc(t('qty'))}</th><th>${esc(t('value'))}</th></tr></thead><tbody>${itemRows}</tbody></table>` : ''}
   `;
   $('detSave').onclick = () => {
     const name = $('detName').value.trim(), phone = $('detPhone').value.trim();
@@ -725,16 +779,24 @@ function bind() {
     render();
   };
 
-  $('filter').onchange = e => { ui.filter = e.target.value; saveUi(); render(); };
+  $('btnUndo').onclick = () => {
+    if (undoAction) undoAction();
+    undoAction = null; $('undoBar').hidden = true;
+  };
+  $('filter').onchange = e => { ui.filter = e.target.value; render(); };
   $('stats').onclick = e => {
     const s = e.target.closest('[data-filter]');
     if (!s) return;
-    ui.filter = ui.filter === s.dataset.filter ? 'all' : s.dataset.filter;
-    $('filter').value = ui.filter; saveUi(); render();
+    ui.filter = ui.filter === s.dataset.filter ? 'active' : s.dataset.filter;
+    $('filter').value = ui.filter; render();
   };
   $('list').onclick = e => {
     const b = e.target.closest('[data-act]');
-    if (!b) return;
+    if (!b) {
+      const row = e.target.closest('[data-row]');
+      if (row) openDetails(row.dataset.row); // clicking anywhere else on the card opens the details
+      return;
+    }
     const inv = b.dataset.inv;
     switch (b.dataset.act) {
       case 'copy': copyText(inv); break;
