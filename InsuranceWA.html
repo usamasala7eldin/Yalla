@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>WhatsApp Messages</title>
+<style>
+  :root { --bg: #f5f6f8; --card: #fff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec; --accent: #1f6feb; --green: #1a7f37; --red: #b42318; --warn: #8a6100; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 14px 16px 40px; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  header h1 { font-size: 18px; margin: 0; flex: 1; }
+  .timer { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--warn); border-color: var(--warn); }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+  textarea { width: 100%; min-height: 120px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; line-height: 1.6; resize: vertical; }
+  textarea::placeholder { color: #a3a9b5; }
+  form { padding-bottom: 8px; }
+  .save { position: sticky; bottom: 12px; margin-top: 4px; box-shadow: 0 4px 14px rgba(31,111,235,.35); width: 100%; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; padding: 12px; min-height: 48px; }
+  .save:disabled { opacity: .5; }
+  .msg { text-align: center; margin: 10px 0; }
+  .msg.ok { color: var(--green); } .msg.err { color: var(--red); }
+  .notice { color: var(--muted); font-size: 12px; text-align: center; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 data-i18n="title"></h1>
+    <span class="timer" id="timer">--:--</span>
+  </header>
+
+  <p class="msg" id="status"></p>
+
+  <form id="form" hidden>
+    <div class="box">
+      <label for="welcomeAr" data-i18n="welcomeAr"></label>
+      <p class="hint" data-i18n="welcomeHint"></p>
+      <textarea id="welcomeAr" dir="rtl"></textarea>
+    </div>
+    <div class="box">
+      <label for="welcomeEn" data-i18n="welcomeEn"></label>
+      <p class="hint" data-i18n="welcomeHint"></p>
+      <textarea id="welcomeEn" dir="ltr"></textarea>
+    </div>
+    <div class="box">
+      <label for="refillAr" data-i18n="refillAr"></label>
+      <p class="hint" data-i18n="refillHint"></p>
+      <textarea id="refillAr" dir="rtl"></textarea>
+    </div>
+    <div class="box">
+      <label for="refillEn" data-i18n="refillEn"></label>
+      <p class="hint" data-i18n="refillHint"></p>
+      <textarea id="refillEn" dir="ltr"></textarea>
+    </div>
+    <button type="submit" class="save" id="saveBtn" data-i18n="save"></button>
+  </form>
+
+  <p class="notice" data-i18n="privacy"></p>
+</div>
+
+<script type="module">
+/* ===================== Localisation ===================== */
+const I18N = {
+  en: {
+    title: 'WhatsApp messages',
+    welcomeAr: 'Welcome message (Arabic)', welcomeEn: 'Welcome message (English)',
+    refillAr: 'Refill message (Arabic)', refillEn: 'Refill message (English)',
+    welcomeHint: 'Write the pharmacy address after the pharmacy name, then the pharmacy Google Maps link on the next line.',
+    refillHint: '{name} is replaced by the contact name.',
+    save: 'Save', saving: 'Saving…',
+    saved: 'Saved. On the computer, press "Use these messages".',
+    loading: 'Loading…',
+    noLink: 'Open this page by scanning the QR code from the Insurance Refill page.',
+    expired: 'This link has expired. Create a new QR code on the computer.',
+    error: 'Could not connect. Check the internet connection and try again.',
+    saveError: 'Could not save. Check the internet connection and try again.',
+    privacy: 'Only these message texts are sent, encrypted. They are deleted within 5 minutes.'
+  }
+};
+const LANG = 'en';
+const t = k => I18N[LANG][k] || k;
+document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+document.title = t('title');
+
+// Example texts shown when a box is empty
+const PLACEHOLDERS = {
+  welcomeAr: 'السلام عليكم\nمع حضرتك صيدلية النهدي (عنوان الصيدلية)\n(رابط موقع الصيدلية على Google Maps)',
+  welcomeEn: 'Hello,\nThis is Nahdi Pharmacy (pharmacy address)\n(pharmacy Google Maps link)',
+  refillAr: 'أ/ {name}\nكيف حال حضرتك\nموعد تكرار دواء التأمين\nهذا الاسبوع\nوهو متوفر لدينا بالفرع👆',
+  refillEn: 'Mr./Ms. {name}\nHow are you?\nYour insurance medication refill is due\nthis week\nand it is available at our branch👆'
+};
+const KEYS = Object.keys(PLACEHOLDERS);
+for (const k of KEYS) document.getElementById(k).placeholder = PLACEHOLDERS[k];
+
+/* ===================== Firebase (same project as sync.html) ===================== */
+const FIREBASE_URL = 'https://www.gstatic.com/firebasejs/10.12.2/';
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyD-QSolp7uoEr0z_0NkOBIeEFAgllmi0ro',
+  authDomain: 'sync-df6ca.firebaseapp.com',
+  projectId: 'sync-df6ca',
+  storageBucket: 'sync-df6ca.firebasestorage.app',
+  messagingSenderId: '1091721719210',
+  appId: '1:1091721719210:web:567cd4ce4056bfce45cfd3'
+};
+
+/* ===================== Encryption (key lives only in the link) ===================== */
+const te = new TextEncoder(), td = new TextDecoder();
+const toB64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+const toB64u = b => toB64(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromB64u = s => fromB64(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4));
+async function deriveSession(secretBytes) {
+  const base = await crypto.subtle.importKey('raw', secretBytes, 'HKDF', false, ['deriveBits', 'deriveKey']);
+  const salt = te.encode('insurance-wa-v1');
+  const idBits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('page-id') }, base, 128);
+  const key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('content-key') },
+    base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  return { id: toB64u(new Uint8Array(idBits)), key };
+}
+async function encJSON(obj, key) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)));
+  return toB64(iv) + '.' + toB64(new Uint8Array(ct));
+}
+async function decJSON(str, key) {
+  const [iv, ct] = str.split('.');
+  return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(iv) }, key, fromB64(ct))));
+}
+
+/* ===================== Page ===================== */
+const $ = id => document.getElementById(id);
+function status(text, cls) { $('status').className = 'msg ' + (cls || ''); $('status').textContent = text; }
+let expiresAt = 0, timer = null;
+
+function tick() {
+  const left = expiresAt - Date.now();
+  if (left <= 0) { clearInterval(timer); $('timer').textContent = '0:00'; $('form').hidden = true; status(t('expired'), 'err'); return; }
+  const s = Math.ceil(left / 1000);
+  $('timer').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  $('timer').classList.toggle('warn', s <= 60);
+}
+
+(async function init() {
+  const secret = location.hash.slice(1);
+  history.replaceState(null, '', location.pathname); // do not keep the key in the browser history
+  if (!secret) { status(t('noLink'), 'err'); return; }
+  status(t('loading'));
+  let fs, ref, key;
+  try {
+    const raw = fromB64u(secret);
+    if (raw.length !== 32) throw new Error('bad-link');
+    const s = await deriveSession(raw);
+    key = s.key;
+    const app = await import(FIREBASE_URL + 'firebase-app.js');
+    fs = await import(FIREBASE_URL + 'firebase-firestore.js');
+    ref = fs.doc(fs.getFirestore(app.initializeApp(FIREBASE_CONFIG)), 'pages', s.id);
+    const snap = await fs.getDoc(ref);
+    if (!snap.exists() || !snap.data().expiresAt || snap.data().expiresAt.toMillis() <= Date.now()) { status(t('expired'), 'err'); return; }
+    expiresAt = snap.data().expiresAt.toMillis();
+    const data = await decJSON(snap.data().text || '', key);
+    for (const k of KEYS) $(k).value = (data.messages && data.messages[k]) || '';
+  } catch (e) {
+    status(e && (e.message === 'bad-link' || e.name === 'OperationError') ? t('expired') : t('error'), 'err');
+    return;
+  }
+  status('');
+  $('form').hidden = false;
+  tick(); timer = setInterval(tick, 1000);
+
+  $('form').onsubmit = async e => {
+    e.preventDefault();
+    if (Date.now() >= expiresAt) return tick();
+    const messages = {};
+    for (const k of KEYS) messages[k] = $(k).value;
+    $('saveBtn').disabled = true; $('saveBtn').textContent = t('saving');
+    try {
+      await fs.updateDoc(ref, { text: await encJSON({ from: 'phone', messages }, key), updatedAt: fs.serverTimestamp() });
+      status(t('saved'), 'ok');
+    } catch (err) {
+      status(t('saveError'), 'err');
+    }
+    $('saveBtn').disabled = false; $('saveBtn').textContent = t('save');
+  };
+})();
+</script>
+</body>
+</html>
