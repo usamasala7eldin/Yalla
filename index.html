@@ -123,8 +123,8 @@
 <body>
 <header class="hero">
   <div class="hero-inner">
-    <div class="owner">💊 Osama Elzeiny · Pharmacy tools</div>
-    <div class="greeting" id="greeting">Hello</div>
+    <div class="owner">💊 <span data-i18n="owner"></span></div>
+    <div class="greeting" id="greeting"></div>
     <div class="date" id="date"></div>
   </div>
 </header>
@@ -139,51 +139,96 @@
       <span class="ring-pct" id="pct">0%</span>
     </div>
     <div class="featured-body">
-      <span class="tag">Today</span>
-      <h2>Daily Checklist</h2>
-      <p id="progressText">Your daily tasks, one tap away.</p>
+      <span class="tag" data-i18n="today"></span>
+      <h2 data-i18n="checklist"></h2>
+      <p id="progressText"></p>
     </div>
     <div class="go" aria-hidden="true">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
     </div>
   </a>
 
-  <div class="sec-title">Tools</div>
+  <div class="sec-title" data-i18n="secStock"></div>
   <div class="grid">
-    <a class="tool" href="CloseDay.html" style="--c: var(--c-green)">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg></div>
-      <div><b>Close Day</b><span>Cash to deposit</span></div>
+    <a class="tool" href="CycleCount.html" style="--c: var(--c-teal)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div>
+      <div><b data-i18n="cycleCount"></b><span data-i18n="cycleCountDesc"></span></div>
     </a>
     <a class="tool" href="ItemCheck.html" style="--c: var(--c-blue)">
       <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2 2 4-4"/><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 17h8"/></svg></div>
-      <div><b>Item Check</b><span>Pick items to tag</span></div>
+      <div><b data-i18n="itemCheck"></b><span data-i18n="itemCheckDesc"></span></div>
     </a>
     <a class="tool" href="PriceTagPrint.html" style="--c: var(--c-amber)">
       <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>
-      <div><b>Price Tag Print</b><span>Scan to build tags</span></div>
-    </a>
-    <a class="tool" href="QRgenerator.html" style="--c: var(--c-teal)">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.4A8.5 8.5 0 1 1 21 12z"/></svg></div>
-      <div><b>WhatsApp Messages</b><span>Welcome &amp; refill QR codes</span></div>
-    </a>
-    <a class="tool" href="dosage-printer.html" style="--c: var(--c-coral)">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5a5 5 0 0 1-7-7l6-6a5 5 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/></svg></div>
-      <div><b>Dosage Printer</b><span>Medicine labels</span></div>
-    </a>
-    <a class="tool" href="Printer.html" style="--c: var(--c-violet)">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg></div>
-      <div><b>Printer</b><span>Text, QR or barcode</span></div>
-    </a>
-    <a class="tool" href="sync.html" style="--c: var(--c-pink)">
-      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5"/><path d="M20 4v4.5h-4.5"/><path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.5"/><path d="M4 20v-4.5h4.5"/></svg></div>
-      <div><b>Sync</b><span>Phone ↔ computer</span></div>
+      <div><b data-i18n="tagScanner"></b><span data-i18n="tagScannerDesc"></span></div>
     </a>
   </div>
 
-  <footer>Made by Osama Elzeiny</footer>
+  <div class="sec-title" data-i18n="secPrinting"></div>
+  <div class="grid">
+    <a class="tool" href="dosage-printer.html" style="--c: var(--c-coral)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5a5 5 0 0 1-7-7l6-6a5 5 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/></svg></div>
+      <div><b data-i18n="dosagePrinter"></b><span data-i18n="dosagePrinterDesc"></span></div>
+    </a>
+    <a class="tool" href="Printer.html" style="--c: var(--c-violet)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg></div>
+      <div><b data-i18n="printer"></b><span data-i18n="printerDesc"></span></div>
+    </a>
+    <a class="tool" href="ITA.html" style="--c: var(--c-pink)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a3 3 0 0 1 0 6M18 6a7 7 0 0 1 0 12"/></svg></div>
+      <div><b data-i18n="promoLabels"></b><span data-i18n="promoLabelsDesc"></span></div>
+    </a>
+  </div>
+
+  <div class="sec-title" data-i18n="secDaily"></div>
+  <div class="grid">
+    <a class="tool" href="CloseDay.html" style="--c: var(--c-green)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg></div>
+      <div><b data-i18n="closeDay"></b><span data-i18n="closeDayDesc"></span></div>
+    </a>
+    <a class="tool" href="InsuranceRefill.html" style="--c: var(--c-teal)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M12 9v6M9 12h6"/></svg></div>
+      <div><b data-i18n="insuranceRefill"></b><span data-i18n="insuranceRefillDesc"></span></div>
+    </a>
+    <a class="tool" href="Attendance.html" style="--c: var(--c-blue)">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div><b data-i18n="attendance"></b><span data-i18n="attendanceDesc"></span></div>
+    </a>
+  </div>
+
+  <footer data-i18n="footer"></footer>
 </main>
 
 <script>
+  /* ===================== Localisation ===================== */
+  const I18N = {
+    en: {
+      owner: 'Osama Elzeiny · Pharmacy tools', footer: 'Made by Osama Elzeiny',
+      morning: 'Good morning ☀️', afternoon: 'Good afternoon 🌤️', evening: 'Good evening 🌙',
+      today: 'Today', checklist: 'Daily Checklist',
+      progressIdle: 'Your daily tasks, one tap away.', progressAll: 'All done for today. Great work! 🎉',
+      progressNone: '{total} tasks waiting for you today.', progressSome: '{done} of {total} tasks done. Keep going!',
+      secStock: 'Stock', secPrinting: 'Printing', secDaily: 'Daily work',
+      cycleCount: 'Cycle Count', cycleCountDesc: 'Blind count on the phone',
+      itemCheck: 'Item Check', itemCheckDesc: 'Pick items to tag',
+      tagScanner: 'Tag Scanner', tagScannerDesc: 'Scan to build tags',
+      dosagePrinter: 'Dosage Printer', dosagePrinterDesc: 'Medicine labels',
+      printer: 'Printer', printerDesc: 'Text, QR or barcode',
+      promoLabels: 'Promo Labels', promoLabelsDesc: 'Promo material labels',
+      closeDay: 'Close Day', closeDayDesc: 'Cash to deposit',
+      insuranceRefill: 'Insurance Refill', insuranceRefillDesc: 'Refill due dates',
+      attendance: 'Attendance Check', attendanceDesc: 'Clock-in vs schedule'
+    }
+  };
+  const LANG = 'en';
+  const t = (k, vars) => {
+    let s = (I18N[LANG] && I18N[LANG][k]) || k;
+    if (vars) for (const [name, val] of Object.entries(vars)) s = s.split('{' + name + '}').join(val);
+    return s;
+  };
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+
   const RING_LENGTH = 2 * Math.PI * 42;
 
   function readJSON(key, fallback) {
@@ -232,7 +277,7 @@
     const now = new Date();
     const h = now.getHours();
     document.getElementById('greeting').textContent =
-      h < 12 ? 'Good morning ☀️' : h < 18 ? 'Good afternoon 🌤️' : 'Good evening 🌙';
+      h < 12 ? t('morning') : h < 18 ? t('afternoon') : t('evening');
     document.getElementById('date').textContent =
       now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -244,11 +289,11 @@
     ring.style.stroke = ringColor(pct);
     document.getElementById('pct').textContent = pct + '%';
 
-    let text = 'Your daily tasks, one tap away.';
+    let text = t('progressIdle');
     if (p) {
-      if (p.pct === 100) text = 'All done for today. Great work! 🎉';
-      else if (p.finished === 0 && p.pct === 0) text = p.total + ' tasks waiting for you today.';
-      else text = p.finished + ' of ' + p.total + ' tasks done. Keep going!';
+      if (p.pct === 100) text = t('progressAll');
+      else if (p.finished === 0 && p.pct === 0) text = t('progressNone', { total: p.total });
+      else text = t('progressSome', { done: p.finished, total: p.total });
     }
     document.getElementById('progressText').textContent = text;
   }
