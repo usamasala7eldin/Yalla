@@ -87,6 +87,8 @@
   .line { font-size: 12px; margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .line.possible { color: var(--teal); font-weight: 600; }
   .line.refilled { color: #4a5263; }
+  .rcpt { border: 1px solid var(--line); background: var(--card); border-radius: 6px; padding: 0 5px; font-size: 13px; line-height: 20px; cursor: pointer; }
+  .rcpt:hover { border-color: var(--accent); }
   .inv-small { font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
   .tag.match { background: var(--green-bg); color: var(--green); font-weight: 600; }
   .amount { font-weight: 700; font-size: 15px; text-align: right; min-width: 80px; }
@@ -312,6 +314,7 @@ const I18N = {
     phonePrivacy: 'Only the message texts are sent, encrypted, and deleted within 5 minutes. Patient data never leaves this browser.',
     addContact: '+ Add contact',
     transRefIncomplete: '⚠ Trans. Ref. may be incomplete: only {n} rows were copied (last date {last}). Copy it again with Rows per page → All.',
+    openReceipt: 'Open the receipt',
     milk: 'Milk', milkAuto: 'Milk: 1M is set automatically. Click another period to change it.',
     undo: 'Undo', periodSet: '{inv}: {p}', periodCleared: '{inv}: refill cleared',
     welcomeHint: 'Write the pharmacy address after the pharmacy name, then the pharmacy Google Maps link on the next line.',
@@ -629,6 +632,27 @@ const dxNames = codes => codes.map(c => icdDesc(c) || c).join(' · ');
 // Invoice numbers end with the date (yyyymmdd); it is hidden when shown or copied
 const shortInv = inv => String(inv).replace(/20\d{6}$/, '');
 
+// Receipt on the internal reports server. Store = first 5 digits of the invoice;
+// transaction no. = the rest with a 0 added after its first digit; date as MM-DD-YYYY.
+const RECEIPT_URL = 'http://rmsbip.nmc.com:9704/xmlpserver/Guest/Sales_Receipt_Test/Sealed_Bag_Report.xdo?_xpf=&_xpt=1&_xmode=0&_paramsI_STORE={store}&_paramsI_BUSINESS_DATE={date}&_paramsI_TRAN_NO={tran}&_xf=html&_xautorun=true';
+const RECEIPT_WINDOW = { name: 'insuranceReceipt', width: 700, height: 800 };
+function receiptUrl(inv, iso) {
+  const s = shortInv(inv), rest = s.slice(5);
+  return RECEIPT_URL
+    .replace('{store}', s.slice(0, 5))
+    .replace('{tran}', rest.slice(0, 1) + '0' + rest.slice(1))
+    .replace('{date}', `${iso.slice(5, 7)}-${iso.slice(8, 10)}-${iso.slice(0, 4)}`);
+}
+// Opens in one small window in the middle of the screen; the next receipt reuses it
+function openReceipt(inv, iso) {
+  const { name, width, height } = RECEIPT_WINDOW;
+  const left = Math.max(0, window.screenX + (window.outerWidth - width) / 2);
+  const top = Math.max(0, window.screenY + (window.outerHeight - height) / 2);
+  const w = window.open(receiptUrl(inv, iso), name, `popup=yes,width=${width},height=${height},left=${left},top=${top}`);
+  if (w) w.focus();
+}
+const receiptBtn = (inv, iso) => `<button class="rcpt" data-act="receipt" data-inv="${esc(inv)}" data-date="${esc(iso)}" title="${esc(t('openReceipt'))}">🧾</button>`;
+
 /* ===================== Rendering ===================== */
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -725,7 +749,7 @@ function extraLinesHTML(r) {
     const tags = [['samePrice', r.refill.samePrice], ['sameDx', r.refill.sameDx], ['sameItem', r.refill.sameItem]]
       .filter(x => x[1]).map(x => `<span class="tag match">${esc(t(x[0]))}</span>`).join(' ');
     html += `<div class="line refilled">${esc(t('refilledAt', { d: fmtDate(r.refill.date) }))}
-      <button class="inv-small" data-act="copy" data-inv="${esc(r.refill.inv)}" title="${esc(t('copyHint'))}">${esc(shortInv(r.refill.inv))}</button> ${tags}</div>`;
+      <button class="inv-small" data-act="copy" data-inv="${esc(r.refill.inv)}" title="${esc(t('copyHint'))}">${esc(shortInv(r.refill.inv))}</button>${receiptBtn(r.refill.inv, r.refill.date)} ${tags}</div>`;
   }
   return html;
 }
@@ -745,7 +769,7 @@ function rowHTML(r) {
   return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''}" data-row="${inv}">
     <div class="who">
       <div class="inv-line">
-        <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${esc(shortInv(r.inv))}</button>
+        <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${esc(shortInv(r.inv))}</button>${receiptBtn(r.inv, r.date)}
         ${r.items.length ? '<span class="tag vc">VC</span>' : ''}
         ${r.milk ? `<span class="tag milk">🍼 ${esc(t('milk'))}</span>` : ''}
         <span class="tag visits">${esc(r.visits === 1 ? t('visit') : t('visits', { n: r.visits }))}</span>
@@ -872,6 +896,7 @@ function openDetails(inv) {
       <span>${esc(t('employee'))}</span><span>${esc(r.emp)}</span>
       ${refs ? `<span>${esc(t('reference'))}</span><span><b>${esc(refs)}</b></span>` : ''}
     </div>
+    <button class="btn" id="detReceipt" style="margin-top:8px">🧾 ${esc(t('openReceipt'))}</button>
     <h3>${esc(t('contactSection'))}</h3>
     <div class="kv">
       <span>${esc(t('contactName'))}</span><input type="text" id="detName" value="${esc(r.contact.name || '')}" dir="auto">
@@ -885,6 +910,7 @@ function openDetails(inv) {
     <table class="mini"><tbody>${dxRows || '<tr><td>—</td></tr>'}</tbody></table>
     ${itemRows ? `<h3>${esc(t('items'))}</h3><table class="mini"><thead><tr><th>${esc(t('item'))}</th><th>${esc(t('qty'))}</th><th>${esc(t('value'))}</th></tr></thead><tbody>${itemRows}</tbody></table>` : ''}
   `;
+  $('detReceipt').onclick = () => openReceipt(r.inv, r.date);
   $('detSave').onclick = () => {
     const name = $('detName').value.trim(), phone = $('detPhone').value.trim();
     if (name || phone) store.contacts[r.card] = { name, phone, updatedAt: new Date().toISOString() };
@@ -1153,6 +1179,7 @@ function bind() {
     const inv = b.dataset.inv;
     switch (b.dataset.act) {
       case 'copy': copyText(shortInv(inv)); break;
+      case 'receipt': openReceipt(inv, b.dataset.date); break;
       case 'period': setPeriod(inv, b.dataset.val); break;
       case 'details': openDetails(inv); break;
       case 'qr': openQr(inv, b.dataset.type); break;
