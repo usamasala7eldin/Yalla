@@ -93,6 +93,11 @@ td.desc .flag{color:var(--warn);cursor:help;margin-left:6px}
 td.num{text-align:center}
 td.copy{cursor:pointer;font-family:Consolas,monospace}
 td.copy:hover{color:var(--accent);text-decoration:underline}
+td.ol{padding:6px 4px}
+td.ol a{display:inline-flex;color:var(--muted);padding:2px;border-radius:4px}
+td.ol a:hover{color:var(--accent);background:var(--accent-soft)}
+td.ol svg{width:16px;height:16px}
+.gl{display:inline-block;margin-left:8px;padding:0 6px;border-radius:4px;font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);vertical-align:1px}
 td.st button{padding:2px 9px;font-size:12px;margin-right:4px}
 td.st .b-print.on{background:var(--ok);border-color:var(--ok);color:#fff}
 td.st .b-none.on{background:var(--no);border-color:var(--no);color:#fff}
@@ -143,6 +148,7 @@ const ROLES = [
   {k:'en',   label:'الوصف الإنجليزي', hints:['second desc','english desc','english description']},
   {k:'oldP', label:'السعر الحالي',    hints:['current sales price','current price','old price','السعر الحالي']},
   {k:'newP', label:'السعر الجديد',    hints:['new sales price','new price','السعر الجديد']},
+  {k:'sf',   label:'Smart Fulfillment', hints:['smart fulfillment','fulfillment']},
 ];
 
 const emptyState = () => ({headers:[], rows:[], map:{}, status:{}, src:{}, qty:{}, exportedSig:'', fromText:false});
@@ -301,7 +307,8 @@ function buildItems(){
     seen[key] = true;
     out.push({key, idx:i, id, bc, en, brand, two, flags,
       oldP: map.oldP >= 0 ? (r[map.oldP] || '').trim() : '',
-      newP: map.newP >= 0 ? (r[map.newP] || '').trim() : ''});
+      newP: map.newP >= 0 ? (r[map.newP] || '').trim() : '',
+      global: map.sf >= 0 && (r[map.sf] || '').trim().toLowerCase() === 'global'});
   }
   items = out;
   const warnings = [], errors = [];
@@ -334,12 +341,25 @@ function applyData(raw, fromText){
   refresh(true);
 }
 
+// Global items are not in the pharmacy: mark them «لا رصيد» automatically (the user can still change them)
+function markGlobal(){
+  let n = 0;
+  for(const it of items){
+    if(it.global && !state.status[it.key]){ state.status[it.key] = 'none'; state.src[it.key] = 'global'; n++; }
+    else if(!it.global && state.src[it.key] === 'global'){ delete state.status[it.key]; delete state.src[it.key]; }
+  }
+  save();
+  return n;
+}
+
 function refresh(announce){
   const res = buildItems();
   checkIntegrity();
+  const nGlobal = (!res.error && announce) ? markGlobal() : 0;
   if(res.error) setMsg('err', res.error);
   else if(announce){
     setMsg('ok', `تمت قراءة ${items.length} صنفًا بنجاح.`
+      + (nGlobal ? `<span class="w">🌐 تم تعليم ${nGlobal} صنفًا Global على أنها «لا رصيد» تلقائيًا، ويمكن عرضها من فلتر «Global».</span>` : '')
       + res.errors.map(w => `<span class="e">⛔ ${w}</span>`).join('')
       + res.warnings.map(w => `<span class="w">⚠ ${w}</span>`).join(''));
   }
@@ -398,6 +418,7 @@ function matchFilter(it){
   if(filter === 'print') return s === 'print';
   if(filter === 'none') return s === 'none';
   if(filter === 'flags') return it.flags.length > 0;
+  if(filter === 'global') return it.global;
   return true;
 }
 
@@ -406,13 +427,16 @@ function scopeItems(){
 }
 const visibleItems = () => scopeItems().filter(matchFilter);
 
+const ICON_ONLINE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zm5 16H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7z"/></svg>';
+
 function rowHtml(it, priceCols){
   const s = state.status[it.key] || '';
   const q = state.qty[it.key] || 1;
   const flag = it.flags.length ? `<span class="flag" title="${esc(it.flags.join('، '))}">⚠</span>` : '';
   return `<tr data-key="${esc(it.key)}" class="${s ? 'st-' + s : ''} ${it.key === lastCopiedKey ? 'copied' : ''}">
     <td class="copy" data-copy="${esc(it.id)}" title="اضغط للنسخ">${esc(it.id)}</td>
-    <td class="desc">${esc(it.en)}${flag}</td>
+    <td class="ol"><a href="https://www.nahdionline.com/en-sa/pdp/${encodeURIComponent(it.id)}" target="_blank" rel="noopener" title="عرض الصنف على النهدي أونلاين" aria-label="Online">${ICON_ONLINE}</a></td>
+    <td class="desc">${esc(it.en)}${it.global ? '<span class="gl">Global</span>' : ''}${flag}</td>
     ${it.bc ? `<td class="copy" data-copy="${esc(it.bc)}" title="اضغط للنسخ">${esc(it.bc)}</td>` : `<td class="missing">—</td>`}
     ${priceCols ? `<td class="num">${esc(it.oldP)}</td><td class="num">${esc(it.newP)}</td>` : ''}
     <td class="st"><button class="b-print ${s === 'print' ? 'on' : ''}" data-act="print">يُطبع</button><button class="b-none ${s === 'none' ? 'on' : ''}" data-act="none">لا رصيد</button></td>
@@ -442,11 +466,12 @@ function render(){
 
   const list = visibleItems();
   const anyFlags = items.some(it => it.flags.length);
+  const anyGlobal = items.some(it => it.global);
   const f = (k, t, cls = '') => `<button class="f ${cls} ${filter === k ? 'on' : ''}" data-f="${k}">${t}</button>`;
   html += `<div class="toolbar">
     <div class="tgroup">
       <span class="tlabel">عرض:</span>
-      <div class="seg">${f('all', 'الكل')}${f('pending', 'لم تُراجع')}${f('print', 'تُطبع')}${f('none', 'لا رصيد')}${anyFlags ? f('flags', '⚠ تحذيرات', 'warnf') : ''}</div>
+      <div class="seg">${f('all', 'الكل')}${f('pending', 'لم تُراجع')}${f('print', 'تُطبع')}${f('none', 'لا رصيد')}${anyGlobal ? f('global', 'Global') : ''}${anyFlags ? f('flags', '⚠ تحذيرات', 'warnf') : ''}</div>
       <span class="count">(${list.length} صنف)</span>
     </div>
     <div class="tgroup">
@@ -462,7 +487,7 @@ function render(){
   if(!list.length){
     html += '<div class="empty">لا توجد أصناف مطابقة.</div>';
   } else {
-    html += `<div class="tablewrap"><table><thead><tr><th>Item ID</th><th>Description</th><th>Barcode</th>
+    html += `<div class="tablewrap"><table><thead><tr><th>Item ID</th><th></th><th>Description</th><th>Barcode</th>
       ${priceCols ? '<th>Current</th><th>New</th>' : ''}<th>Status</th><th>Labels</th></tr></thead>
       <tbody>${list.map(it => rowHtml(it, priceCols)).join('')}</tbody></table></div>`;
   }
