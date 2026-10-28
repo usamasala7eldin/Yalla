@@ -78,6 +78,10 @@ textarea{flex:1;height:58px;border:1px solid var(--border);border-radius:8px;pad
 .seg .f:first-child{border-inline-start:0}
 .seg .f.on{background:var(--accent);color:#fff;font-weight:600}
 .seg .f.warnf:not(.on){color:var(--warn)}
+.seg .f .n{font-size:11px;font-weight:400;color:var(--muted);margin-inline-start:4px}
+.seg .f.on .n{color:#dbe6ff}
+.seg .f.glf:not(.on){background:var(--accent-soft);color:var(--accent)}
+.typebar{direction:rtl;display:flex;align-items:center;gap:8px;margin-bottom:10px}
 /* actions: separate solid buttons */
 .act{font-size:13px;padding:5px 12px;font-weight:600;border-radius:7px}
 .act-print{background:var(--ok);border-color:var(--ok);color:#fff}
@@ -158,6 +162,7 @@ let selBrand = null;    // exact brand text, or null for all
 let selTwo = null;      // exact two-word text, or null
 let subsOpen = false;   // two-word row collapsed by default; stays as the user leaves it
 let filter = 'all';
+let typeF = 'nonglobal'; // Smart Fulfillment filter: nonglobal | global | all
 let lastCopiedKey = null;
 let lastBulk = null;    // [{key, prevStatus, prevSrc}]
 let integrityError = '';
@@ -336,7 +341,7 @@ function applyData(raw, fromText){
   const shaped = shapeRows(raw);
   if(!shaped){ setMsg('err', 'لم يتم العثور على أي بيانات في النص الملصق.'); return; }
   state = Object.assign(emptyState(), {headers: shaped.headers, rows: shaped.rows, map: autoMap(shaped.headers, shaped.rows), fromText: !!fromText});
-  selBrand = null; selTwo = null; filter = 'all'; lastCopiedKey = null; lastBulk = null;
+  selBrand = null; selTwo = null; filter = 'all'; typeF = 'nonglobal'; lastCopiedKey = null; lastBulk = null;
   save();
   refresh(true);
 }
@@ -359,7 +364,7 @@ function refresh(announce){
   if(res.error) setMsg('err', res.error);
   else if(announce){
     setMsg('ok', `تمت قراءة ${items.length} صنفًا بنجاح.`
-      + (nGlobal ? `<span class="w">🌐 تم تعليم ${nGlobal} صنفًا Global على أنها «لا رصيد» تلقائيًا، ويمكن عرضها من فلتر «Global».</span>` : '')
+      + (nGlobal ? `<span class="w">🌐 تم تعليم ${nGlobal} صنفًا Global على أنها «لا رصيد» تلقائيًا، ويمكن عرضها من «النوع: Global».</span>` : '')
       + res.errors.map(w => `<span class="e">⛔ ${w}</span>`).join('')
       + res.warnings.map(w => `<span class="w">⚠ ${w}</span>`).join(''));
   }
@@ -374,8 +379,14 @@ function groupBy(list, field){
   for(const it of list){ const k = it[field]; if(!m.has(k)) m.set(k, []); m.get(k).push(it); }
   return [...m].map(([name, list]) => ({name, list})).sort((x, y) => sortKey(x.name, y.name));
 }
-const brandGroups = () => groupBy(items, 'brand');
-const twoGroups = brand => groupBy(items.filter(it => it.brand === brand), 'two');
+const brandGroups = (list = items) => groupBy(list, 'brand');
+const twoGroups = (brand, list = items) => groupBy(list.filter(it => it.brand === brand), 'two');
+
+// Type filter (Smart Fulfillment). Shown only when the data has Global items.
+const TYPES = {nonglobal: 'Non-Global', global: 'Global', all: 'All'};
+const typeOn = () => items.some(it => it.global);
+const typeMatch = it => !typeOn() || typeF === 'all' || (typeF === 'global') === it.global;
+const typedItems = () => items.filter(typeMatch);
 
 // ---------- rendering ----------
 function renderMap(){
@@ -418,12 +429,11 @@ function matchFilter(it){
   if(filter === 'print') return s === 'print';
   if(filter === 'none') return s === 'none';
   if(filter === 'flags') return it.flags.length > 0;
-  if(filter === 'global') return it.global;
   return true;
 }
 
 function scopeItems(){
-  return items.filter(it => (selBrand === null || it.brand === selBrand) && (selTwo === null || it.two === selTwo));
+  return items.filter(it => typeMatch(it) && (selBrand === null || it.brand === selBrand) && (selTwo === null || it.two === selTwo));
 }
 const visibleItems = () => scopeItems().filter(matchFilter);
 
@@ -451,13 +461,21 @@ function render(){
 
   let html = integrityError ? `<div class="alert">${esc(integrityError)}</div>` : '';
 
-  const brands = brandGroups();
+  const typed = typedItems();
+  if(typeOn()){
+    const cnt = {nonglobal: items.filter(it => !it.global).length, global: items.filter(it => it.global).length, all: items.length};
+    const t = (k, cls = '') => `<button class="f ${cls} ${typeF === k ? 'on' : ''}" data-t="${k}">${TYPES[k]}<span class="n">${cnt[k]}</span></button>`;
+    html += `<div class="typebar"><span class="tlabel">النوع:</span><div class="seg">${t('nonglobal')}${t('global', 'glf')}${t('all')}</div></div>`;
+  }
+
+  const brands = brandGroups(typed);
   if(selBrand !== null && !brands.some(b => b.name === selBrand)){ selBrand = null; selTwo = null; }
-  html += `<div class="brands"><button class="chip ${selBrand === null ? 'on' : ''}" data-kind="all"><span>All</span><span class="n">${reviewed(items)}/${items.length}</span></button>`
+  html += `<div class="brands"><button class="chip ${selBrand === null ? 'on' : ''}" data-kind="all"><span>All</span><span class="n">${reviewed(typed)}/${typed.length}</span></button>`
     + brands.map(b => chipHtml('brand', b.name, b.list, selBrand === b.name)).join('') + '</div>';
 
   if(selBrand !== null){
-    const twos = twoGroups(selBrand);
+    const twos = twoGroups(selBrand, typed);
+    if(selTwo !== null && !twos.some(g => g.name === selTwo)) selTwo = null;
     const selTag = (!subsOpen && selTwo !== null)
       ? `<span class="selname"><span>${esc(selTwo)}</span><span class="x" data-cleartwo title="إلغاء اختيار الاسم الثنائي">×</span></span>` : '';
     html += `<div class="subhead" data-togglesubs><span class="arrow">${subsOpen ? '▾' : '◂'}</span>الأسماء الثنائية (${twos.length})${selTag}</div>`;
@@ -466,12 +484,11 @@ function render(){
 
   const list = visibleItems();
   const anyFlags = items.some(it => it.flags.length);
-  const anyGlobal = items.some(it => it.global);
   const f = (k, t, cls = '') => `<button class="f ${cls} ${filter === k ? 'on' : ''}" data-f="${k}">${t}</button>`;
   html += `<div class="toolbar">
     <div class="tgroup">
       <span class="tlabel">عرض:</span>
-      <div class="seg">${f('all', 'الكل')}${f('pending', 'لم تُراجع')}${f('print', 'تُطبع')}${f('none', 'لا رصيد')}${anyGlobal ? f('global', 'Global') : ''}${anyFlags ? f('flags', '⚠ تحذيرات', 'warnf') : ''}</div>
+      <div class="seg">${f('all', 'الكل')}${f('pending', 'لم تُراجع')}${f('print', 'تُطبع')}${f('none', 'لا رصيد')}${anyFlags ? f('flags', '⚠ تحذيرات', 'warnf') : ''}</div>
       <span class="count">(${list.length} صنف)</span>
     </div>
     <div class="tgroup">
@@ -611,7 +628,7 @@ $('#btnNew').addEventListener('click', () => {
     if(sig && sig !== state.exportedSig) text += `\n\nتنبيه: توجد أصناف محددة «يُطبع» لم يُحمَّل ملفها بعد، وستضيع هذه الاختيارات.`;
     if(!confirm(text + '\n\nهل تريد بدء صفحة جديدة؟')) return;
   }
-  state = emptyState(); items = []; selBrand = null; selTwo = null; filter = 'all'; lastBulk = null; lastCopiedKey = null; integrityError = '';
+  state = emptyState(); items = []; selBrand = null; selTwo = null; filter = 'all'; typeF = 'nonglobal'; lastBulk = null; lastCopiedKey = null; integrityError = '';
   try{ localStorage.removeItem(LS_KEY); }catch(e){}
   $('#paste').value = ''; setMsg('', ''); renderMap(); render();
   $('#paste').focus();
@@ -634,6 +651,16 @@ $('#data').addEventListener('click', async e => {
     if(kind === 'all'){ selBrand = null; selTwo = null; }
     else if(kind === 'brand'){ if(selBrand === name){ selBrand = null; } else { selBrand = name; } selTwo = null; }
     else if(kind === 'two'){ selTwo = (selTwo === name) ? null : name; }
+    render(); return;
+  }
+  const tb = e.target.closest('[data-t]');
+  if(tb){
+    typeF = tb.dataset.t;
+    // the open brand has nothing in this type: show all brands and say why
+    if(selBrand !== null && !items.some(it => it.brand === selBrand && typeMatch(it))){
+      toast(`لا توجد أصناف «${selBrand}» ضمن ${TYPES[typeF]}، فتم عرض كل البراندات.`);
+      selBrand = null; selTwo = null;
+    }
     render(); return;
   }
   const fb = e.target.closest('[data-f]');
