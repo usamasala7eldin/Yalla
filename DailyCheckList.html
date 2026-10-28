@@ -127,6 +127,7 @@
   .msg.ok { color: var(--accent); }
   .hidden-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
   .hidden-row:last-child { border-bottom: none; }
+  .small-btn.danger-btn { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
   .small-btn { flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 10px; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
   .modal .empty { box-shadow: none; background: var(--bg); padding: 16px; font-size: 15px; }
 
@@ -134,9 +135,11 @@
   .items-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; margin: 14px 0 4px; font-size: 14px; color: var(--muted); }
   .items-meta b { color: var(--text); }
   .tools-row { display: flex; gap: 8px; margin-top: 12px; }
-  .list-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 2px 6px; margin-top: 14px; border-bottom: 1px solid var(--line); }
-  .item-row { display: flex; align-items: center; gap: 8px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
-  .item-row.excluded .item-info, .item-row.excluded .qty { opacity: .4; }
+  .list-head { display: grid; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 2px 6px; margin-top: 14px; border-bottom: 1px solid var(--line); }
+  .item-row, .item-grid { display: grid; grid-template-columns: minmax(0, 1fr) 92px 70px 56px 36px; align-items: center; gap: 8px; }
+  .item-row { padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .list-head .num, .item-row .num { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tail { display: flex; justify-content: center; }
   .item-row.missing { background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: 10px; }
   .item-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
   .code-btn {
@@ -177,6 +180,7 @@
   .check-row input { width: 18px; height: 18px; accent-color: var(--brand); }
   .phone-line { margin-top: 10px; font-size: 14px; color: var(--muted); }
   .phone-line.ok { color: var(--accent); font-weight: 600; }
+  .phone-line.warn { color: var(--danger); font-weight: 600; }
   .qr-modal { max-width: 420px; text-align: center; }
   .qr-modal .modal-head h2 { flex: 1; text-align: left; }
   .qr-timer { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); }
@@ -294,6 +298,12 @@
       <div class="msg" id="addMsg"></div>
     </form>
 
+    <h3>My tasks</h3>
+    <div id="myTasksList"></div>
+
+    <h3>Tasks from the list</h3>
+    <div id="sheetTasksList"></div>
+
     <h3>Hidden tasks</h3>
     <div id="hiddenList"></div>
   </div>
@@ -310,12 +320,19 @@
     </div>
 
     <div class="tools-row" id="itemsTools"></div>
+    <div hidden>
+      <button class="small-btn phone-btn" id="phoneBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>
+        Count on phone
+      </button>
+    </div>
     <div class="items-meta">
       <span id="itemsCount"></span>
       <span id="itemsUpdated"></span>
     </div>
 
-    <div class="list-head"><span>Item</span><span>System QTY</span></div>
+    <div class="phone-line" id="itemsPhoneLine"></div>
+    <div class="list-head item-grid"><span>Item</span><span class="num">System QTY</span><span class="num">Actual</span><span class="num">Diff</span><span></span></div>
     <div id="itemsList"></div>
 
     <h3>My items</h3>
@@ -351,11 +368,7 @@
       </button>
     </div>
     <div class="review-tools">
-      <button class="small-btn phone-btn" id="phoneBtn">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>
-        Count on phone
-      </button>
-      <label class="check-row" id="blankPrintRow"><input type="checkbox" id="blankPrint"> Print with blank Actual SOH</label>
+<label class="check-row" id="blankPrintRow"><input type="checkbox" id="blankPrint"> Print with blank Actual SOH</label>
     </div>
     <div class="phone-line" id="phoneLine"></div>
     <table class="rv">
@@ -412,7 +425,7 @@
 
   const KEYS = {
     hidden: 'dc_hidden', custom: 'dc_custom', progress: 'dc_progress', cache: 'dc_sheet_cache',
-    itemsCache: 'dc_items_cache', myItems: 'dc_my_items', stock: 'dc_stock', excluded: 'dc_excluded'
+    itemsCache: 'dc_items_cache', myItems: 'dc_my_items', stock: 'dc_stock'
   };
   const RING_LENGTH = 2 * Math.PI * 42;
   const SETTLE_MS = 500;    // how long a card stays in place after being checked
@@ -476,7 +489,7 @@
   let sheetItems = asObject(load(KEYS.itemsCache, {}));   // { taskName: [{code, name}] }
   let myItems = asObject(load(KEYS.myItems, {}));         // { taskName: [{code, name}] }
   let stock = asObject(load(KEYS.stock, {}));             // { taskName: { values: {code: int}, updated: ms } }
-  let excluded = load(KEYS.excluded, { date: today(), map: {} }); // reset daily
+  try { localStorage.removeItem('dc_excluded'); } catch (e) {} // old feature, no longer used
 
   let justToggled = null;
   let lastPct = null;
@@ -497,11 +510,6 @@
     if (progress.date !== today()) {
       progress = { date: today(), done: {} };
       save(KEYS.progress, progress);
-      changed = true;
-    }
-    if (!excluded || excluded.date !== today()) {
-      excluded = { date: today(), map: {} };
-      save(KEYS.excluded, excluded);
       changed = true;
     }
     return changed;
@@ -671,6 +679,7 @@
           save(KEYS.progress, progress);
         }
         render();
+        renderHidden();
       });
     }
     render();
@@ -750,7 +759,6 @@
       a.title = 'Open link';
       actions.append(a);
     }
-    actions.append(iconButton('del', ICON.trash, 'Remove task', () => removeTask(t)));
     row.append(actions);
 
     return row;
@@ -822,7 +830,34 @@
     justToggled = null;
   }
 
+  // Settings: delete personal tasks, hide or restore tasks from the sheet.
   function renderHidden() {
+    const mine = $('myTasksList');
+    mine.replaceChildren();
+    if (!custom.length) mine.append(el('div', 'empty', 'No personal tasks yet.'));
+    custom.forEach(c => {
+      const t = allTasks().find(x => x.source === 'custom' && x.id === c.id);
+      if (!t) return;
+      const row = el('div', 'hidden-row');
+      const btn = el('button', 'small-btn danger-btn', 'Delete');
+      btn.onclick = () => removeTask(t);
+      row.append(el('span', '', c.name + (c.type === 'count' ? ' (' + c.target + ')' : '')), btn);
+      mine.append(row);
+    });
+
+    const fromSheet = $('sheetTasksList');
+    fromSheet.replaceChildren();
+    const visible = sheetTasks.filter(t => !hidden.includes(t.name));
+    if (!visible.length) fromSheet.append(el('div', 'empty', 'No tasks to show.'));
+    visible.forEach(st => {
+      const t = allTasks().find(x => x.source === 'sheet' && x.name === st.name);
+      const row = el('div', 'hidden-row');
+      const btn = el('button', 'small-btn', 'Hide');
+      btn.onclick = () => removeTask(t);
+      row.append(el('span', '', st.name), btn);
+      fromSheet.append(row);
+    });
+
     const list = $('hiddenList');
     list.replaceChildren();
     if (!hidden.length) {
@@ -923,9 +958,11 @@
     $('targetField').hidden = true;
     showMsg('addMsg', 'Task added.', true);
     render();
+    renderHidden();
   });
 
   /* ---------- Item list ---------- */
+  const PHONE_BTN = $('phoneBtn'); // moved into the item list tools on every render
   function fixedItems(name) { return sheetItems[name] || []; }
   function ownItems(name) { return Array.isArray(myItems[name]) ? myItems[name] : []; }
   function allItems(name) {
@@ -935,11 +972,6 @@
     const s = asObject(stock[name]);
     return { values: asObject(s.values), updated: s.updated || null };
   }
-  function excludedList(name) {
-    ensureToday();
-    return Array.isArray(excluded.map[name]) ? excluded.map[name] : [];
-  }
-  function isExcluded(name, code) { return excludedList(name).includes(code); }
 
   function parseIntStrict(str, allowNegative) {
     const s = String(str).trim();
@@ -976,12 +1008,12 @@
     $('checkedBy').classList.remove('bad');
     renderItems();
     openOverlay('itemsOverlay');
+    resumePhoneSession(name).then(() => { paintAllItemActuals(); updatePhoneLine(); });
   }
 
   function itemRow(name, item) {
     const values = stockOf(name).values;
-    const excl = isExcluded(name, item.code);
-    const row = el('div', 'item-row' + (excl ? ' excluded' : ''));
+    const row = el('div', 'item-row');
     row.dataset.code = item.code;
 
     const info = el('div', 'item-info');
@@ -1002,14 +1034,15 @@
     input.placeholder = '—';
     input.setAttribute('aria-label', 'System QTY for ' + item.code);
     input.value = values[item.code] !== undefined ? values[item.code] : '';
-    input.disabled = excl;
     input.addEventListener('input', () => onStockInput(name, item.code, input));
 
-    const exclBtn = iconButton('mini-btn' + (excl ? ' on' : ''), excl ? ICON.eyeOff : ICON.eye,
-      excl ? 'Include in today\'s count' : 'Exclude from today\'s count', () => toggleExclude(name, item.code));
+    const act = el('div', 'num act-cell');
+    const diff = el('div', 'num diff-cell');
+    const tail = el('div', 'tail');
+    if (item.mine) tail.append(iconButton('mini-btn del', ICON.trash, 'Delete item', () => deleteMyItem(name, item.code)));
 
-    row.append(info, input, exclBtn);
-    if (item.mine) row.append(iconButton('mini-btn del', ICON.trash, 'Delete item', () => deleteMyItem(name, item.code)));
+    row.append(info, input, act, diff, tail);
+    paintItemActual(row);
     return row;
   }
 
@@ -1028,6 +1061,7 @@
       a.rel = 'noopener noreferrer';
       tools.append(a);
     }
+    tools.append(PHONE_BTN);
 
     const fixed = $('itemsList');
     fixed.replaceChildren();
@@ -1042,20 +1076,40 @@
     else own.forEach(i => mine.append(itemRow(name, { ...i, mine: true })));
 
     updateItemsMeta();
+    updatePhoneLine();
+  }
+
+  // Fill the Actual and Diff cells of one item row from the phone counts.
+  function paintItemActual(row) {
+    const code = row.dataset.code;
+    const sys = stockOf(openTask).values[code];
+    const a = countsFor(openTask)[code];
+    const act = row.children[2], diff = row.children[3]; // Actual, Diff
+    act.replaceChildren();
+    if (Number.isInteger(a)) {
+      act.append(document.createTextNode(String(a)));
+      const b = el('span', 'from-phone');
+      b.innerHTML = ICON.phone;
+      b.title = 'Counted on the phone';
+      act.append(b);
+    } else act.append(el('span', 'pending', '—'));
+    paintDiff(diff, Number.isInteger(a) && Number.isInteger(sys) ? a - sys : null);
+  }
+  function paintAllItemActuals() {
+    if (!$('itemsOverlay').classList.contains('open')) return;
+    document.querySelectorAll('#itemsOverlay .item-row').forEach(paintItemActual);
   }
 
   function updateItemsMeta() {
     const name = openTask;
     if (!name) return;
     const values = stockOf(name).values;
-    const items = allItems(name);
-    const included = items.filter(i => !isExcluded(name, i.code));
+    const included = allItems(name);
     const entered = included.filter(i => values[i.code] !== undefined).length;
-    const exclCount = items.length - included.length;
 
     $('itemsCount').innerHTML = '';
     const b = el('b', '', entered + ' of ' + included.length);
-    $('itemsCount').append(b, document.createTextNode(' entered' + (exclCount ? ' · ' + exclCount + ' excluded today' : '')));
+    $('itemsCount').append(b, document.createTextNode(' System QTY entered'));
 
     const upd = stockOf(name).updated;
     $('itemsUpdated').textContent = upd
@@ -1082,17 +1136,8 @@
     }
     stock[name] = { values: s.values, updated: Date.now() };
     save(KEYS.stock, stock);
+    if (row) paintItemActual(row);
     updateItemsMeta();
-  }
-
-  function toggleExclude(name, code) {
-    ensureToday();
-    const list = excludedList(name).slice();
-    const i = list.indexOf(code);
-    if (i >= 0) list.splice(i, 1); else list.push(code);
-    excluded.map[name] = list;
-    save(KEYS.excluded, excluded);
-    renderItems();
   }
 
   function deleteMyItem(name, code) {
@@ -1110,6 +1155,7 @@
     save(KEYS.stock, stock);
     renderItems();
     render();
+    updateQrBox();
     showToast('Item deleted', () => {
       const cur = ownItems(name).slice();
       cur.splice(Math.min(idx, cur.length), 0, removed);
@@ -1140,6 +1186,7 @@
     showMsg('itemMsg', 'Item added.', true);
     renderItems();
     render();
+    updateQrBox();
     $('newItemCode').focus();
   });
 
@@ -1151,7 +1198,7 @@
 
   /* ---------- Export: checks and review ---------- */
   function includedItems(name) {
-    return allItems(name).filter(i => !isExcluded(name, i.code));
+    return allItems(name);
   }
 
   function startExport(mode) {
@@ -1181,8 +1228,8 @@
         });
       });
       $('exportMsg').textContent = missing.length === 1
-        ? '1 item has no System QTY. Enter it or exclude the item.'
-        : missing.length + ' items have no System QTY. Enter them or exclude those items.';
+        ? '1 item has no System QTY. Enter it, or delete the item if it is one of yours.'
+        : missing.length + ' items have no System QTY. Enter them, or delete the items that are yours.';
       if (first) {
         first.scrollIntoView({ behavior: 'smooth', block: 'center' });
         const inp = first.querySelector('.qty');
@@ -1365,6 +1412,7 @@
     try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
     Object.assign(phone, { task: null, secret: null, codes: [], ref: null, key: null, expiresAt: 0, joined: false, counts: {}, state: reason || 'off' });
     updatePhoneLine();
+    paintAllItemActuals();
     updateQrBox();
   }
 
@@ -1394,11 +1442,17 @@
         phone.expiresAt = d.expiresAt.toMillis();
         try { localStorage.setItem(SESSION_KEY, JSON.stringify({ task: phone.task, secret: phone.secret, codes: phone.codes, expiresAt: phone.expiresAt })); } catch (e) {}
       }
+      const justJoined = !phone.joined && !!d.joined;
       phone.joined = !!d.joined;
       try {
         if (d.counts) phone.counts = cleanCounts((await decJSON(d.counts, phone.key)).counts, phone.codes);
       } catch (e) { /* ignore anything that cannot be decrypted */ }
+      if (justJoined && $('qrOverlay').classList.contains('open')) {
+        closeOverlay('qrOverlay');
+        showToast('Phone connected');
+      }
       if ($('reviewOverlay').classList.contains('open') && openTask === phone.task) renderReview();
+      if (openTask === phone.task) paintAllItemActuals();
       updatePhoneLine();
       updateQrBox();
     }, () => {});
@@ -1426,7 +1480,7 @@
 
   async function createPhoneSession() {
     const name = openTask;
-    const items = reviewRows.map(r => ({ code: r.code, name: r.name || '' }));
+    const items = allItems(name).map(i => ({ code: i.code, name: i.name || '' }));
     const codes = items.map(i => i.code);
     // Keep counts already made for the same items.
     const carry = cleanCounts(phone.task === name ? phone.counts : (lastCounts[name] || {}), codes);
@@ -1459,26 +1513,27 @@
   }
 
   function sameItems() {
-    const codes = reviewRows.map(r => r.code);
+    const codes = allItems(openTask).map(i => i.code);
     return phone.codes.length === codes.length && codes.every(c => phone.codes.includes(c));
   }
 
   function updatePhoneLine() {
-    const line = $('phoneLine');
-    if (!line) return;
-    const total = reviewRows.length;
-    const counted = reviewRows.filter(r => Number.isInteger(countsFor(openTask)[r.code])).length;
+    if (!openTask) return;
+    const list = allItems(openTask);
+    const total = list.length;
+    const counted = list.filter(i => Number.isInteger(countsFor(openTask)[i.code])).length;
+    let text, cls = 'phone-line';
     if (phone.task === openTask && phone.unsub) {
-      line.textContent = (phone.joined ? 'Phone connected' : 'Waiting for the phone') +
+      text = (phone.joined ? 'Phone connected' : 'Waiting for the phone') +
         ' · ' + counted + ' of ' + total + ' counted · ' + timeLeft() + ' left';
-      line.className = 'phone-line ' + (phone.joined ? 'ok' : '');
+      if (!sameItems()) { text += ' · The list changed: make a new QR'; cls += ' warn'; }
+      else if (phone.joined) cls += ' ok';
     } else if (counted) {
-      line.textContent = counted + ' of ' + total + ' counted. The phone session has ended.';
-      line.className = 'phone-line';
+      text = counted + ' of ' + total + ' counted. The phone session has ended.';
     } else {
-      line.textContent = 'Actual SOH is counted on the phone only.';
-      line.className = 'phone-line';
+      text = 'Actual SOH is counted on the phone only. Press "Count on phone" to start.';
     }
+    ['phoneLine', 'itemsPhoneLine'].forEach(id => { $(id).textContent = text; $(id).className = cls; });
   }
 
   async function updateQrBox() {
@@ -1513,7 +1568,8 @@
     st.className = 'msg ' + (phone.joined ? 'ok' : '');
   }
 
-  $('phoneBtn').onclick = async () => {
+  PHONE_BTN.onclick = async () => {
+    if (!allItems(openTask).length) { showToast('There are no items to count.'); return; }
     $('qrBox').replaceChildren();
     delete $('qrBox').dataset.secret;
     openOverlay('qrOverlay');
