@@ -16,6 +16,7 @@
     --grey-bg: #eef0f3;
     --qr2: #1a8f4c;
     --milk: #7c3aed; --milk-bg: #f1eafe;
+    --orange: #c2410c; --orange-bg: #ffedd5; --teal: #0f766e;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -43,6 +44,7 @@
   .stat b { font-size: 20px; display: block; }
   .stat span { color: var(--muted); font-size: 12px; }
   .stat.due b { color: var(--green); } .stat.soon b { color: var(--yellow); } .stat.missed b { color: var(--red); }
+  .stat.recent b { color: var(--orange); } .stat.possible b { color: var(--teal); }
   .stat.active { outline: 2px solid var(--accent); }
   .stats select { margin-left: auto; align-self: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
 
@@ -75,7 +77,13 @@
   .chip.big small { font-size: 15px; font-weight: 700; }
   .chip.big.green { background: var(--green-bg); color: var(--green); border-color: var(--green); }
   .chip.big.yellow { background: var(--yellow-bg); color: var(--yellow); border-color: #e0b400; }
+  .chip.big.orange { background: var(--orange-bg); color: var(--orange); border-color: var(--orange); }
   .chip.big.red { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+  .line { font-size: 12px; margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .line.possible { color: var(--teal); font-weight: 600; }
+  .line.refilled { color: #4a5263; }
+  .inv-small { font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
+  .tag.match { background: var(--green-bg); color: var(--green); font-weight: 600; }
   .amount { font-weight: 700; font-size: 15px; text-align: right; min-width: 80px; }
 
   .actions { display: flex; gap: 6px; align-items: center; grid-column: 1 / -1; justify-content: space-between; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 6px; }
@@ -244,14 +252,17 @@ const ACTIVE_DAYS = 120;         // "Active invoices" = invoices from the last 1
 const LIKELY_WINDOW = [-5, 7];   // "Likely due now": period not set and a 1M/2M/3M date within these days
 const UNDO_SECONDS = 5;
 const BACKUP_REMINDER_DAYS = 7;  // remind to export a backup after this many days
-const EXPIRE_AFTER = -15;        // like the spreadsheet: more than 15 days past the refill date shows "-"
 const PERIODS = { '1M': 28, '2M': 56, '3M': 84 }; // days added to the invoice date
-// Colour ranges (days remaining) copied from the original spreadsheet
+// Days remaining until the refill date: "Due now" and "Coming soon" ranges per period.
+// Below the Due range down to RECENT_LIMIT = "Recently missed"; further past = "Missed".
 const THRESHOLDS = {
-  '1M': { green: [-4, 5], yellow: [6, 11], red: [-9, -5] },
-  '2M': { green: [-8, 5], yellow: [6, 12], red: [-11, -9] },
-  '3M': { green: [-8, 5], yellow: [6, 12], red: [-11, -9] }
+  '1M': { due: [-2, 5], soon: [6, 11] },
+  '2M': { due: [-4, 5], soon: [6, 12] },
+  '3M': { due: [-4, 5], soon: [6, 12] }
 };
+const RECENT_LIMIT = -15;
+// "Possible refill": after the first refill date, keep following the invoice every period up to these days
+const FOLLOW_UNTIL = { '1M': 168, '2M': 168, '3M': 336 };
 const EXCLUDED_INSURANCE = /promotion variance/i;
 // Milk (infant formula) diagnoses, as in the original spreadsheet. Milk invoices default to 1M.
 const MILK_CODES = ['K52.2', 'P92', 'E73.9', 'K90', 'P71', 'E73'];
@@ -278,7 +289,10 @@ const I18N = {
     process: 'Process',
     pasteResult: 'On Account: {inv} invoices ({newInv} new). Transaction Reference: {items} items for {itemInv} invoices.',
     pasteNothing: 'No report rows were recognised. Copy the whole page including the Details table.',
-    filters: { active: 'Active invoices', likely: 'Likely due now (not set)', due: 'Due now', soon: 'Coming soon', missed: 'Missed', notset: 'Refill not set', norefill: 'No refill', all: 'All invoices' },
+    filters: { active: 'Active invoices', likely: 'Likely due now (not set)', due: 'Due now', soon: 'Coming soon', recent: 'Recently missed', missed: 'Missed', possible: 'Possible refill', notset: 'Refill not set', norefill: 'No refill', all: 'All invoices' },
+    possibleLine: 'Possible refill · {p} invoice · {m} months passed · {d}',
+    refilledAt: 'Refilled at {d} · Invoice No',
+    samePrice: 'same price', sameDx: 'same diagnosis', sameItem: 'same item',
     countOne: '1 invoice', countMany: '{n} invoices',
     phoneEdit: 'Edit messages on phone',
     phoneHelp: 'Scan this code with your phone, edit the messages, then press Save on the phone.',
@@ -292,7 +306,7 @@ const I18N = {
     milk: 'Milk', milkAuto: 'Milk: 1M is set automatically. Click another period to change it.',
     undo: 'Undo', periodSet: '{inv}: {p}', periodCleared: '{inv}: refill cleared',
     welcomeHint: 'Write the pharmacy address after the pharmacy name, then the pharmacy Google Maps link on the next line.',
-    stats: { due: 'Due now', soon: 'Coming soon', missed: 'Missed' },
+    stats: { due: 'Due now', soon: 'Coming soon', recent: 'Recently missed', missed: 'Missed', possible: 'Possible refill' },
     after: 'After {n} days', afterOne: 'After 1 day', today: 'Today', ago: '{n} days ago', agoOne: '1 day ago',
     noRefill: 'No refill', visits: '{n} visits', visit: '1 visit',
     copied: 'Copied {v}', copyHint: 'Click to copy',
@@ -469,12 +483,16 @@ function buildRows() {
   }
   const visitsOf = card => Math.max(byCard[card] || 0, byPhone[phoneOf(card)] || 0);
 
+  // Later invoices of the same card, used for "Refilled at"
+  const byCardList = {};
+  for (const i of valid) (byCardList[i.card] = byCardList[i.card] || []).push(i);
+
   const today = dayNum(todayISO());
   return valid.map(i => {
     const dues = {};
     for (const [k, d] of Object.entries(PERIODS)) {
       const days = dayNum(i.date) + d - today;
-      dues[k] = { days, expired: days < EXPIRE_AFTER, colour: colourFor(k, days) };
+      dues[k] = { days, cat: categoryFor(k, days) };
     }
     const row = Object.assign({}, i, {
       follow: store.follow[i.inv] || {}, items: store.items[i.inv] || [], dues,
@@ -486,17 +504,49 @@ function buildRows() {
     row.status = statusOf(row);
     row.active = today - dayNum(i.date) <= ACTIVE_DAYS && row.period !== 'NR';
     row.likely = !row.period && Object.values(dues).some(d => d.days >= LIKELY_WINDOW[0] && d.days <= LIKELY_WINDOW[1]);
+    row.possible = possibleRefill(row, today);
+    row.refill = refilledAt(row, byCardList[i.card]);
     return row;
   }).sort((a, b) => b.credit - a.credit);
 }
 
-function colourFor(periodKey, days) {
+const inRange = (days, r) => days >= r[0] && days <= r[1];
+function categoryFor(periodKey, days) {
   const th = THRESHOLDS[periodKey];
-  const inR = r => days >= r[0] && days <= r[1];
-  if (inR(th.green)) return 'green';
-  if (inR(th.yellow)) return 'yellow';
-  if (inR(th.red)) return 'red';
-  return '';
+  if (days > th.soon[1]) return 'upcoming';
+  if (inRange(days, th.soon)) return 'soon';
+  if (inRange(days, th.due)) return 'due';
+  if (days >= RECENT_LIMIT) return 'recent';
+  return 'missed';
+}
+
+// Later refill dates (2nd, 3rd … period) that fall in the "Due now" range today
+function possibleRefill(r, today) {
+  const p = r.period;
+  if (!PERIODS[p]) return null;
+  const step = PERIODS[p];
+  for (let k = 2; k * step <= FOLLOW_UNTIL[p]; k++) {
+    const days = dayNum(r.date) + k * step - today;
+    if (inRange(days, THRESHOLDS[p].due)) return { days, months: (k * step) / 28 };
+  }
+  return null;
+}
+
+// A later invoice of the same card. Prefer the same price, then the one closest to the refill date.
+function refilledAt(r, list) {
+  const later = (list || []).filter(x => x.date > r.date);
+  if (!later.length) return null;
+  const target = dayNum(r.date) + (PERIODS[r.period] || PERIODS['1M']);
+  const samePrice = x => Math.abs(x.credit - r.credit) < 0.01;
+  later.sort((a, b) => (samePrice(b) - samePrice(a)) || (Math.abs(dayNum(a.date) - target) - Math.abs(dayNum(b.date) - target)));
+  const x = later[0];
+  const myItems = new Set((store.items[r.inv] || []).map(it => it.desc));
+  return {
+    inv: x.inv, date: x.date,
+    samePrice: samePrice(x),
+    sameDx: x.dx.some(c => r.dx.includes(c)),
+    sameItem: (store.items[x.inv] || []).some(it => myItems.has(it.desc))
+  };
 }
 
 function effectivePeriod(saved, milk) {
@@ -509,9 +559,10 @@ function statusOf(r) {
   const p = r.period;
   if (!p) return 'notset';
   if (p === 'NR') return 'norefill';
-  const d = r.dues[p];
-  if (d.expired) return 'expired';
-  return { green: 'due', yellow: 'soon', red: 'missed' }[d.colour] || 'other';
+  const cat = r.dues[p].cat;
+  // Missed is followed for 120 days from the invoice date (same as Active)
+  if (cat === 'missed' && dayNum(todayISO()) - dayNum(r.date) > ACTIVE_DAYS) return 'old';
+  return cat;
 }
 
 /* ===================== ICD-10 ===================== */
@@ -557,28 +608,42 @@ function matchesFilter(r) {
     case 'all': return true;
     case 'active': return r.active;
     case 'likely': return r.likely;
+    case 'possible': return !!r.possible;
     default: return r.status === ui.filter;
   }
 }
 
 function renderStats() {
-  const n = s => rowsCache.filter(r => r.status === s).length;
-  $('stats').innerHTML = ['due', 'soon', 'missed'].map(k =>
+  const n = k => rowsCache.filter(r => (k === 'possible' ? !!r.possible : r.status === k)).length;
+  $('stats').innerHTML = ['due', 'soon', 'recent', 'missed', 'possible'].map(k =>
     `<div class="stat ${k} ${ui.filter === k ? 'active' : ''}" data-filter="${k}"><b>${n(k)}</b><span>${esc(t('stats.' + k))}</span></div>`).join('');
 }
 
+const CAT_CLASS = { due: 'green', soon: 'yellow', recent: 'orange', missed: 'red' };
 function duesHTML(r) {
   const p = r.period;
   if (p === 'NR') return `<div class="chip big">${esc(t('noRefill'))}</div>`;
   if (p) {
     const d = r.dues[p];
-    return `<div class="chip big ${d.expired ? '' : d.colour}">${p}<small>${d.expired ? '-' : esc(daysLabel(d.days))}</small></div>`;
+    const cls = r.status === 'old' ? '' : (CAT_CLASS[d.cat] || '');
+    return `<div class="chip big ${cls}">${p}<small>${esc(daysLabel(d.days))}</small></div>`;
   }
   // Period not chosen yet: show all three, plain, no colour
-  return Object.keys(PERIODS).map(k => {
-    const d = r.dues[k];
-    return `<div class="chip">${k}<small>${d.expired ? '-' : esc(daysLabel(d.days))}</small></div>`;
-  }).join('');
+  return Object.keys(PERIODS).map(k => `<div class="chip">${k}<small>${esc(daysLabel(r.dues[k].days))}</small></div>`).join('');
+}
+
+function extraLinesHTML(r) {
+  let html = '';
+  if (r.possible) {
+    html += `<div class="line possible">🔁 ${esc(t('possibleLine', { p: r.period, m: r.possible.months, d: daysLabel(r.possible.days) }))}</div>`;
+  }
+  if (r.refill) {
+    const tags = [['samePrice', r.refill.samePrice], ['sameDx', r.refill.sameDx], ['sameItem', r.refill.sameItem]]
+      .filter(x => x[1]).map(x => `<span class="tag match">${esc(t(x[0]))}</span>`).join(' ');
+    html += `<div class="line refilled">${esc(t('refilledAt', { d: fmtDate(r.refill.date) }))}
+      <button class="inv-small" data-act="copy" data-inv="${esc(r.refill.inv)}" title="${esc(t('copyHint'))}">${esc(r.refill.inv)}</button> ${tags}</div>`;
+  }
+  return html;
 }
 
 function rowHTML(r) {
@@ -599,6 +664,7 @@ function rowHTML(r) {
       <div class="small name" dir="auto">${esc(r.name)}</div>
       <div class="small dx" title="${esc(dxNames(r.dx))}">${esc(dxNames(r.dx))}</div>
       <div class="meta"><span>${esc(fmtDate(r.date))}</span><span>${esc(r.ins)}</span></div>
+      ${extraLinesHTML(r)}
     </div>
     <div class="dues">${duesHTML(r)}</div>
     <div class="amount">${money(r.credit)}</div>
