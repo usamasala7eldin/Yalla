@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Promo Labels</title>
+<style>
+  :root {
+    --bg: #f2f2f2; --card: #fff; --text: #333; --muted: #777; --border: #e2e2e2;
+    --green: #27ae60; --blue: #2b7de9; --red: #c0392b; --orange: #e67e22;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Tahoma, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px 15px; }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  .back { text-decoration: none; color: var(--blue); font-size: 14px; }
+  h2 { margin: 8px 0 2px; }
+  .store { color: var(--muted); font-size: 13px; min-height: 16px; }
+  .card { background: var(--card); padding: 16px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.1); margin-top: 14px; }
+  .hint { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  textarea { width: 100%; height: 110px; padding: 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 13px; resize: vertical; font-family: inherit; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .btn { padding: 10px 16px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; color: #fff; background: var(--green); }
+  .btn.secondary { background: #95a5a6; }
+  .btn.big { width: 100%; padding: 13px; font-size: 16px; margin-top: 14px; }
+  .btn:disabled { background: #bbb; cursor: not-allowed; }
+
+  /* Alerts */
+  .alert { display: none; margin-top: 14px; padding: 18px; border-radius: 12px; font-size: 15px; line-height: 1.6; }
+  .alert.error { display: block; background: #fdecea; border: 4px solid var(--red); color: var(--red); animation: pulse 1.2s ease-in-out 3; }
+  .alert.warn { display: block; background: #fff4e5; border: 3px solid var(--orange); color: #a85a00; }
+  .alert .head { font-size: 22px; font-weight: bold; margin-bottom: 6px; }
+  .alert .fix { margin-top: 10px; padding-top: 10px; border-top: 1px solid currentColor; font-weight: bold; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(192,57,43,.25); } }
+  .ok { display: none; margin-top: 10px; color: var(--green); font-size: 13px; font-weight: bold; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .stat { background: var(--card); border-radius: 12px; padding: 14px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.1); border-top: 5px solid; }
+  .stat.assigned { border-color: var(--blue); }
+  .stat.implemented { border-color: var(--green); }
+  .stat .num { font-size: 34px; font-weight: bold; }
+  .stat .name { font-size: 14px; color: var(--muted); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  th { background: #fafafa; font-size: 12px; color: var(--muted); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: #f7fbff; }
+  tbody tr.active { background: #eaf3ff; }
+  .badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; color: #fff; }
+  .badge.assigned { background: var(--blue); }
+  .badge.implemented { background: var(--green); }
+  .empty { text-align: center; color: var(--muted); padding: 16px; }
+
+  /* Preview */
+  .preview-wrap { overflow-x: auto; padding: 6px 0; }
+  .preview-box { width: 10cm; margin: 0 auto; border: 1px dashed #999; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html" data-i18n="back"></a>
+  <h2 data-i18n="title"></h2>
+  <div class="store" id="store"></div>
+
+  <div class="card">
+    <div class="hint" data-i18n="pasteHint"></div>
+    <textarea id="input" data-i18n-placeholder="placeholder"></textarea>
+    <div class="row">
+      <button class="btn secondary" id="clearBtn" data-i18n="clear"></button>
+    </div>
+    <div class="ok" id="ok"></div>
+  </div>
+
+  <div class="alert" id="alert"></div>
+
+  <div id="results" style="display:none;">
+    <div class="stats">
+      <div class="stat assigned"><div class="num" id="countAssigned">0</div><div class="name" data-i18n="assigned"></div></div>
+      <div class="stat implemented"><div class="num" id="countImplemented">0</div><div class="name" data-i18n="implemented"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="selectAll"></th>
+              <th data-i18n="colMemo"></th>
+              <th data-i18n="colEnd"></th>
+              <th data-i18n="colStatus"></th>
+              <th data-i18n="colBrand"></th>
+              <th data-i18n="colMaterial"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hint" data-i18n="previewHint"></div>
+      <div class="preview-wrap"><div class="preview-box" id="preview"></div></div>
+      <button class="btn big" id="printBtn"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Localization ---------- */
+const LANG = 'en';
+const STRINGS = {
+  en: {
+    back: '‹ Back',
+    title: 'Promo Materials Labels',
+    pasteHint: 'Copy the whole iTA page (including the "1 - X of Y" line at the bottom) and paste it here.',
+    placeholder: 'Paste the iTA report here...',
+    clear: 'Clear',
+    store: 'Store: {s}',
+    assigned: 'Assigned',
+    implemented: 'Implemented',
+    colMemo: 'Memo ID',
+    colEnd: 'End Date',
+    colStatus: 'Status',
+    colBrand: 'Brand',
+    colMaterial: 'Material',
+    previewHint: 'Label preview — click any row to preview its label.',
+    printN: 'Print {n} labels',
+    print1: 'Print 1 label',
+    print0: 'Select labels to print',
+    printTitle: 'Promo Labels',
+    popupBlocked: 'The print window was blocked. Please allow pop-ups for this site.',
+    noMatches: 'No Implemented or Assigned memos in this report.',
+    memoLabel: 'Memo ID:',
+    expires: 'Expires:',
+    okVerified: '✓ All {total} memos received and verified.',
+    errIncompleteHead: '⛔ INCOMPLETE DATA — DO NOT RELY ON IT',
+    errIncompleteBody: 'Only {got} of {total} memos were pasted. {missing} memos are missing, so any counts or labels would be wrong. Nothing is shown until the data is complete.',
+    errIncompleteFix: 'Fix: in iTA, increase the rows per page so all {total} rows appear on one page (or paste every page together), then copy and paste again.',
+    errTooManyHead: '⛔ DATA DOES NOT MATCH',
+    errTooManyBody: '{got} memos were pasted, but the report says {total}. The pasted text may contain more than one report.',
+    errMixedHead: '⛔ MIXED REPORTS',
+    errMixedBody: 'The pasted text contains more than one report with different totals. Paste one store report only.',
+    errNoHeaderHead: '⛔ TABLE NOT FOUND',
+    errNoHeaderBody: 'The "Memo Id" header row was not found. Copy the full table including its header row.',
+    errMissingColsHead: '⛔ MISSING COLUMNS',
+    errMissingColsBody: 'These columns were not found: {cols}.',
+    errNoRowsHead: '⛔ NO MEMOS FOUND',
+    errNoRowsBody: 'The header was found, but no memo rows were detected under it.',
+    warnNoFooterHead: '⚠ Row count could not be verified',
+    warnNoFooterBody: 'The "1 - X of Y" line at the bottom of the table was not found, so the page cannot confirm that all memos were pasted. Make sure you copied the whole page.'
+  }
+};
+
+function t(key, vars = {}) {
+  let s = (STRINGS[LANG] && STRINGS[LANG][key]) || STRINGS.en[key] || key;
+  for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+
+function applyStaticText() {
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
+}
+
+/* ---------- Constants ---------- */
+const TARGET_STATUSES = ['implemented', 'assigned'];
+const STORAGE_KEY = 'promoLabels.raw';
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const COLUMN_NAMES = { id: 'Memo Id', end: 'End Date', status: 'Implimentation Status', material: 'Material Name', brand: 'Brand Name' };
+
+// Shared label styles: used by both the on-screen preview and the print window.
+const LABEL_CSS = `
+  .label { width: 10cm; height: 5cm; box-sizing: border-box; padding: 4px 10px; display: flex; flex-direction: column;
+           overflow: hidden; background: #fff; color: #000; font-family: Tahoma, Arial, sans-serif;
+           text-align: center; line-height: 1.2; font-size: 16px; }
+  .label .l-inner { margin: auto 0; width: 100%; }
+  .label .l-memo { font-size: 2em; font-weight: bold; }
+  .label .l-exp { font-size: 1em; margin-top: .2em; }
+  .label .l-brand { font-size: 1.25em; font-weight: bold; margin-top: .35em; }
+  .label .l-mat { font-size: 1.1em; }
+  .label div { overflow-wrap: anywhere; }
+`;
+
+/* ---------- State ---------- */
+let items = [];
+let selected = new Set();
+let previewId = null;
+
+const $ = id => document.getElementById(id);
+
+/* ---------- Helpers ---------- */
+function esc(text) {
+  const div = document.createElement('div');
+  div.textContent = text == null ? '' : String(text);
+  return div.innerHTML;
+}
+
+// iTA dates are M/D/YYYY; show them unambiguously, e.g. "31 Dec 2026".
+function fmtDate(s) {
+  const m = (s || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return s || '';
+  return `${+m[2]} ${MONTHS[+m[1] - 1]} ${m[3]}`;
+}
+
+function saveRaw(v) { try { localStorage.setItem(STORAGE_KEY, v); } catch (e) {} }
+function loadRaw() { try { return localStorage.getItem(STORAGE_KEY) || ''; } catch (e) { return ''; } }
+
+// Shrinks each label's font until its content fits inside 10cm x 5cm.
+function fitLabels(root) {
+  root.querySelectorAll('.label').forEach(function (el) {
+    var size = 16;
+    el.style.fontSize = size + 'px';
+    while ((el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth) && size > 6) {
+      size -= 0.5;
+      el.style.fontSize = size + 'px';
+    }
+  });
+}
+
+/* ---------- Parsing ---------- */
+function mapColumns(cells) {
+  const find = re => cells.findIndex(c => re.test(c));
+  return {
+    id: find(/^memo\s*id$/i),
+    end: find(/^end\s*date$/i),
+    status: find(/^impl\w*\s*status$/i),
+    material: find(/^material\s*name$/i),
+    brand: find(/^brand\s*name$/i)
+  };
+}
+
+function parseData(text) {
+  const result = { header: null, rows: [], footers: [], store: '' };
+  const storeMatch = text.match(/\((\d+\s*-\s*[^)]+)\)/);
+  if (storeMatch) result.store = storeMatch[1].trim();
+
+  const footerRe = /(\d+)\s*-\s*(\d+)\s+of\s+(\d+)/i;
+  const seen = new Set();
+  let cols = null;
+
+  for (const line of text.split(/\r?\n/)) {
+    const f = line.match(footerRe);
+    if (f) { result.footers.push({ from: +f[1], to: +f[2], total: +f[3] }); continue; }
+
+    const cells = line.split('\t').map(c => c.trim());
+    if (/^memo\s*id$/i.test(cells[0] || '') && cells.length > 3) {
+      cols = mapColumns(cells);
+      result.header = cols;
+      continue;
+    }
+    if (!cols || !/^\d+$/.test(cells[0] || '')) continue;
+
+    const id = cells[cols.id];
+    if (seen.has(id)) continue; // ignore duplicates if pages overlap
+    seen.add(id);
+    result.rows.push({
+      id,
+      endDate: cells[cols.end] || '',
+      status: cells[cols.status] || '',
+      material: cells[cols.material] || '',
+      brand: cells[cols.brand] || ''
+    });
+  }
+  return result;
+}
+
+function validate(p) {
+  if (!p.header) return { level: 'error', head: t('errNoHeaderHead'), body: t('errNoHeaderBody') };
+
+  const missing = Object.keys(p.header).filter(k => p.header[k] < 0).map(k => COLUMN_NAMES[k]);
+  if (missing.length) return { level: 'error', head: t('errMissingColsHead'), body: t('errMissingColsBody', { cols: missing.join(', ') }) };
+
+  if (!p.rows.length) return { level: 'error', head: t('errNoRowsHead'), body: t('errNoRowsBody') };
+
+  if (!p.footers.length) return { level: 'warn', head: t('warnNoFooterHead'), body: t('warnNoFooterBody') };
+
+  const totals = [...new Set(p.footers.map(f => f.total))];
+  if (totals.length > 1) return { level: 'error', head: t('errMixedHead'), body: t('errMixedBody') };
+
+  const total = totals[0], got = p.rows.length;
+  if (got < total) {
+    return {
+      level: 'error',
+      head: t('errIncompleteHead'),
+      body: t('errIncompleteBody', { got, total, missing: total - got }),
+      fix: t('errIncompleteFix', { total })
+    };
+  }
+  if (got > total) return { level: 'error', head: t('errTooManyHead'), body: t('errTooManyBody', { got, total }) };
+
+  return { level: 'ok', message: t('okVerified', { total }) };
+}
+
+/* ---------- Rendering ---------- */
+function resetView() {
+  $('alert').className = 'alert';
+  $('alert').innerHTML = '';
+  $('ok').style.display = 'none';
+  $('results').style.display = 'none';
+  $('store').textContent = '';
+  items = [];
+  selected = new Set();
+  previewId = null;
+}
+
+function showAlert(level, head, body, fix) {
+  const el = $('alert');
+  el.className = 'alert ' + level;
+  el.innerHTML = `<div class="head">${esc(head)}</div><div>${esc(body)}</div>` +
+                 (fix ? `<div class="fix">${esc(fix)}</div>` : '');
+}
+
+function labelHtml(r) {
+  return `<div class="label"><div class="l-inner">
+    <div class="l-memo">${esc(t('memoLabel'))} ${esc(r.id)}</div>
+    <div class="l-exp">${esc(t('expires'))} ${esc(fmtDate(r.endDate))}</div>
+    <div class="l-brand">${esc(r.brand)}</div>
+    <div class="l-mat">${esc(r.material)}</div>
+  </div></div>`;
+}
+
+function render() {
+  const statusOf = r => r.status.toLowerCase();
+  $('countAssigned').textContent = items.filter(r => statusOf(r) === 'assigned').length;
+  $('countImplemented').textContent = items.filter(r => statusOf(r) === 'implemented').length;
+
+  $('tbody').innerHTML = items.length
+    ? items.map(r => `
+        <tr data-id="${esc(r.id)}" class="${r.id === previewId ? 'active' : ''}">
+          <td><input type="checkbox" class="sel" data-id="${esc(r.id)}" ${selected.has(r.id) ? 'checked' : ''}></td>
+          <td><b>${esc(r.id)}</b></td>
+          <td>${esc(fmtDate(r.endDate))}</td>
+          <td><span class="badge ${esc(statusOf(r))}">${esc(t(statusOf(r)))}</span></td>
+          <td>${esc(r.brand)}</td>
+          <td>${esc(r.material)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="6" class="empty">${esc(t('noMatches'))}</td></tr>`;
+
+  updateSelectAll();
+  updatePrintButton();
+  renderPreview();
+  $('results').style.display = 'block';
+}
+
+function renderPreview() {
+  const r = items.find(x => x.id === previewId);
+  $('preview').innerHTML = r ? labelHtml(r) : '';
+  $('preview').style.display = r ? 'block' : 'none';
+  if (r) fitLabels($('preview'));
+}
+
+function updateSelectAll() {
+  const box = $('selectAll');
+  box.checked = items.length > 0 && selected.size === items.length;
+  box.indeterminate = selected.size > 0 && selected.size < items.length;
+  box.disabled = items.length === 0;
+}
+
+function updatePrintButton() {
+  const n = selected.size;
+  const btn = $('printBtn');
+  btn.disabled = n === 0;
+  btn.textContent = n === 0 ? t('print0') : n === 1 ? t('print1') : t('printN', { n });
+}
+
+/* ---------- Main flow ---------- */
+function processInput() {
+  saveRaw($('input').value);
+  resetView();
+  const text = $('input').value.trim();
+  if (!text) return;
+
+  const p = parseData(text);
+  if (p.store) $('store').textContent = t('store', { s: p.store });
+
+  const v = validate(p);
+  if (v.level === 'error') { showAlert('error', v.head, v.body, v.fix); return; }
+  if (v.level === 'warn') showAlert('warn', v.head, v.body);
+  if (v.level === 'ok') { $('ok').textContent = v.message; $('ok').style.display = 'block'; }
+
+  items = p.rows.filter(r => TARGET_STATUSES.includes(r.status.toLowerCase()));
+  selected = new Set(items.map(r => r.id));
+  previewId = items.length ? items[0].id : null;
+  render();
+}
+
+function printLabels() {
+  const list = items.filter(r => selected.has(r.id));
+  if (!list.length) return;
+
+  const w = window.open('', '_blank');
+  if (!w) { alert(t('popupBlocked')); return; }
+
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(t('printTitle'))}</title>
+    <style>
+      @page { size: 10cm 5cm; margin: 0; }
+      html, body { margin: 0; padding: 0; }
+      ${LABEL_CSS}
+      .label { page-break-after: always; break-after: page; }
+      .label:last-child { page-break-after: auto; break-after: auto; }
+    </style></head>
+    <body>${list.map(labelHtml).join('')}
+    <script>(${fitLabels.toString()})(document);<\/script>
+    </body></html>`);
+  w.document.close();
+
+  w.onload = function () { w.focus(); w.print(); };
+  w.onafterprint = function () { w.close(); };
+  // Fallback for browsers that do not fire onafterprint
+  setTimeout(function () { if (!w.closed) w.close(); }, 4000);
+}
+
+/* ---------- Events ---------- */
+let debounceTimer;
+$('input').addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(processInput, 300);
+});
+
+$('clearBtn').addEventListener('click', () => {
+  $('input').value = '';
+  processInput();
+  $('input').focus();
+});
+
+$('tbody').addEventListener('change', e => {
+  if (!e.target.classList.contains('sel')) return;
+  const id = e.target.dataset.id;
+  e.target.checked ? selected.add(id) : selected.delete(id);
+  updateSelectAll();
+  updatePrintButton();
+});
+
+$('tbody').addEventListener('click', e => {
+  if (e.target.classList.contains('sel')) return;
+  const tr = e.target.closest('tr[data-id]');
+  if (!tr) return;
+  previewId = tr.dataset.id;
+  document.querySelectorAll('#tbody tr').forEach(row => row.classList.toggle('active', row.dataset.id === previewId));
+  renderPreview();
+});
+
+$('selectAll').addEventListener('change', e => {
+  selected = e.target.checked ? new Set(items.map(r => r.id)) : new Set();
+  document.querySelectorAll('#tbody .sel').forEach(cb => cb.checked = e.target.checked);
+  updateSelectAll();
+  updatePrintButton();
+});
+
+$('printBtn').addEventListener('click', printLabels);
+
+/* ---------- Init ---------- */
+document.head.insertAdjacentHTML('beforeend', `<style>${LABEL_CSS}</style>`);
+applyStaticText();
+$('input').value = loadRaw();
+processInput();
+</script>
+</body>
+</html>
