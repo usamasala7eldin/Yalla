@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ملصقات الأسعار</title>
+<title>Item Check</title>
 <style>
 :root{
   --bg:#f4f5f7;--surface:#ffffff;--text:#1d2330;--muted:#6b7385;--border:#d5dae2;
@@ -42,7 +42,7 @@ textarea{flex:1;height:58px;border:1px solid var(--border);border-radius:8px;pad
 .msg.ok{color:var(--ok)}
 .msg .w{color:var(--warn);display:block;font-weight:400}
 .msg .e{color:var(--err);display:block;font-weight:600}
-.settings{position:absolute;top:50px;left:12px;z-index:10;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.settings{position:absolute;top:50px;right:12px;z-index:10;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
 .settings h3{margin:0 0 8px;font-size:14px}
 .settings label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:13px}
 .settings select{width:170px;font:inherit;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)}
@@ -50,7 +50,7 @@ textarea{flex:1;height:58px;border:1px solid var(--border);border-radius:8px;pad
 
 /* data area: left to right */
 .data{direction:ltr}
-.alert{direction:rtl;background:var(--err-soft);color:var(--err);border:1px solid var(--err);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-weight:600}
+.alert{background:var(--err-soft);color:var(--err);border:1px solid var(--err);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-weight:600}
 .brands{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .chip{display:inline-flex;align-items:center;gap:8px;white-space:pre;border-radius:10px}
 .brands .chip{font-size:16px;font-weight:600;padding:8px 14px}
@@ -60,15 +60,15 @@ textarea{flex:1;height:58px;border:1px solid var(--border);border-radius:8px;pad
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .chip.on .n,.chip.on .cp{color:#dbe6ff}
 .chip.done:not(.on){border-color:var(--ok);background:var(--ok-soft)}
-.subhead{direction:rtl;display:flex;align-items:center;gap:8px;margin:-4px 0 10px;padding:6px 10px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none}
+.subhead{display:flex;align-items:center;gap:8px;margin:-4px 0 10px;padding:6px 10px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;user-select:none}
 .subhead:hover{border-color:var(--accent);color:var(--text)}
 .subhead .arrow{font-size:12px;width:12px;text-align:center}
-.subhead .selname{direction:ltr;white-space:pre;display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border-radius:6px;padding:2px 4px 2px 10px;font-weight:600}
+.subhead .selname{white-space:pre;display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border-radius:6px;padding:2px 4px 2px 10px;font-weight:600}
 .subhead .x{cursor:pointer;padding:0 6px;border-radius:4px;font-size:15px;line-height:1}
 .subhead .x:hover{background:rgba(255,255,255,.25)}
 .subs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
 .subs .chip{font-size:14px;padding:5px 11px}
-.toolbar{direction:rtl;display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
 .tgroup{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tlabel{font-size:12px;color:var(--muted);font-weight:600}
 .toolbar .count{color:var(--muted);font-size:12px}
@@ -78,10 +78,11 @@ textarea{flex:1;height:58px;border:1px solid var(--border);border-radius:8px;pad
 .seg .f:first-child{border-inline-start:0}
 .seg .f.on{background:var(--accent);color:#fff;font-weight:600}
 .seg .f.warnf:not(.on){color:var(--warn)}
-.seg .f .n{font-size:11px;font-weight:400;color:var(--muted);margin-inline-start:4px}
-.seg .f.on .n{color:#dbe6ff}
+.seg .f{display:inline-flex;align-items:center;gap:6px}
+.seg .f .n{min-width:20px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:700;line-height:18px;text-align:center;background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.seg .f.on .n{background:rgba(255,255,255,.25);border-color:transparent;color:#fff}
 .seg .f.glf:not(.on){background:var(--accent-soft);color:var(--accent)}
-.typebar{direction:rtl;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.typebar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 /* actions: separate solid buttons */
 .act{font-size:13px;padding:5px 12px;font-weight:600;border-radius:7px}
 .act-print{background:var(--ok);border-color:var(--ok);color:#fff}
@@ -110,7 +111,7 @@ tr.st-none td{background:var(--no-soft);color:var(--muted)}
 tr.copied td{box-shadow:inset 0 2px 0 var(--hl),inset 0 -2px 0 var(--hl)}
 td input{width:56px;font:inherit;padding:2px 4px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)}
 .missing{color:var(--err)}
-.empty{padding:40px;text-align:center;color:var(--muted);direction:rtl}
+.empty{padding:40px;text-align:center;color:var(--muted)}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;white-space:pre}
 #toast.show{opacity:1}
 .hidden{display:none !important}
@@ -121,20 +122,20 @@ td input{width:56px;font:inherit;padding:2px 4px;border:1px solid var(--border);
 
   <div class="top">
     <div class="top-row">
-      <textarea id="paste" placeholder="الصق جدول الأصناف هنا مع صف العناوين"></textarea>
+      <textarea id="paste" placeholder="Paste the items table here, including the header row"></textarea>
       <div class="top-btns">
-        <button class="primary" id="btnExport">تحميل ملف الطباعة</button>
-        <button id="btnNew" class="danger">صفحة جديدة</button>
-        <button id="btnSettings">⚙ الإعدادات</button>
+        <button class="primary" id="btnExport">Download print file</button>
+        <button id="btnNew" class="danger">New page</button>
+        <button id="btnSettings">⚙ Settings</button>
       </div>
     </div>
     <div class="stats" id="stats"></div>
     <div class="msg" id="msg"></div>
 
     <div class="settings hidden" id="settings">
-      <h3>الأعمدة المستخدمة</h3>
+      <h3>Columns used</h3>
       <div id="map"></div>
-      <div class="row"><button id="btnRead">إعادة قراءة النص</button></div>
+      <div class="row"><button id="btnRead">Read the text again</button></div>
     </div>
   </div>
 
@@ -146,13 +147,65 @@ td input{width:56px;font:inherit;padding:2px 4px;border:1px solid var(--border);
 const $ = s => document.querySelector(s);
 const LS_KEY = 'priceTagTool.v3';
 
+// ---------- UI text (all visible strings live here, ready for other languages) ----------
+const STR = {
+  colId:'Item ID', colBc:'Barcode', colEn:'English description', colOld:'Current price', colNew:'New price', colSf:'Smart Fulfillment',
+  colN:'Column {n}', notFound:'— Not found —',
+  errCols:'Could not detect the columns. Copy the table together with its header row.',
+  errShift:'The number of values does not match the number of columns ({h}). An empty cell probably shifted the data, so it was not read to keep it correct.',
+  flagEmpty:'Description is empty', flagLead:'Description starts with a space', flagTrail:'Description ends with a space',
+  flagDouble:'Two spaces in a row', flagOdd:'Unusual (invisible) space character', flagOne:'Description is a single word',
+  needId:'Select the Item ID column in Settings.', needBc:'Select the Barcode column in Settings.', needEn:'Select the English description column in Settings.',
+  errRow:'Reading stopped at row {row}: "{val}" is not a valid item ID, so the data was not accepted.', emptyVal:'empty',
+  lastGood:'Last valid item before the error: {id}',
+  noBc:'{n} items have no barcode.', badBc:'{n} barcodes contain non-numeric characters.',
+  dup:'{n} items are duplicated with the same item ID and barcode.',
+  flagged:'{n} items have a spacing note in their description. Click "⚠ Warnings" to see them.',
+  fromText:'Read from plain text. The browser may merge repeated spaces. Pasting directly from the table is more accurate.',
+  intBrands:'Grouping error: brand total ({sum}) does not equal the item total ({total}).',
+  intTwos:'Grouping error: the two-word totals under "{name}" ({sum}) do not equal its item count ({total}).',
+  noData:'No data found in the pasted text.',
+  readOk:'Read {n} items successfully.',
+  globalMarked:'🌐 {n} Global items were marked "No stock" automatically. View them with "Type: Global".',
+  stTotal:'Total', stPending:'Not reviewed', stPrint:'Print', stNone:'No stock', stLabels:'Labels', stLast:'Last item read',
+  copyName:'Copy the name exactly', clickCopy:'Click to copy', online:'Open on Nahdi Online', labelsQty:'Number of labels',
+  btnPrint:'Print', btnNone:'No stock',
+  emptyPage:'Paste the data in the box above to see it here.',
+  typeLabel:'Type:', show:'Show:', select:'Select:', all:'All',
+  fAll:'All', fPending:'Not reviewed', fPrint:'Print', fNone:'No stock', fFlags:'⚠ Warnings',
+  count:'({n} items)', clearTwo:'Clear the two-word name', twoNames:'Two-word names ({n})',
+  bPrint:'Print all', bNone:'All no stock', bClear:'Clear all', bUndo:'Undo', bUndoTip:'Undo the last bulk action',
+  noMatch:'No matching items.',
+  thId:'Item ID', thDesc:'Description', thBc:'Barcode', thCur:'Current', thNew:'New', thStatus:'Status', thLabels:'Labels',
+  clrNone:'No selected items among the visible items.',
+  clrAsk:'{n} visible items, including ones you set by hand, will be cleared back to "Not reviewed".\n\nContinue?',
+  clrDone:'Cleared {n} items',
+  bulkNothingManual:'Nothing to change. The visible items already have this status or were set by hand ({n}).',
+  bulkNothing:'All visible items already have this status.',
+  wPrint:'"Print"', wNone:'"No stock"',
+  bulkAsk:'{n} items will be set to {word}.', bulkManual:'\n{n} items you set by hand will not change.', cont:'\n\nContinue?',
+  bulkDone:'Updated {n} items', undoDone:'Undid {n} items',
+  noDataYet:'No data yet.', noPrint:'No item has been selected for printing yet.',
+  pendingAsk:'Warning: {n} items have not been reviewed yet, and some of them may have stock.\n\nOK: download anyway.\nCancel: show these items.',
+  badBcExport:'Cannot download: {n} items selected for printing have an empty or non-numeric barcode.\nFirst one: {id}',
+  downloaded:'Downloaded the file: {n} items',
+  replaceAsk:'The current data and every status you set will be replaced. Continue?',
+  noText:'There is no text to read.',
+  newAsk:'All data will be cleared. You reviewed {n} items.',
+  newUnsaved:'\n\nWarning: some items are marked "Print" but their file has not been downloaded, and these choices will be lost.',
+  newConfirm:'\n\nStart a new page?',
+  copied:'Copied: {t}', copyFail:'Could not copy',
+  typeEmpty:'No "{brand}" items in {type}, so all brands are shown.'
+};
+const L = (k, v = {}) => STR[k].replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
+
 const ROLES = [
-  {k:'id',   label:'رقم الصنف',      hints:['item id','item no','item no.','item number','item code','رقم الصنف','كود الصنف']},
-  {k:'bc',   label:'الباركود',        hints:['ibc','barcode','bar code','الباركود','باركود']},
-  {k:'en',   label:'الوصف الإنجليزي', hints:['second desc','english desc','english description']},
-  {k:'oldP', label:'السعر الحالي',    hints:['current sales price','current price','old price','السعر الحالي']},
-  {k:'newP', label:'السعر الجديد',    hints:['new sales price','new price','السعر الجديد']},
-  {k:'sf',   label:'Smart Fulfillment', hints:['smart fulfillment','fulfillment']},
+  {k:'id',   label:L('colId'),      hints:['item id','item no','item no.','item number','item code','رقم الصنف','كود الصنف']},
+  {k:'bc',   label:L('colBc'),        hints:['ibc','barcode','bar code','الباركود','باركود']},
+  {k:'en',   label:L('colEn'), hints:['second desc','english desc','english description']},
+  {k:'oldP', label:L('colOld'),    hints:['current sales price','current price','old price','السعر الحالي']},
+  {k:'newP', label:L('colNew'),    hints:['new sales price','new price','السعر الجديد']},
+  {k:'sf',   label:L('colSf'), hints:['smart fulfillment','fulfillment']},
 ];
 
 const emptyState = () => ({headers:[], rows:[], map:{}, status:{}, src:{}, qty:{}, exportedSig:'', fromText:false});
@@ -206,10 +259,10 @@ function parseText(text){
   // one value per line
   const vals = lines.filter(l => l.trim() !== '');
   const first = vals.findIndex(v => /^\d{6,}$/.test(v.trim()));
-  if(first <= 0) return {error:'تعذّر تحديد الأعمدة. يرجى نسخ الجدول مع صف العناوين.'};
+  if(first <= 0) return {error:L('errCols')};
   const h = first;
   if((vals.length - h) % h !== 0){
-    return {error:`عدد القيم لا يتوافق مع عدد الأعمدة (${h}). غالبًا توجد خانة فارغة أدّت إلى إزاحة البيانات، لذلك لم تُقرأ البيانات حفاظًا على صحتها.`};
+    return {error:L('errShift', {h})};
   }
   const rows = [vals.slice(0, h)];
   for(let i = h; i < vals.length; i += h) rows.push(vals.slice(i, i + h));
@@ -224,7 +277,7 @@ function shapeRows(raw){
   if(!looksData(raw[0])){ headers = raw[0].slice(); data = raw.slice(1); }
   else { headers = []; data = raw; }
   const width = Math.max(headers.length, ...data.map(r => r.length));
-  for(let i = 0; i < width; i++) if(!headers[i] || !headers[i].trim()) headers[i] = 'عمود ' + (i + 1);
+  for(let i = 0; i < width; i++) if(!headers[i] || !headers[i].trim()) headers[i] = L('colN', {n: i + 1});
   data = data.map(r => { const c = r.slice(); while(c.length < width) c.push(''); return c; });
   return {headers, rows: data};
 }
@@ -272,13 +325,13 @@ function splitName(en){
 
 function nameFlags(en){
   const f = [];
-  if(!en) f.push('الوصف فارغ');
+  if(!en) f.push(L('flagEmpty'));
   else {
-    if(/^\s/.test(en)) f.push('الوصف يبدأ بمسافة');
-    if(/\s$/.test(en)) f.push('الوصف ينتهي بمسافة');
-    if(/  /.test(en)) f.push('يوجد مسافتان متتاليتان');
-    if(/[^\S ]/.test(en)) f.push('يوجد نوع مسافة غير عادي (غير ظاهر)');
-    if(en.indexOf(' ') < 0) f.push('الوصف كلمة واحدة فقط');
+    if(/^\s/.test(en)) f.push(L('flagLead'));
+    if(/\s$/.test(en)) f.push(L('flagTrail'));
+    if(/  /.test(en)) f.push(L('flagDouble'));
+    if(/[^\S ]/.test(en)) f.push(L('flagOdd'));
+    if(en.indexOf(' ') < 0) f.push(L('flagOne'));
   }
   return f;
 }
@@ -288,9 +341,9 @@ function buildItems(){
   items = [];
   const {rows, map} = state;
   if(!rows.length) return {error:''};
-  if(map.id < 0) return {error:'يرجى تحديد عمود رقم الصنف من الإعدادات.'};
-  if(map.bc < 0) return {error:'يرجى تحديد عمود الباركود من الإعدادات.'};
-  if(map.en < 0) return {error:'يرجى تحديد عمود الوصف الإنجليزي من الإعدادات.'};
+  if(map.id < 0) return {error:L('needId')};
+  if(map.bc < 0) return {error:L('needBc')};
+  if(map.en < 0) return {error:L('needEn')};
   const idLen = (rows[0][map.id] || '').trim().length;
   const out = [], seen = {}; let dup = 0, noBc = 0, badBc = 0, flagged = 0;
   for(let i = 0; i < rows.length; i++){
@@ -298,8 +351,8 @@ function buildItems(){
     const id = (r[map.id] || '').trim();
     if(!/^\d+$/.test(id) || id.length !== idLen){
       const prev = out[out.length - 1];
-      return {error:`توقفت القراءة عند الصف رقم ${i + 1}: القيمة «${esc(id || 'فارغة')}» ليست رقم صنف صحيحًا، لذلك لم تُعتمد البيانات.`
-        + (prev ? `<br>آخر صنف سليم قبل الخطأ: ${esc(prev.id)}` : '')};
+      return {error:L('errRow', {row: i + 1, val: esc(id || L('emptyVal'))})
+        + (prev ? '<br>' + L('lastGood', {id: esc(prev.id)}) : '')};
     }
     const bc = (r[map.bc] || '').trim();
     if(!bc) noBc++; else if(!/^\d+$/.test(bc)) badBc++;
@@ -317,11 +370,11 @@ function buildItems(){
   }
   items = out;
   const warnings = [], errors = [];
-  if(noBc) errors.push(`يوجد ${noBc} صنفًا بدون باركود.`);
-  if(badBc) errors.push(`يوجد ${badBc} باركودًا يحتوي على رموز غير رقمية.`);
-  if(dup) warnings.push(`يوجد ${dup} صنفًا مكررًا بنفس رقم الصنف والباركود.`);
-  if(flagged) warnings.push(`يوجد ${flagged} صنفًا في وصفه ملاحظة على المسافات، اضغط على «تحذيرات» لعرضها.`);
-  if(state.fromText) warnings.push('تمت القراءة من النص العادي، وقد يدمج المتصفح المسافات المتكررة فيه. اللصق المباشر من الجدول أدق.');
+  if(noBc) errors.push(L('noBc', {n: noBc}));
+  if(badBc) errors.push(L('badBc', {n: badBc}));
+  if(dup) warnings.push(L('dup', {n: dup}));
+  if(flagged) warnings.push(L('flagged', {n: flagged}));
+  if(state.fromText) warnings.push(L('fromText'));
   return {warnings, errors};
 }
 
@@ -330,23 +383,23 @@ function checkIntegrity(){
   if(!items.length) return;
   const brands = brandGroups();
   const brandSum = brands.reduce((a, g) => a + g.list.length, 0);
-  if(brandSum !== items.length){ integrityError = `خطأ في التجميع: مجموع البراندات (${brandSum}) لا يساوي إجمالي الأصناف (${items.length}).`; return; }
+  if(brandSum !== items.length){ integrityError = L('intBrands', {sum: brandSum, total: items.length}); return; }
   for(const b of brands){
     const subSum = twoGroups(b.name).reduce((a, g) => a + g.list.length, 0);
-    if(subSum !== b.list.length){ integrityError = `خطأ في التجميع: مجموع الأسماء الثنائية تحت «${b.name}» (${subSum}) لا يساوي عدد أصنافه (${b.list.length}).`; return; }
+    if(subSum !== b.list.length){ integrityError = L('intTwos', {name: b.name, sum: subSum, total: b.list.length}); return; }
   }
 }
 
 function applyData(raw, fromText){
   const shaped = shapeRows(raw);
-  if(!shaped){ setMsg('err', 'لم يتم العثور على أي بيانات في النص الملصق.'); return; }
+  if(!shaped){ setMsg('err', L('noData')); return; }
   state = Object.assign(emptyState(), {headers: shaped.headers, rows: shaped.rows, map: autoMap(shaped.headers, shaped.rows), fromText: !!fromText});
   selBrand = null; selTwo = null; filter = 'all'; typeF = 'nonglobal'; lastCopiedKey = null; lastBulk = null;
   save();
   refresh(true);
 }
 
-// Global items are not in the pharmacy: mark them «لا رصيد» automatically (the user can still change them)
+// Global items are not in the pharmacy: mark them "No stock" automatically (the user can still change them)
 function markGlobal(){
   let n = 0;
   for(const it of items){
@@ -363,8 +416,8 @@ function refresh(announce){
   const nGlobal = (!res.error && announce) ? markGlobal() : 0;
   if(res.error) setMsg('err', res.error);
   else if(announce){
-    setMsg('ok', `تمت قراءة ${items.length} صنفًا بنجاح.`
-      + (nGlobal ? `<span class="w">🌐 تم تعليم ${nGlobal} صنفًا Global على أنها «لا رصيد» تلقائيًا، ويمكن عرضها من «النوع: Global».</span>` : '')
+    setMsg('ok', L('readOk', {n: items.length})
+      + (nGlobal ? `<span class="w">${L('globalMarked', {n: nGlobal})}</span>` : '')
       + res.errors.map(w => `<span class="e">⛔ ${w}</span>`).join('')
       + res.warnings.map(w => `<span class="w">⚠ ${w}</span>`).join(''));
   }
@@ -390,7 +443,7 @@ const typedItems = () => items.filter(typeMatch);
 
 // ---------- rendering ----------
 function renderMap(){
-  const opts = ['<option value="-1">— غير موجود —</option>']
+  const opts = [`<option value="-1">${L('notFound')}</option>`]
     .concat(state.headers.map((h, i) => `<option value="${i}">${esc(h)}</option>`)).join('');
   $('#map').innerHTML = ROLES.map(r => `<label>${r.label}<select data-role="${r.k}">${opts}</select></label>`).join('');
   $('#map').querySelectorAll('select').forEach(s => { s.value = String(state.map[s.dataset.role] ?? -1); });
@@ -406,12 +459,12 @@ function renderStats(){
   }
   const last = items[items.length - 1];
   $('#stats').innerHTML =
-    `<span>الإجمالي: <b>${items.length}</b></span>` +
-    `<span class="pending">لم تُراجع: <b>${pending}</b></span>` +
-    `<span class="print">تُطبع: <b>${print}</b></span>` +
-    `<span>لا رصيد: <b>${none}</b></span>` +
-    `<span>الملصقات: <b>${labels}</b></span>` +
-    `<span>آخر صنف تمت قراءته: <b>${esc(last.id)}</b></span>`;
+    `<span>${L('stTotal')}: <b>${items.length}</b></span>` +
+    `<span class="pending">${L('stPending')}: <b>${pending}</b></span>` +
+    `<span class="print">${L('stPrint')}: <b>${print}</b></span>` +
+    `<span>${L('stNone')}: <b>${none}</b></span>` +
+    `<span>${L('stLabels')}: <b>${labels}</b></span>` +
+    `<span>${L('stLast')}: <b>${esc(last.id)}</b></span>`;
 }
 
 const reviewed = list => list.filter(it => state.status[it.key]).length;
@@ -420,7 +473,7 @@ function chipHtml(kind, name, list, on){
   const done = reviewed(list);
   return `<button class="chip ${on ? 'on' : ''} ${done === list.length ? 'done' : ''}" data-kind="${kind}" data-name="${esc(name)}">`
     + `<span>${esc(name)}</span><span class="n">${done}/${list.length}</span>`
-    + `<span class="cp" data-copytext="${esc(name)}" title="نسخ الاسم كما هو">⧉</span></button>`;
+    + `<span class="cp" data-copytext="${esc(name)}" title="${L('copyName')}">⧉</span></button>`;
 }
 
 function matchFilter(it){
@@ -442,22 +495,22 @@ const ICON_ONLINE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="t
 function rowHtml(it, priceCols){
   const s = state.status[it.key] || '';
   const q = state.qty[it.key] || 1;
-  const flag = it.flags.length ? `<span class="flag" title="${esc(it.flags.join('، '))}">⚠</span>` : '';
+  const flag = it.flags.length ? `<span class="flag" title="${esc(it.flags.join(', '))}">⚠</span>` : '';
   return `<tr data-key="${esc(it.key)}" class="${s ? 'st-' + s : ''} ${it.key === lastCopiedKey ? 'copied' : ''}">
-    <td class="copy" data-copy="${esc(it.id)}" title="اضغط للنسخ">${esc(it.id)}</td>
-    <td class="ol"><a href="https://www.nahdionline.com/en-sa/pdp/${encodeURIComponent(it.id)}" target="_blank" rel="noopener" title="عرض الصنف على النهدي أونلاين" aria-label="Online">${ICON_ONLINE}</a></td>
+    <td class="copy" data-copy="${esc(it.id)}" title="${L('clickCopy')}">${esc(it.id)}</td>
+    <td class="ol"><a href="https://www.nahdionline.com/en-sa/pdp/${encodeURIComponent(it.id)}" target="_blank" rel="noopener" title="${L('online')}" aria-label="Online">${ICON_ONLINE}</a></td>
     <td class="desc">${esc(it.en)}${it.global ? '<span class="gl">Global</span>' : ''}${flag}</td>
-    ${it.bc ? `<td class="copy" data-copy="${esc(it.bc)}" title="اضغط للنسخ">${esc(it.bc)}</td>` : `<td class="missing">—</td>`}
+    ${it.bc ? `<td class="copy" data-copy="${esc(it.bc)}" title="${L('clickCopy')}">${esc(it.bc)}</td>` : `<td class="missing">—</td>`}
     ${priceCols ? `<td class="num">${esc(it.oldP)}</td><td class="num">${esc(it.newP)}</td>` : ''}
-    <td class="st"><button class="b-print ${s === 'print' ? 'on' : ''}" data-act="print">يُطبع</button><button class="b-none ${s === 'none' ? 'on' : ''}" data-act="none">لا رصيد</button></td>
-    <td>${s === 'print' ? `<input type="number" min="1" step="1" value="${q}" data-qty title="عدد الملصقات">` : ''}</td>
+    <td class="st"><button class="b-print ${s === 'print' ? 'on' : ''}" data-act="print">${L('btnPrint')}</button><button class="b-none ${s === 'none' ? 'on' : ''}" data-act="none">${L('btnNone')}</button></td>
+    <td>${s === 'print' ? `<input type="number" min="1" step="1" value="${q}" data-qty title="${L('labelsQty')}">` : ''}</td>
   </tr>`;
 }
 
 function render(){
   renderStats();
   const data = $('#data');
-  if(!items.length){ data.innerHTML = '<div class="empty">الصق الداتا في المربع بالأعلى لتظهر هنا.</div>'; return; }
+  if(!items.length){ data.innerHTML = `<div class="empty">${L('emptyPage')}</div>`; return; }
 
   let html = integrityError ? `<div class="alert">${esc(integrityError)}</div>` : '';
 
@@ -465,20 +518,20 @@ function render(){
   if(typeOn()){
     const cnt = {nonglobal: items.filter(it => !it.global).length, global: items.filter(it => it.global).length, all: items.length};
     const t = (k, cls = '') => `<button class="f ${cls} ${typeF === k ? 'on' : ''}" data-t="${k}">${TYPES[k]}<span class="n">${cnt[k]}</span></button>`;
-    html += `<div class="typebar"><span class="tlabel">النوع:</span><div class="seg">${t('nonglobal')}${t('global', 'glf')}${t('all')}</div></div>`;
+    html += `<div class="typebar"><span class="tlabel">${L('typeLabel')}</span><div class="seg">${t('nonglobal')}${t('global', 'glf')}${t('all')}</div></div>`;
   }
 
   const brands = brandGroups(typed);
   if(selBrand !== null && !brands.some(b => b.name === selBrand)){ selBrand = null; selTwo = null; }
-  html += `<div class="brands"><button class="chip ${selBrand === null ? 'on' : ''}" data-kind="all"><span>All</span><span class="n">${reviewed(typed)}/${typed.length}</span></button>`
+  html += `<div class="brands"><button class="chip ${selBrand === null ? 'on' : ''}" data-kind="all"><span>${L('all')}</span><span class="n">${reviewed(typed)}/${typed.length}</span></button>`
     + brands.map(b => chipHtml('brand', b.name, b.list, selBrand === b.name)).join('') + '</div>';
 
   if(selBrand !== null){
     const twos = twoGroups(selBrand, typed);
     if(selTwo !== null && !twos.some(g => g.name === selTwo)) selTwo = null;
     const selTag = (!subsOpen && selTwo !== null)
-      ? `<span class="selname"><span>${esc(selTwo)}</span><span class="x" data-cleartwo title="إلغاء اختيار الاسم الثنائي">×</span></span>` : '';
-    html += `<div class="subhead" data-togglesubs><span class="arrow">${subsOpen ? '▾' : '◂'}</span>الأسماء الثنائية (${twos.length})${selTag}</div>`;
+      ? `<span class="selname"><span>${esc(selTwo)}</span><span class="x" data-cleartwo title="${L('clearTwo')}">×</span></span>` : '';
+    html += `<div class="subhead" data-togglesubs><span class="arrow">${subsOpen ? '▾' : '▸'}</span>${L('twoNames', {n: twos.length})}${selTag}</div>`;
     if(subsOpen) html += '<div class="subs">' + twos.map(g => chipHtml('two', g.name, g.list, selTwo === g.name)).join('') + '</div>';
   }
 
@@ -487,25 +540,25 @@ function render(){
   const f = (k, t, cls = '') => `<button class="f ${cls} ${filter === k ? 'on' : ''}" data-f="${k}">${t}</button>`;
   html += `<div class="toolbar">
     <div class="tgroup">
-      <span class="tlabel">عرض:</span>
-      <div class="seg">${f('all', 'الكل')}${f('pending', 'لم تُراجع')}${f('print', 'تُطبع')}${f('none', 'لا رصيد')}${anyFlags ? f('flags', '⚠ تحذيرات', 'warnf') : ''}</div>
-      <span class="count">(${list.length} صنف)</span>
+      <span class="tlabel">${L('show')}</span>
+      <div class="seg">${f('all', L('fAll'))}${f('pending', L('fPending'))}${f('print', L('fPrint'))}${f('none', L('fNone'))}${anyFlags ? f('flags', L('fFlags'), 'warnf') : ''}</div>
+      <span class="count">${L('count', {n: list.length})}</span>
     </div>
     <div class="tgroup">
-      <span class="tlabel">تحديد:</span>
-      <button class="act act-print" data-bulk="print">طباعة الكل</button>
-      <button class="act act-none" data-bulk="none">الكل بدون رصيد</button>
-      <button class="act act-clear" data-bulk="clear">إلغاء تحديد الكل</button>
-      <button class="act" data-undo ${lastBulk ? '' : 'disabled'} title="إلغاء آخر عملية جماعية">Undo</button>
+      <span class="tlabel">${L('select')}</span>
+      <button class="act act-print" data-bulk="print">${L('bPrint')}</button>
+      <button class="act act-none" data-bulk="none">${L('bNone')}</button>
+      <button class="act act-clear" data-bulk="clear">${L('bClear')}</button>
+      <button class="act" data-undo ${lastBulk ? '' : 'disabled'} title="${L('bUndoTip')}">${L('bUndo')}</button>
     </div>
   </div>`;
 
   const priceCols = state.map.oldP >= 0 || state.map.newP >= 0;
   if(!list.length){
-    html += '<div class="empty">لا توجد أصناف مطابقة.</div>';
+    html += `<div class="empty">${L('noMatch')}</div>`;
   } else {
-    html += `<div class="tablewrap"><table><thead><tr><th>Item ID</th><th></th><th>Description</th><th>Barcode</th>
-      ${priceCols ? '<th>Current</th><th>New</th>' : ''}<th>Status</th><th>Labels</th></tr></thead>
+    html += `<div class="tablewrap"><table><thead><tr><th>${L('thId')}</th><th></th><th>${L('thDesc')}</th><th>${L('thBc')}</th>
+      ${priceCols ? `<th>${L('thCur')}</th><th>${L('thNew')}</th>` : ''}<th>${L('thStatus')}</th><th>${L('thLabels')}</th></tr></thead>
       <tbody>${list.map(it => rowHtml(it, priceCols)).join('')}</tbody></table></div>`;
   }
   data.innerHTML = html;
@@ -518,28 +571,28 @@ function bulk(value){
   const vis = visibleItems();
   if(value === 'clear'){
     const targets = vis.filter(it => state.status[it.key]);
-    if(!targets.length){ alert('لا توجد أصناف محددة ضمن الأصناف الظاهرة.'); return; }
-    if(!confirm(`سيتم إلغاء تحديد ${targets.length} صنفًا من الأصناف الظاهرة، بما فيها المحددة يدويًا، وستعود إلى «لم تُراجع».\n\nهل تريد المتابعة؟`)) return;
+    if(!targets.length){ alert(L('clrNone')); return; }
+    if(!confirm(L('clrAsk', {n: targets.length}))) return;
     lastBulk = targets.map(snapshot);
     for(const it of targets){ delete state.status[it.key]; delete state.src[it.key]; delete state.qty[it.key]; }
     save(); render();
-    toast(`تم إلغاء تحديد ${targets.length} صنفًا`);
+    toast(L('clrDone', {n: targets.length}));
     return;
   }
   const targets = vis.filter(it => (!state.status[it.key] || state.src[it.key] === 'bulk') && state.status[it.key] !== value);
   const manual = vis.filter(it => state.status[it.key] && state.src[it.key] !== 'bulk').length;
   if(!targets.length){
-    alert(manual ? `لا يوجد ما يتغير. الأصناف الظاهرة إما على هذه الحالة بالفعل أو محددة يدويًا (${manual}).` : 'كل الأصناف الظاهرة على هذه الحالة بالفعل.');
+    alert(manual ? L('bulkNothingManual', {n: manual}) : L('bulkNothing'));
     return;
   }
-  const word = value === 'print' ? '«يُطبع»' : '«بدون رصيد»';
-  let text = `سيتم تحديد ${targets.length} صنفًا على أنها ${word}.`;
-  if(manual) text += `\nلن يتغير ${manual} صنفًا حددته يدويًا.`;
-  if(!confirm(text + '\n\nهل تريد المتابعة؟')) return;
+  const word = value === 'print' ? L('wPrint') : L('wNone');
+  let text = L('bulkAsk', {n: targets.length, word});
+  if(manual) text += L('bulkManual', {n: manual});
+  if(!confirm(text + L('cont'))) return;
   lastBulk = targets.map(snapshot);
   for(const it of targets){ state.status[it.key] = value; state.src[it.key] = 'bulk'; }
   save(); render();
-  toast(`تم تحديد ${targets.length} صنفًا`);
+  toast(L('bulkDone', {n: targets.length}));
 }
 
 function undoBulk(){
@@ -551,7 +604,7 @@ function undoBulk(){
   }
   const n = lastBulk.length; lastBulk = null;
   save(); render();
-  toast(`تم التراجع عن ${n} صنفًا`);
+  toast(L('undoDone', {n}));
 }
 
 // ---------- export ----------
@@ -561,15 +614,15 @@ function printSignature(){
 }
 
 function exportCsv(){
-  if(!items.length){ alert('لا توجد بيانات بعد.'); return; }
+  if(!items.length){ alert(L('noDataYet')); return; }
   const printItems = items.filter(it => state.status[it.key] === 'print');
-  if(!printItems.length){ alert('لم يتم اختيار أي صنف للطباعة بعد.'); return; }
+  if(!printItems.length){ alert(L('noPrint')); return; }
   const pending = items.filter(it => !state.status[it.key]).length;
-  if(pending > 0 && !confirm(`تنبيه: يوجد ${pending} صنفًا لم تتم مراجعته بعد، وقد يكون من بينها أصناف لها رصيد.\n\nاضغط «موافق» للتحميل على أي حال، أو «إلغاء» لعرض هذه الأصناف.`)){
+  if(pending > 0 && !confirm(L('pendingAsk', {n: pending}))){
     filter = 'pending'; selBrand = null; selTwo = null; render(); return;
   }
   const badBc = printItems.filter(it => !/^\d+$/.test(it.bc));
-  if(badBc.length){ alert(`لا يمكن التحميل: يوجد ${badBc.length} صنفًا مختارًا للطباعة بباركود فارغ أو غير رقمي.\nأول صنف منها: ${badBc[0].id}`); return; }
+  if(badBc.length){ alert(L('badBcExport', {n: badBc.length, id: badBc[0].id})); return; }
 
   const lines = printItems.map(it => `1-TAG,${it.bc},${state.qty[it.key] || 1}`);
   state.exportedSig = printSignature(); save();
@@ -580,12 +633,12 @@ function exportCsv(){
   a.download = `tags_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  toast(`تم تحميل الملف: ${printItems.length} صنفًا`);
+  toast(L('downloaded', {n: printItems.length}));
 }
 
 // ---------- events ----------
 const hasData = () => state.rows.length > 0;
-const confirmReplace = () => !hasData() || confirm('سيتم استبدال البيانات الحالية ومسح كل الحالات المسجّلة. هل تريد المتابعة؟');
+const confirmReplace = () => !hasData() || confirm(L('replaceAsk'));
 
 $('#paste').addEventListener('paste', e => {
   if(!confirmReplace()){ e.preventDefault(); return; }
@@ -604,7 +657,7 @@ $('#paste').addEventListener('paste', e => {
 function readText(ask){
   if(ask && !confirmReplace()) return;
   const t = $('#paste').value;
-  if(!t.trim()){ setMsg('err', 'لا يوجد نص للقراءة.'); return; }
+  if(!t.trim()){ setMsg('err', L('noText')); return; }
   const r = parseText(t);
   if(r.error){ setMsg('err', r.error); return; }
   applyData(r.rows, true);
@@ -624,9 +677,9 @@ $('#btnNew').addEventListener('click', () => {
   if(hasData() || $('#paste').value.trim()){
     const done = items.filter(it => state.status[it.key]).length;
     const sig = printSignature();
-    let text = `سيتم مسح كل البيانات، وعدد الأصناف التي راجعتها ${done} صنفًا.`;
-    if(sig && sig !== state.exportedSig) text += `\n\nتنبيه: توجد أصناف محددة «يُطبع» لم يُحمَّل ملفها بعد، وستضيع هذه الاختيارات.`;
-    if(!confirm(text + '\n\nهل تريد بدء صفحة جديدة؟')) return;
+    let text = L('newAsk', {n: done});
+    if(sig && sig !== state.exportedSig) text += L('newUnsaved');
+    if(!confirm(text + L('newConfirm'))) return;
   }
   state = emptyState(); items = []; selBrand = null; selTwo = null; filter = 'all'; typeF = 'nonglobal'; lastBulk = null; lastCopiedKey = null; integrityError = '';
   try{ localStorage.removeItem(LS_KEY); }catch(e){}
@@ -640,7 +693,7 @@ $('#data').addEventListener('click', async e => {
     e.stopPropagation();
     const t = cp.dataset.copytext;
     const ok = await copyText(t);
-    toast(ok ? 'تم النسخ: ' + t : 'تعذّر النسخ');
+    toast(ok ? L('copied', {t}) : L('copyFail'));
     return;
   }
   if(e.target.closest('[data-cleartwo]')){ selTwo = null; render(); return; }
@@ -658,7 +711,7 @@ $('#data').addEventListener('click', async e => {
     typeF = tb.dataset.t;
     // the open brand has nothing in this type: show all brands and say why
     if(selBrand !== null && !items.some(it => it.brand === selBrand && typeMatch(it))){
-      toast(`لا توجد أصناف «${selBrand}» ضمن ${TYPES[typeF]}، فتم عرض كل البراندات.`);
+      toast(L('typeEmpty', {brand: selBrand, type: TYPES[typeF]}));
       selBrand = null; selTwo = null;
     }
     render(); return;
@@ -684,7 +737,7 @@ $('#data').addEventListener('click', async e => {
     lastCopiedKey = key;
     document.querySelectorAll('tr.copied').forEach(r => r.classList.remove('copied'));
     tr.classList.add('copied');
-    toast(ok ? 'تم النسخ: ' + c.dataset.copy : 'تعذّر النسخ');
+    toast(ok ? L('copied', {t: c.dataset.copy}) : L('copyFail'));
   }
 });
 
