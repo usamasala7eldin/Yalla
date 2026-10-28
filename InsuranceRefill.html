@@ -39,65 +39,65 @@
   .banner.err { background: var(--red-bg); color: var(--red); }
   .banner .btn { padding: 3px 10px; }
 
-  .stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: stretch; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 110px; cursor: pointer; }
-  .stat b { font-size: 20px; display: block; }
-  .stat span { color: var(--muted); font-size: 12px; }
-  .stat.due b { color: var(--green); } .stat.soon b { color: var(--yellow); } .stat.missed b { color: var(--red); }
-  .stat.recent b { color: var(--orange); } .stat.possible b { color: var(--teal); }
-  .stat.active { outline: 2px solid var(--accent); }
-  .stats select { margin-left: auto; align-self: center; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .fbtn { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--text); display: inline-flex; gap: 6px; align-items: center; }
+  .fbtn:hover { border-color: var(--accent); }
+  .fbtn b { font-weight: 700; }
+  .fbtn.due b { color: var(--green); } .fbtn.soon b { color: var(--yellow); } .fbtn.recent b { color: var(--orange); }
+  .fbtn.missed b { color: var(--red); } .fbtn.possible b { color: var(--teal); } .fbtn.active b { color: var(--accent); }
+  .fbtn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .fbtn.on b { color: #fff; }
+  .filters select { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; background: var(--card); font-size: 13px; width: 150px; }
+  .filters select.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .count { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .unsaved { color: var(--orange); font-size: 11px; font-weight: 700; margin-left: 4px; }
 
-  .list { display: flex; flex-direction: column; gap: 6px; }
-  .row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; cursor: pointer; }
+  .list { display: flex; flex-direction: column; gap: 4px; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; cursor: pointer; }
   .row:hover { border-color: #c9d3e3; }
-  .row.vc { background: #f1f6ff; border-color: #bcd3fb; border-left: 5px solid var(--accent); }
-  .row.milk { border-left: 5px solid var(--milk); }
+  .row.vc { background: #f1f6ff; border-color: #bcd3fb; border-left: 4px solid var(--accent); }
+  .row.milk { border-left: 4px solid var(--milk); }
   .tag.milk { background: var(--milk-bg); color: var(--milk); font-weight: 600; }
   .seg button.auto { background: var(--milk-bg); color: var(--milk); }
-  .count { color: var(--muted); font-size: 12px; align-self: center; }
-  .period-hint { color: var(--yellow); font-size: 12px; margin: -4px 0 8px; }
+  .period-hint { color: var(--yellow); font-size: 12px; margin: -2px 0 6px; }
   .undo-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 8px 8px 8px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: center; z-index: 1001; }
   .undo-bar button { border: 0; background: #fff; color: var(--accent); font-weight: 700; border-radius: 6px; padding: 4px 12px; }
-  .who { min-width: 0; }
-  .inv-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .inv { font-family: ui-monospace, Consolas, monospace; font-size: 17px; font-weight: 700; border: 0; background: none; padding: 0; color: var(--text); letter-spacing: .02em; }
+  .top-left { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
+  .top-right { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+  .bottom-left { min-width: 0; }
+  .bottom-right { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
+  .inv { font-family: ui-monospace, Consolas, monospace; font-size: 15px; font-weight: 700; border: 0; background: none; padding: 0; color: var(--text); letter-spacing: .02em; }
   .inv:hover { color: var(--accent); }
-  .tag { display: inline-block; border-radius: 6px; padding: 0 6px; font-size: 11px; line-height: 18px; background: var(--grey-bg); color: var(--muted); }
+  .tag { display: inline-block; border-radius: 6px; padding: 0 6px; font-size: 11px; line-height: 17px; background: var(--grey-bg); color: var(--muted); }
   .tag.vc { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
   .tag.visits { background: #efe7fd; color: #5b2bb5; }
-  .small { color: var(--muted); font-size: 12px; }
-  .small.name { color: #4a5263; }
-  .small.dx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 640px; }
-  .add-contact { border: 1px dashed var(--accent); background: var(--card); color: var(--accent); border-radius: 8px; padding: 5px 10px; font-size: 12px; }
-  .meta { color: var(--muted); font-size: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .sub-line { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub-line .name { color: #4a5263; }
+  .add-contact { border: 1px dashed var(--accent); background: var(--card); color: var(--accent); border-radius: 6px; padding: 3px 8px; font-size: 11.5px; }
 
-  .dues { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-  .chip { border-radius: 8px; padding: 3px 8px; font-size: 12px; min-width: 72px; text-align: center; background: var(--grey-bg); color: var(--muted); border: 1px solid transparent; }
-  .chip small { display: block; font-size: 11px; }
-  .chip.big { font-size: 13px; min-width: 120px; padding: 5px 12px; color: var(--text); border-color: var(--line); background: var(--card); }
-  .chip.big small { font-size: 15px; font-weight: 700; }
+  .dues { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
+  .chip { border-radius: 6px; padding: 2px 7px; font-size: 11px; background: var(--grey-bg); color: var(--muted); white-space: nowrap; border: 1px solid transparent; }
+  .chip.big { font-size: 13px; font-weight: 700; padding: 3px 10px; min-width: 150px; text-align: center; color: var(--text); border-color: var(--line); background: var(--card); }
   .chip.big.green { background: var(--green-bg); color: var(--green); border-color: var(--green); }
   .chip.big.yellow { background: var(--yellow-bg); color: var(--yellow); border-color: #e0b400; }
   .chip.big.orange { background: var(--orange-bg); color: var(--orange); border-color: var(--orange); }
   .chip.big.red { background: var(--red-bg); color: var(--red); border-color: var(--red); }
-  .line { font-size: 12px; margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .line { font-size: 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .line.possible { color: var(--teal); font-weight: 600; }
   .line.refilled { color: #4a5263; }
   .inv-small { font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
   .tag.match { background: var(--green-bg); color: var(--green); font-weight: 600; }
-  .amount { font-weight: 700; font-size: 15px; text-align: right; min-width: 80px; }
+  .amount { font-weight: 700; font-size: 14px; text-align: right; min-width: 74px; }
 
-  .actions { display: flex; gap: 6px; align-items: center; grid-column: 1 / -1; justify-content: space-between; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 6px; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-  .seg button { border: 0; background: var(--card); padding: 4px 10px; font-size: 12px; color: var(--muted); border-right: 1px solid var(--line); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; background: var(--card); padding: 3px 8px; font-size: 11.5px; color: var(--muted); border-right: 1px solid var(--line); }
   .seg button:last-child { border-right: 0; }
   .seg button.on { background: var(--accent); color: #fff; }
-  .actions .right { display: flex; gap: 4px; align-items: center; }
-  .note-preview { color: var(--muted); font-size: 12px; font-style: italic; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .qr-btn { border: 0; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #fff; background: var(--accent); white-space: nowrap; }
+  .qr-btn { border: 0; border-radius: 6px; padding: 4px 8px; font-size: 11.5px; color: #fff; background: var(--accent); white-space: nowrap; }
   .qr-btn.second { background: var(--qr2); }
-  .qr-btn.off { opacity: .4; }
+  .row .icon-btn { width: 24px; height: 24px; border-radius: 6px; }
+  .row .icon-btn svg { width: 14px; height: 14px; }
 
   .btn.big { font-size: 16px; padding: 12px 22px; }
   .empty.start p { margin: 0 0 14px; }
@@ -133,12 +133,7 @@
   .lang-switch button.on { background: var(--accent); color: #fff; }
 
   @media (max-width: 640px) {
-    .row { grid-template-columns: 1fr auto; }
-    .dues { grid-column: 1 / -1; justify-content: flex-start; }
-    .amount { grid-row: 1; grid-column: 2; }
-    .note-preview { display: none; }
     .grid2 { grid-template-columns: 1fr; }
-    .stats select { margin-left: 0; }
   }
 </style>
 </head>
@@ -147,7 +142,7 @@
   <header>
     <h1 data-i18n="appTitle"></h1>
     <button class="btn primary" id="btnPaste" data-i18n="pasteData"></button>
-    <button class="btn" id="btnExport" data-i18n="exportBackup"></button>
+    <button class="btn" id="btnExport"><span data-i18n="exportBackup"></span><span class="unsaved" id="unsavedMark" hidden></span></button>
     <button class="btn" id="btnImport" data-i18n="importBackup"></button>
     <input type="file" id="fileImport" accept=".json,application/json" hidden>
     <button class="icon-btn" id="btnSettings" data-i18n-title="settings">
@@ -157,13 +152,9 @@
 
   <div id="icdBanner" class="banner err" hidden data-i18n="icdMissing"></div>
   <div id="importBanner" class="banner" hidden></div>
-  <div id="backupBanner" class="banner" hidden>
-    <span id="backupBannerText"></span>
-    <button class="btn" id="btnBannerBackup" data-i18n="exportNow"></button>
-  </div>
 
-  <div class="stats">
-    <div id="stats" class="row-flex"></div>
+  <div class="filters">
+    <div id="stats" class="row-flex" style="gap:6px"></div>
     <select id="filter"></select>
     <span class="count" id="count"></span>
   </div>
@@ -262,14 +253,13 @@ const UNDO_SECONDS = 5;
 const PAGE_SIZES = [5, 10, 15, 20, 25, 50, 100, 1000];
 const INCOMPLETE_GAP_DAYS = 14;
 const PERIODS = { '1M': 28, '2M': 56, '3M': 84 }; // days added to the invoice date
-// Days remaining until the refill date: "Due now" and "Coming soon" ranges per period.
-// Below the Due range down to RECENT_LIMIT = "Recently missed"; further past = "Missed".
-const THRESHOLDS = {
-  '1M': { due: [-2, 5], soon: [6, 11] },
-  '2M': { due: [-4, 5], soon: [6, 12] },
-  '3M': { due: [-4, 5], soon: [6, 12] }
+// Ranges by invoice age (days since the invoice date) for each period.
+// Younger than "soon" = upcoming; older than "recent" = Missed.
+const AGE_RANGES = {
+  '1M': { soon: [20, 25], due: [26, 32], recent: [33, 43] },
+  '2M': { soon: [46, 51], due: [52, 62], recent: [63, 71] },
+  '3M': { soon: [75, 81], due: [82, 92], recent: [93, 99] }
 };
-const RECENT_LIMIT = -15;
 // "Possible refill": after the first refill date, keep following the invoice every period up to these days
 const FOLLOW_UNTIL = { '1M': 168, '2M': 168, '3M': 336 };
 const EXCLUDED_INSURANCE = /promotion variance/i;
@@ -343,6 +333,8 @@ const I18N = {
     unsavedSince: 'Unsaved changes since the last export ({d}). Export before closing this page.',
     unsavedNever: 'Unsaved changes. This browser may delete its data, so export before closing this page.',
     importLast: 'Import your last backup',
+    unsavedShort: 'unsaved', lastExport: 'Last export: {d}',
+    day: 'Day {n}', more: 'More ▾', active: 'Active',
     importDone: 'Imported: {inv} new invoices, {fol} refill settings, {con} contacts.', importFail: 'This file is not a valid backup.',
     dataSection: 'Data',
     dataInfo: '{inv} invoices, {fol} refill settings and {con} contacts saved. Invoices older than {keep} days are removed automatically.',
@@ -550,7 +542,7 @@ function buildRows() {
     row.status = statusOf(row);
     // row.active is set below: invoices that need something today
     // "Likely due now": period not set and one of the 1M/2M/3M dates is in that period's Due range
-    row.likely = !row.period && Object.entries(dues).some(([k, d]) => inRange(d.days, THRESHOLDS[k].due));
+    row.likely = !row.period && Object.entries(dues).some(([k, d]) => inDue(k, d.days));
     row.possible = possibleRefill(row, today);
     row.refill = refilledAt(row, byCardList[i.card]);
     row.active = ACTIVE_STATUSES.includes(row.status) || !!row.possible || row.likely;
@@ -558,13 +550,16 @@ function buildRows() {
   }).sort((a, b) => b.credit - a.credit);
 }
 
-const inRange = (days, r) => days >= r[0] && days <= r[1];
+const inRange = (n, r) => n >= r[0] && n <= r[1];
+// days = days remaining until the refill date; the matching invoice age is period length - days
+const ageOf = (periodKey, days) => PERIODS[periodKey] - days;
+const inDue = (periodKey, days) => inRange(ageOf(periodKey, days), AGE_RANGES[periodKey].due);
 function categoryFor(periodKey, days) {
-  const th = THRESHOLDS[periodKey];
-  if (days > th.soon[1]) return 'upcoming';
-  if (inRange(days, th.soon)) return 'soon';
-  if (inRange(days, th.due)) return 'due';
-  if (days >= RECENT_LIMIT) return 'recent';
+  const age = ageOf(periodKey, days), r = AGE_RANGES[periodKey];
+  if (age < r.soon[0]) return 'upcoming';
+  if (inRange(age, r.soon)) return 'soon';
+  if (inRange(age, r.due)) return 'due';
+  if (inRange(age, r.recent)) return 'recent';
   return 'missed';
 }
 
@@ -575,7 +570,7 @@ function possibleRefill(r, today) {
   const step = PERIODS[p];
   for (let k = 2; k * step <= FOLLOW_UNTIL[p]; k++) {
     const days = dayNum(r.date) + k * step - today;
-    if (inRange(days, THRESHOLDS[p].due)) return { days, months: (k * step) / 28 };
+    if (inDue(p, days)) return { days, months: (k * step) / 28 }; // same Due range, counted from that refill date
   }
   return null;
 }
@@ -637,9 +632,14 @@ let rowsCache = [];
 const ui = { filter: 'active' }; // always opens on Active invoices
 function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringify(ui)); } catch (e) {} }
 
+// Main filters are buttons; the rest are in the "More" menu
+const MAIN_FILTERS = ['active', 'due', 'soon', 'recent', 'missed', 'possible'];
+const MORE_FILTERS = ['likely', 'notset', 'norefill', 'all'];
 function setupFilter() {
-  $('filter').innerHTML = Object.keys(I18N[LANG].filters).map(k => `<option value="${k}">${esc(t('filters.' + k))}</option>`).join('');
-  $('filter').value = ui.filter;
+  $('filter').innerHTML = `<option value="">${esc(t('more'))}</option>` +
+    MORE_FILTERS.map(k => `<option value="${k}">${esc(t('filters.' + k))}</option>`).join('');
+  $('filter').value = MORE_FILTERS.includes(ui.filter) ? ui.filter : '';
+  $('filter').classList.toggle('on', MORE_FILTERS.includes(ui.filter));
 }
 
 function render() {
@@ -685,9 +685,10 @@ function matchesFilter(r) {
 }
 
 function renderStats() {
-  const n = k => rowsCache.filter(r => (k === 'possible' ? !!r.possible : r.status === k)).length;
-  $('stats').innerHTML = ['due', 'soon', 'recent', 'missed', 'possible'].map(k =>
-    `<div class="stat ${k} ${ui.filter === k ? 'active' : ''}" data-filter="${k}"><b>${n(k)}</b><span>${esc(t('stats.' + k))}</span></div>`).join('');
+  const n = k => rowsCache.filter(r => k === 'active' ? r.active : k === 'possible' ? !!r.possible : r.status === k).length;
+  $('stats').innerHTML = MAIN_FILTERS.map(k =>
+    `<button class="fbtn ${k} ${ui.filter === k ? 'on' : ''}" data-filter="${k}">${esc(k === 'active' ? t('active') : t('stats.' + k))} <b>${n(k)}</b></button>`).join('');
+  setupFilter();
 }
 
 const CAT_CLASS = { due: 'green', soon: 'yellow', recent: 'orange', missed: 'red' };
@@ -697,10 +698,10 @@ function duesHTML(r) {
   if (p) {
     const d = r.dues[p];
     const cls = r.status === 'old' ? '' : (CAT_CLASS[d.cat] || '');
-    return `<div class="chip big ${cls}">${p}<small>${esc(daysLabel(d.days))}</small></div>`;
+    return `<div class="chip big ${cls}">${p} · ${esc(daysLabel(d.days))}</div>`;
   }
   // Period not chosen yet: show all three, plain, no colour
-  return Object.keys(PERIODS).map(k => `<div class="chip">${k}<small>${esc(daysLabel(r.dues[k].days))}</small></div>`).join('');
+  return Object.keys(PERIODS).map(k => `<div class="chip">${k} · ${esc(daysLabel(r.dues[k].days))}</div>`).join('');
 }
 
 function extraLinesHTML(r) {
@@ -720,33 +721,32 @@ function extraLinesHTML(r) {
 function rowHTML(r) {
   const inv = esc(r.inv);
   const p = r.period;
+  const age = dayNum(todayISO()) - dayNum(r.date);
   // Milk's automatic 1M is shown in purple until the user picks a period himself
   const segs = [...Object.keys(PERIODS), 'NR'].map(k =>
     `<button class="${p === k ? (r.autoPeriod ? 'auto' : 'on') : ''}" ${p === k && r.autoPeriod ? `title="${esc(t('milkAuto'))}"` : ''} data-act="period" data-inv="${inv}" data-val="${k}">${k === 'NR' ? esc(t('noRefill')) : k}</button>`).join('');
+  const contactBtns = r.contact.phone
+    ? `<button class="qr-btn" data-act="qr" data-type="welcome" data-inv="${inv}">${r.follow.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
+       <button class="qr-btn second" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>`
+    : `<button class="add-contact" data-act="details" data-inv="${inv}">${esc(t('addContact'))}</button>`;
+  const dx = dxNames(r.dx);
   return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''}" data-row="${inv}">
-    <div class="who">
-      <div class="inv-line">
-        <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${esc(shortInv(r.inv))}</button>
-        ${r.items.length ? '<span class="tag vc">VC</span>' : ''}
-        ${r.milk ? `<span class="tag milk">🍼 ${esc(t('milk'))}</span>` : ''}
-        <span class="tag visits">${esc(r.visits === 1 ? t('visit') : t('visits', { n: r.visits }))}</span>
-      </div>
-      <div class="small name" dir="auto">${esc(r.name)}</div>
-      <div class="small dx" title="${esc(dxNames(r.dx))}">${esc(dxNames(r.dx))}</div>
-      <div class="meta"><span>${esc(fmtDate(r.date))}</span><span>${esc(r.ins)}</span></div>
+    <div class="top-left">
+      <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${esc(shortInv(r.inv))}</button>
+      ${r.items.length ? '<span class="tag vc">VC</span>' : ''}
+      ${r.milk ? `<span class="tag milk">🍼 ${esc(t('milk'))}</span>` : ''}
+      <span class="tag visits">${esc(r.visits === 1 ? t('visit') : t('visits', { n: r.visits }))}</span>
+      <span class="meta">${esc(fmtDate(r.date))} · ${esc(t('day', { n: age }))} · ${esc(r.ins)}</span>
+    </div>
+    <div class="top-right"><div class="dues">${duesHTML(r)}</div><div class="amount">${money(r.credit)}</div></div>
+    <div class="bottom-left">
+      <div class="sub-line" title="${esc(dx)}"><span class="name" dir="auto">${esc(r.name)}</span>${dx ? ' · ' + esc(dx) : ''}${r.follow.note ? ' · <i>' + esc(r.follow.note) + '</i>' : ''}</div>
       ${extraLinesHTML(r)}
     </div>
-    <div class="dues">${duesHTML(r)}</div>
-    <div class="amount">${money(r.credit)}</div>
-    <div class="actions">
-      <div class="row-flex"><div class="seg">${segs}</div><span class="note-preview" dir="auto">${esc(r.follow.note || '')}</span></div>
-      <div class="right">
-        ${r.contact.phone ? `
-        <button class="qr-btn" data-act="qr" data-type="welcome" data-inv="${inv}">${r.follow.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
-        <button class="qr-btn second" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>`
-        : `<button class="add-contact" data-act="details" data-inv="${inv}">${esc(t('addContact'))}</button>`}
-        <button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-inv="${inv}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
-      </div>
+    <div class="bottom-right">
+      <div class="seg">${segs}</div>
+      ${contactBtns}
+      <button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-inv="${inv}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
     </div>
   </div>`;
 }
@@ -882,9 +882,13 @@ function openDetails(inv) {
 
 /* ===================== Export / import / settings ===================== */
 // The banner appears as soon as anything changes after the last export
+// A small "● unsaved" mark on the Export button instead of a banner
 function renderBackupBanner() {
-  $('backupBanner').hidden = !store.dirty;
-  $('backupBannerText').textContent = store.lastBackup ? t('unsavedSince', { d: fmtDate(store.lastBackup) }) : t('unsavedNever');
+  $('unsavedMark').hidden = !store.dirty;
+  $('unsavedMark').textContent = '● ' + t('unsavedShort');
+  $('btnExport').title = store.dirty
+    ? (store.lastBackup ? t('unsavedSince', { d: fmtDate(store.lastBackup) }) : t('unsavedNever'))
+    : (store.lastBackup ? t('lastExport', { d: fmtDate(store.lastBackup) }) : '');
 }
 // File name: IR_<first invoice date>-<last invoice date>.json, dates as DDMMYY
 function exportFileName() {
@@ -1069,7 +1073,6 @@ function usePhoneMessages() {
 function bind() {
   $('btnPaste').onclick = () => { $('pasteMsg').textContent = ''; $('dlgPaste').showModal(); $('pasteBox').focus(); };
   $('btnExport').onclick = exportBackup;
-  $('btnBannerBackup').onclick = exportBackup;
   $('btnImport').onclick = () => $('fileImport').click();
   $('fileImport').onchange = e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; };
   $('btnSettings').onclick = () => { renderSettings(); $('dlgSettings').showModal(); };
@@ -1111,12 +1114,12 @@ function bind() {
     if (undoAction) undoAction();
     undoAction = null; $('undoBar').hidden = true;
   };
-  $('filter').onchange = e => { ui.filter = e.target.value; render(); };
+  $('filter').onchange = e => { ui.filter = e.target.value || 'active'; render(); };
   $('stats').onclick = e => {
     const s = e.target.closest('[data-filter]');
     if (!s) return;
-    ui.filter = ui.filter === s.dataset.filter ? 'active' : s.dataset.filter;
-    $('filter').value = ui.filter; render();
+    ui.filter = s.dataset.filter;
+    render();
   };
   $('list').onclick = e => {
     const b = e.target.closest('[data-act]');
