@@ -22,6 +22,7 @@
     }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0; font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 16px; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent;
@@ -169,6 +170,19 @@
   .stepper button { width: 32px; height: 32px; font-size: 18px; }
   .stepper input { width: 64px; padding: 8px 4px; text-align: center; font-weight: 700; }
   .diff-pos { color: var(--plus); }
+  .pending { color: var(--muted); font-weight: 500; }
+  .from-phone { display: inline-grid; place-items: center; margin-left: 6px; color: var(--brand); vertical-align: middle; }
+  .phone-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--brand); border-color: var(--brand); }
+  .check-row { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .check-row input { width: 18px; height: 18px; accent-color: var(--brand); }
+  .phone-line { margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .phone-line.ok { color: var(--accent); font-weight: 600; }
+  .qr-modal { max-width: 420px; text-align: center; }
+  .qr-modal .modal-head h2 { flex: 1; text-align: left; }
+  .qr-timer { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); }
+  .qr-box { display: grid; place-items: center; min-height: 200px; margin-top: 12px; }
+  .qr-box img { width: 240px; max-width: 100%; height: auto; image-rendering: pixelated; background: #fff; border-radius: 12px; }
+  .qr-hint { font-size: 13px; color: var(--muted); margin: 6px 0 14px; }
   .diff-neg { color: var(--danger); }
 
   /* Toast */
@@ -337,9 +351,13 @@
       </button>
     </div>
     <div class="review-tools">
-      <button class="small-btn" id="resetActualBtn">Reset to system</button>
-      <button class="small-btn" id="clearActualBtn">Clear all</button>
+      <button class="small-btn phone-btn" id="phoneBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>
+        Count on phone
+      </button>
+      <label class="check-row" id="blankPrintRow"><input type="checkbox" id="blankPrint"> Print with blank Actual SOH</label>
     </div>
+    <div class="phone-line" id="phoneLine"></div>
     <table class="rv">
       <thead><tr><th>Item</th><th class="num">System</th><th class="num">Actual SOH</th><th class="num">Diff</th></tr></thead>
       <tbody id="reviewBody"></tbody>
@@ -350,6 +368,27 @@
         <button class="primary" id="confirmExportBtn">Print</button>
       </div>
       <div class="msg err" id="reviewMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phone QR -->
+<div class="overlay" id="qrOverlay">
+  <div class="modal qr-modal" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+    <div class="modal-head">
+      <h2 id="qrTitle">Count on phone</h2>
+      <span class="qr-timer" id="qrTimer">--:--</span>
+      <button class="icon-btn" data-close aria-label="Close">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="qr-box" id="qrBox"></div>
+    <p class="msg" id="qrStatus"></p>
+    <p class="msg err" id="qrNote" hidden>The item list changed after this QR was made. Make a new QR to send the new list. Counts already made are kept.</p>
+    <p class="qr-hint">Counts are encrypted and sent only to this computer. The session renews with every count and ends 30 minutes after the last one.</p>
+    <div class="two-btns">
+      <button class="secondary" id="endSessionBtn">End session</button>
+      <button class="primary" id="newQrBtn">New QR</button>
     </div>
   </div>
 </div>
@@ -386,6 +425,7 @@
     link: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
     list: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9zM9 11h6M9 15h6"/></svg>',
     copy: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    phone: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>',
     eye: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
     eyeOff: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
   };
@@ -824,7 +864,7 @@
   }
 
   /* ---------- Modals ---------- */
-  const overlays = ['settingsOverlay', 'itemsOverlay', 'reviewOverlay'];
+  const overlays = ['settingsOverlay', 'itemsOverlay', 'reviewOverlay', 'qrOverlay'];
   function openOverlay(id) {
     $(id).classList.add('open');
     document.body.classList.add('locked');
@@ -1152,16 +1192,15 @@
     }
 
     reviewMode = mode;
-    reviewRows = items.map(i => ({
-      code: i.code, name: i.name, system: values[i.code],
-      actual: String(Math.max(values[i.code], 0))
-    }));
+    reviewRows = items.map(i => ({ code: i.code, name: i.name, system: values[i.code] }));
     $('reviewTitle').textContent = mode === 'print' ? 'Review before printing' : 'Review before saving PDF';
     $('confirmExportBtn').textContent = mode === 'print' ? 'Print' : 'Save PDF';
-    $('clearActualBtn').hidden = mode !== 'print';
+    $('blankPrintRow').hidden = mode !== 'print';
+    $('blankPrint').checked = false;
     $('reviewMsg').textContent = '';
     renderReview();
     openOverlay('reviewOverlay');
+    resumePhoneSession(name);
   }
 
   $('checkedBy').addEventListener('input', () => {
@@ -1173,8 +1212,18 @@
   $('printBtn').onclick = () => startExport('print');
   $('pdfBtn').onclick = () => startExport('pdf');
 
+  /* ---------- Actual SOH comes only from the phone (blind count) ---------- */
+  function countsFor(name) {
+    if (phone.task === name) return phone.counts;
+    return lastCounts[name] || {};
+  }
+  function actualOf(row) {
+    if (reviewMode === 'print' && $('blankPrint').checked) return null;
+    const v = countsFor(openTask)[row.code];
+    return Number.isInteger(v) && v >= 0 ? v : null;
+  }
   function diffOf(row) {
-    const a = parseIntStrict(row.actual, false);
+    const a = actualOf(row);
     return a === null ? null : a - row.system;
   }
   function diffText(d) { return d === null ? '' : (d > 0 ? '+' + d : String(d)); }
@@ -1189,66 +1238,28 @@
     reviewRows.forEach((row, idx) => {
       const tr = el('tr');
       tr.dataset.idx = idx;
-
       const tdItem = el('td');
       tdItem.append(el('div', 'code', row.code), el('div', 'iname', row.name || '—'));
       const tdSys = el('td', 'num', String(row.system));
-
-      const tdAct = el('td');
-      const stepper = el('div', 'stepper');
-      const minus = el('button', '', '−');
-      minus.type = 'button';
-      minus.setAttribute('aria-label', 'Decrease');
-      const input = el('input');
-      input.type = 'number';
-      input.min = '0';
-      input.step = '1';
-      input.inputMode = 'numeric';
-      input.value = row.actual;
-      input.setAttribute('aria-label', 'Actual SOH for ' + row.code);
-      const plus = el('button', '', '+');
-      plus.type = 'button';
-      plus.setAttribute('aria-label', 'Increase');
-      stepper.append(minus, input, plus);
-      tdAct.append(stepper);
-
+      const a = actualOf(row);
+      const tdAct = el('td', 'num');
+      if (a === null) tdAct.append(el('span', 'pending', '—'));
+      else {
+        tdAct.append(document.createTextNode(String(a)));
+        const b = el('span', 'from-phone');
+        b.innerHTML = ICON.phone;
+        b.title = 'Counted on the phone';
+        tdAct.append(b);
+      }
       const tdDiff = el('td', 'num');
       paintDiff(tdDiff, diffOf(row));
-
-      const commit = () => {
-        row.actual = input.value.trim();
-        const ok = row.actual === '' || parseIntStrict(row.actual, false) !== null;
-        input.classList.toggle('bad', !ok || input.validity.badInput);
-        if (row.actual !== '') tr.classList.remove('missing');
-        paintDiff(tdDiff, diffOf(row));
-      };
-      input.addEventListener('input', commit);
-      minus.onclick = () => {
-        const cur = parseIntStrict(input.value, false);
-        input.value = String(Math.max((cur === null ? 0 : cur) - 1, 0));
-        commit();
-      };
-      plus.onclick = () => {
-        const cur = parseIntStrict(input.value, false);
-        input.value = String((cur === null ? 0 : cur) + 1);
-        commit();
-      };
-
       tr.append(tdItem, tdSys, tdAct, tdDiff);
       body.append(tr);
     });
+    updatePhoneLine();
   }
 
-  $('resetActualBtn').onclick = () => {
-    reviewRows.forEach(r => { r.actual = String(Math.max(r.system, 0)); });
-    $('reviewMsg').textContent = '';
-    renderReview();
-  };
-  $('clearActualBtn').onclick = () => {
-    reviewRows.forEach(r => { r.actual = ''; });
-    $('reviewMsg').textContent = '';
-    renderReview();
-  };
+  $('blankPrint').onchange = () => { $('reviewMsg').textContent = ''; renderReview(); };
 
   function markReviewRows(test) {
     let first = null;
@@ -1261,31 +1272,270 @@
   }
 
   $('confirmExportBtn').onclick = () => {
-    const invalid = reviewRows.filter(r => r.actual !== '' && parseIntStrict(r.actual, false) === null);
-    if (invalid.length) {
-      markReviewRows(r => r.actual !== '' && parseIntStrict(r.actual, false) === null);
-      $('reviewMsg').textContent = 'Actual SOH must be a whole number of 0 or more.';
+    const blank = reviewMode === 'print' && $('blankPrint').checked;
+    const missing = blank ? [] : reviewRows.filter(r => actualOf(r) === null);
+    if (reviewMode === 'pdf' && missing.length) {
+      markReviewRows(r => actualOf(r) === null);
+      $('reviewMsg').textContent = missing.length + ' item' + (missing.length > 1 ? 's are' : ' is') +
+        ' not counted yet. Finish counting on the phone to save the PDF.';
       return;
     }
-    const empty = reviewRows.filter(r => r.actual === '');
-    if (reviewMode === 'pdf' && empty.length) {
-      markReviewRows(r => r.actual === '');
-      $('reviewMsg').textContent = 'Every item needs an Actual SOH to save the PDF (0 is allowed).';
-      return;
-    }
-    if (reviewMode === 'print' && empty.length && empty.length < reviewRows.length) {
-      markReviewRows(r => r.actual === '');
-      $('reviewMsg').textContent = 'Fill in the remaining items, or use "Clear all" to print a blank column.';
+    if (reviewMode === 'print' && missing.length && missing.length < reviewRows.length) {
+      markReviewRows(r => actualOf(r) === null);
+      $('reviewMsg').textContent = 'Some items are not counted yet. Finish counting on the phone, or tick "Print with blank Actual SOH".';
       return;
     }
     $('reviewMsg').textContent = '';
     if (reviewMode === 'print') doPrint(); else doPdf();
   };
 
+  /* ---------- Phone count session (encrypted, temporary) ---------- */
+  // The phone opens StockCount.html. Both pages share a temporary, end-to-end encrypted document.
+  // The key exists only in the QR link. The phone never receives the System QTY.
+  const PHONE_PAGE = 'StockCount.html';
+  const PHONE_COLLECTION = 'stockCount';
+  const SESSION_TTL = 30 * 60 * 1000; // renewed by the phone on every change
+  const SESSION_KEY = 'dc_phone_session';
+  const FIREBASE_URL = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyD-QSolp7uoEr0z_0NkOBIeEFAgllmi0ro',
+    authDomain: 'sync-df6ca.firebaseapp.com',
+    projectId: 'sync-df6ca',
+    storageBucket: 'sync-df6ca.firebasestorage.app',
+    messagingSenderId: '1091721719210',
+    appId: '1:1091721719210:web:567cd4ce4056bfce45cfd3'
+  };
+
+  let fb = null; // Firebase is loaded only when this feature is used
+  async function loadFirebase() {
+    if (fb) return fb;
+    const app = await import(FIREBASE_URL + 'firebase-app.js');
+    const fs = await import(FIREBASE_URL + 'firebase-firestore.js');
+    fb = { fs, db: fs.getFirestore(app.initializeApp(FIREBASE_CONFIG, 'stock-count')) };
+    return fb;
+  }
+
+  const te = new TextEncoder(), td = new TextDecoder();
+  const toB64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+  const fromB64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+  const toB64u = b => toB64(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const fromB64u = s => fromB64(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4));
+  async function deriveSession(secretBytes) {
+    const base = await crypto.subtle.importKey('raw', secretBytes, 'HKDF', false, ['deriveBits', 'deriveKey']);
+    const salt = te.encode('stock-count-v1');
+    const idBits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('page-id') }, base, 128);
+    const key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('content-key') },
+      base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    return { id: toB64u(new Uint8Array(idBits)), key };
+  }
+  async function encJSON(obj, key) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)));
+    return toB64(iv) + '.' + toB64(new Uint8Array(ct));
+  }
+  async function decJSON(str, key) {
+    const [iv, ct] = str.split('.');
+    return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(iv) }, key, fromB64(ct))));
+  }
+
+  const phone = { task: null, secret: null, codes: [], ref: null, key: null, expiresAt: 0, joined: false, counts: {}, unsub: null, timer: null, state: 'off' };
+  const lastCounts = {}; // counts kept in memory after a session ends, so the sheet can be exported again
+
+  function cleanCounts(obj, codes) {
+    const out = {};
+    if (obj && typeof obj === 'object') codes.forEach(c => {
+      const v = obj[c];
+      if (Number.isInteger(v) && v >= 0) out[c] = v;
+    });
+    return out;
+  }
+
+  function stopListening() {
+    if (phone.unsub) phone.unsub();
+    clearInterval(phone.timer);
+    phone.unsub = null;
+    phone.timer = null;
+  }
+
+  // End the session: keep the counts in memory, delete the shared document.
+  function endPhoneSession(reason) {
+    if (phone.task && Object.keys(phone.counts).length) lastCounts[phone.task] = Object.assign({}, phone.counts);
+    stopListening();
+    if (phone.ref && fb) fb.fs.deleteDoc(phone.ref).catch(() => {});
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    Object.assign(phone, { task: null, secret: null, codes: [], ref: null, key: null, expiresAt: 0, joined: false, counts: {}, state: reason || 'off' });
+    updatePhoneLine();
+    updateQrBox();
+  }
+
+  async function cleanupExpired() {
+    try {
+      const { fs, db } = await loadFirebase();
+      const q = fs.query(fs.collection(db, PHONE_COLLECTION),
+        fs.where('expiresAt', '<', fs.Timestamp.fromMillis(Date.now() - 120000)), fs.limit(20));
+      (await fs.getDocs(q)).forEach(d => fs.deleteDoc(d.ref).catch(() => {}));
+    } catch (e) {}
+  }
+
+  async function listen(sessionInfo) {
+    const { fs, db } = await loadFirebase();
+    const s = await deriveSession(fromB64u(sessionInfo.secret));
+    stopListening();
+    Object.assign(phone, {
+      task: sessionInfo.task, secret: sessionInfo.secret, codes: sessionInfo.codes,
+      ref: fs.doc(db, PHONE_COLLECTION, s.id), key: s.key, expiresAt: sessionInfo.expiresAt, state: 'live'
+    });
+    const myRef = phone.ref;
+    phone.unsub = fs.onSnapshot(myRef, async snap => {
+      if (phone.ref !== myRef) return;
+      if (!snap.exists()) { endPhoneSession('ended'); return; }
+      const d = snap.data();
+      if (d.expiresAt) {
+        phone.expiresAt = d.expiresAt.toMillis();
+        try { localStorage.setItem(SESSION_KEY, JSON.stringify({ task: phone.task, secret: phone.secret, codes: phone.codes, expiresAt: phone.expiresAt })); } catch (e) {}
+      }
+      phone.joined = !!d.joined;
+      try {
+        if (d.counts) phone.counts = cleanCounts((await decJSON(d.counts, phone.key)).counts, phone.codes);
+      } catch (e) { /* ignore anything that cannot be decrypted */ }
+      if ($('reviewOverlay').classList.contains('open') && openTask === phone.task) renderReview();
+      updatePhoneLine();
+      updateQrBox();
+    }, () => {});
+    phone.timer = setInterval(phoneTick, 1000);
+  }
+
+  function phoneTick() {
+    if (phone.expiresAt && Date.now() >= phone.expiresAt) { endPhoneSession('expired'); return; }
+    updatePhoneLine();
+    updateQrBox();
+  }
+
+  function timeLeft() {
+    const s = Math.max(0, Math.ceil((phone.expiresAt - Date.now()) / 1000));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  // Reconnect to a running session for this task (for example after a page reload).
+  async function resumePhoneSession(name) {
+    if (phone.task === name && phone.unsub) return;
+    const saved = load(SESSION_KEY, null);
+    if (!saved || saved.task !== name || !saved.secret || !(saved.expiresAt > Date.now())) return;
+    try { await listen(saved); } catch (e) {}
+  }
+
+  async function createPhoneSession() {
+    const name = openTask;
+    const items = reviewRows.map(r => ({ code: r.code, name: r.name || '' }));
+    const codes = items.map(i => i.code);
+    // Keep counts already made for the same items.
+    const carry = cleanCounts(phone.task === name ? phone.counts : (lastCounts[name] || {}), codes);
+    if (phone.ref) endPhoneSession('off');
+    phone.state = 'connecting';
+    updateQrBox();
+    try {
+      const { fs } = await loadFirebase();
+      cleanupExpired();
+      const secretBytes = crypto.getRandomValues(new Uint8Array(32));
+      const s = await deriveSession(secretBytes);
+      const info = { task: name, secret: toB64u(secretBytes), codes, expiresAt: Date.now() + SESSION_TTL };
+      const ref = fs.doc(fb.db, PHONE_COLLECTION, s.id);
+      await fs.setDoc(ref, {
+        list: await encJSON({ task: name, items }, s.key),
+        counts: await encJSON({ counts: carry }, s.key),
+        joined: false,
+        createdAt: fs.serverTimestamp(),
+        expiresAt: fs.Timestamp.fromMillis(info.expiresAt)
+      });
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(info)); } catch (e) {}
+      phone.counts = carry;
+      await listen(info);
+    } catch (e) {
+      phone.state = 'error';
+    }
+    updateQrBox();
+    updatePhoneLine();
+    if ($('reviewOverlay').classList.contains('open')) renderReview();
+  }
+
+  function sameItems() {
+    const codes = reviewRows.map(r => r.code);
+    return phone.codes.length === codes.length && codes.every(c => phone.codes.includes(c));
+  }
+
+  function updatePhoneLine() {
+    const line = $('phoneLine');
+    if (!line) return;
+    const total = reviewRows.length;
+    const counted = reviewRows.filter(r => Number.isInteger(countsFor(openTask)[r.code])).length;
+    if (phone.task === openTask && phone.unsub) {
+      line.textContent = (phone.joined ? 'Phone connected' : 'Waiting for the phone') +
+        ' · ' + counted + ' of ' + total + ' counted · ' + timeLeft() + ' left';
+      line.className = 'phone-line ' + (phone.joined ? 'ok' : '');
+    } else if (counted) {
+      line.textContent = counted + ' of ' + total + ' counted. The phone session has ended.';
+      line.className = 'phone-line';
+    } else {
+      line.textContent = 'Actual SOH is counted on the phone only.';
+      line.className = 'phone-line';
+    }
+  }
+
+  async function updateQrBox() {
+    if (!$('qrOverlay').classList.contains('open')) return;
+    const box = $('qrBox'), st = $('qrStatus');
+    $('qrTimer').textContent = phone.unsub ? timeLeft() : '--:--';
+    $('qrNote').hidden = !(phone.unsub && phone.task === openTask && !sameItems());
+    if (phone.state === 'connecting') { st.textContent = 'Connecting…'; st.className = 'msg'; return; }
+    if (phone.state === 'error') { box.replaceChildren(); st.textContent = 'Could not connect. Check the internet connection and try again.'; st.className = 'msg err'; return; }
+    if (!(phone.unsub && phone.task === openTask)) {
+      box.replaceChildren();
+      st.textContent = phone.state === 'expired' ? 'The session expired. Make a new QR code to continue.' :
+        phone.state === 'ended' ? 'The session has ended.' : '';
+      st.className = 'msg err';
+      return;
+    }
+    if (!box.dataset.secret || box.dataset.secret !== phone.secret) {
+      try {
+        await loadScript('qrcode.js?v=3');
+        const link = new URL(PHONE_PAGE, location.href).href + '#' + phone.secret;
+        const qr = qrcode(0, 'M');
+        qr.addData(link);
+        qr.make();
+        box.innerHTML = qr.createImgTag(5, 8);
+        box.dataset.secret = phone.secret;
+      } catch (e) {
+        box.textContent = 'qrcode.js did not load. Make sure it is next to this page.';
+      }
+    }
+    const counted = Object.keys(phone.counts).length;
+    st.textContent = phone.joined ? 'Phone connected · ' + counted + ' counted' : 'Scan with the phone camera.';
+    st.className = 'msg ' + (phone.joined ? 'ok' : '');
+  }
+
+  $('phoneBtn').onclick = async () => {
+    $('qrBox').replaceChildren();
+    delete $('qrBox').dataset.secret;
+    openOverlay('qrOverlay');
+    if (phone.unsub && phone.task === openTask) updateQrBox();
+    else await createPhoneSession();
+  };
+  $('newQrBtn').onclick = () => {
+    $('qrBox').replaceChildren();
+    delete $('qrBox').dataset.secret;
+    createPhoneSession();
+  };
+  $('endSessionBtn').onclick = () => {
+    endPhoneSession('ended');
+    closeOverlay('qrOverlay');
+    if ($('reviewOverlay').classList.contains('open')) renderReview();
+  };
+
   function exportRows() {
     return reviewRows.map((r, i) => {
       const d = diffOf(r);
-      return { n: i + 1, code: r.code, name: r.name || '', system: String(r.system), actual: r.actual, diff: diffText(d), d };
+      const a = actualOf(r);
+      return { n: i + 1, code: r.code, name: r.name || '', system: String(r.system), actual: a === null ? '' : String(a), diff: diffText(d), d };
     });
   }
   function printedStamp() {
@@ -1316,6 +1566,7 @@
     area.append(table, sign);
 
     closeOverlay('reviewOverlay');
+    if (phone.task === openTask) endPhoneSession('ended');
     setTimeout(() => window.print(), 50);
   }
 
@@ -1381,6 +1632,7 @@
 
       doc.save('Stock-Check-' + today() + '.pdf');
       closeOverlay('reviewOverlay');
+      if (phone.task === openTask) endPhoneSession('ended');
       showToast('PDF saved');
     } catch (e) {
       $('reviewMsg').textContent = 'Could not create the PDF. Check your internet connection and try again.';
