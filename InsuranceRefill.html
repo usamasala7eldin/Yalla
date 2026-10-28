@@ -56,6 +56,7 @@
   .tag.milk { background: var(--milk-bg); color: var(--milk); font-weight: 600; }
   .seg button.auto { background: var(--milk-bg); color: var(--milk); }
   .count { color: var(--muted); font-size: 12px; align-self: center; }
+  .period-hint { color: var(--yellow); font-size: 12px; margin: -4px 0 8px; }
   .undo-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 8px 8px 8px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: center; z-index: 1001; }
   .undo-bar button { border: 0; background: #fff; color: var(--accent); font-weight: 700; border-radius: 6px; padding: 4px 12px; }
   .who { min-width: 0; }
@@ -166,6 +167,7 @@
     <span class="count" id="count"></span>
   </div>
 
+  <p class="period-hint" id="periodHint" hidden></p>
   <div class="list" id="list"></div>
 </div>
 
@@ -178,6 +180,7 @@
   <div class="dlg-body">
     <p class="help" data-i18n="pasteHelp1"></p>
     <p class="help" data-i18n="pasteHelp2"></p>
+    <p class="help"><b data-i18n="pasteHelp3"></b></p>
     <textarea class="paste" id="pasteBox" data-i18n-placeholder="pastePlaceholder"></textarea>
     <div class="row-flex" style="margin-top:8px">
       <button class="btn primary" id="btnProcess" data-i18n="process"></button>
@@ -252,6 +255,9 @@ const STORAGE_KEY = 'insuranceRefill.v2';
 const KEEP_DAYS = 365;           // invoices older than this are removed automatically
 const ACTIVE_DAYS = 120;         // "Active invoices" = invoices from the last 120 days (except No refill)
 const UNDO_SECONDS = 5;
+// Incomplete copy check: Details rows equal to one of these page sizes and ending this long before the To Date
+const PAGE_SIZES = [5, 10, 15, 20, 25, 50, 100, 1000];
+const INCOMPLETE_GAP_DAYS = 14;
 const PERIODS = { '1M': 28, '2M': 56, '3M': 84 }; // days added to the invoice date
 // Days remaining until the refill date: "Due now" and "Coming soon" ranges per period.
 // Below the Due range down to RECENT_LIMIT = "Recently missed"; further past = "Missed".
@@ -285,6 +291,9 @@ const I18N = {
     pasteTitle: 'Paste dashboard reports',
     pasteHelp1: 'Open "On Account by User" or "Transaction Reference" on the KSA Pharmacy Dashboard, press Ctrl+A then Ctrl+C, and paste here.',
     pasteHelp2: 'Paste one report at a time. New data is merged with the saved data.',
+    pasteHelp3: 'Before copying, show all rows: in Details, Actions → Format → Rows per page → All.',
+    pasteIncomplete: 'Only {n} rows were copied (last date {last}, but To Date is {to}). Nothing was added. On the dashboard, in Details: Actions → Format → Rows per page → All, then copy again.',
+    periodHint: '⚠ The two reports cover different periods. On Account by User: {a} · Trans. Ref.: {b}',
     pastePlaceholder: 'Paste the whole page here (Ctrl+V)…',
     process: 'Process',
     pasteResult: 'On Account: {inv} invoices ({newInv} new). Transaction Reference: {items} items for {itemInv} invoices.',
@@ -356,7 +365,7 @@ function applyI18n() {
 
 /* ===================== Storage ===================== */
 // invoices / items / follow are keyed by invoice no.; contacts by card no.; messages = WhatsApp templates
-function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, lastBackup: null, dirty: false }; }
+function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, messagesAt: '', periods: {}, lastBackup: null, dirty: false }; }
 // Templates saved by earlier versions: drop the old defaults so the current defaults are used
 const OLD_DEFAULT_WELCOME = [
   'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف هنا اسم الفرع ورابط الموقع)',
@@ -433,10 +442,37 @@ function parseReport(text) {
     }
     // Transaction Reference — Detail: EmpID, InvoiceNo, Date, Reference, ItemID, Barcode, Desc, Qty, Value, PrescriptionID
     if (c.length >= 9 && INVOICE_RE.test(c[1]) && /^\d{4}-\d{2}-\d{2}$/.test(c[2])) {
-      (result.items[c[1]] = result.items[c[1]] || []).push({ ref: c[3], desc: c[6], qty: num(c[7]), value: num(c[8]) });
+      (result.items[c[1]] = result.items[c[1]] || []).push({ ref: c[3], desc: c[6], qty: num(c[7]), value: num(c[8]), date: c[2] });
     }
   }
+  // Report type, its From/To dates, and the pager under the Details table (the last "1 - N" line)
+  result.type = /On Account by User/i.test(text) ? 'onAccount' : /Transaction Reference/i.test(text) ? 'transRef' : '';
+  const dateAfter = label => { const m = new RegExp(label + '\\s*\\n\\s*(\\d{4}-\\d{2}-\\d{2})', 'i').exec(text); return m ? m[1] : null; };
+  result.from = dateAfter('From Date');
+  result.to = dateAfter('To Date');
+  const pagers = [...text.matchAll(/^\s*(\d+)\s*-\s*(\d+)\s*$/gm)];
+  result.pagerEnd = pagers.length ? Number(pagers[pagers.length - 1][2]) : null;
+  const itemRows = Object.values(result.items).flat();
+  result.rows = result.invoices.length || itemRows.length;
+  const dates = [...result.invoices.map(i => i.date), ...itemRows.map(i => i.date)].sort();
+  result.lastDate = dates.length ? dates[dates.length - 1] : null;
   return result;
+}
+
+// The dashboard shows Details in pages. If the copied rows fill exactly one page size and stop
+// long before the To Date, only the first page was copied.
+function isIncomplete(parsed) {
+  return !!(parsed.pagerEnd && parsed.rows === parsed.pagerEnd && PAGE_SIZES.includes(parsed.rows) &&
+    parsed.to && parsed.lastDate && dayNum(parsed.to) - dayNum(parsed.lastDate) > INCOMPLETE_GAP_DAYS);
+}
+
+// Keep the overall From/To covered by each report type
+function rememberPeriod(parsed) {
+  if (!parsed.type || !parsed.from || !parsed.to) return;
+  const cur = store.periods[parsed.type];
+  store.periods[parsed.type] = cur
+    ? { from: parsed.from < cur.from ? parsed.from : cur.from, to: parsed.to > cur.to ? parsed.to : cur.to }
+    : { from: parsed.from, to: parsed.to };
 }
 
 function mergeParsed(parsed) {
@@ -449,6 +485,7 @@ function mergeParsed(parsed) {
     store.items[inv] = list; // replace, so pasting the same report twice does not duplicate items
     itemCount += list.length;
   }
+  rememberPeriod(parsed);
   pruneOld();
   return { inv: parsed.invoices.length, newInv, items: itemCount, itemInv: Object.keys(parsed.items).length };
 }
@@ -603,6 +640,7 @@ function render() {
   rowsCache = buildRows();
   renderStats();
   renderBackupBanner();
+  renderPeriodHint();
   const list = $('list');
   const rows = rowsCache.filter(matchesFilter);
   $('count').textContent = rows.length === 1 ? t('countOne') : t('countMany', { n: rows.length });
@@ -616,6 +654,16 @@ function render() {
     return;
   }
   list.innerHTML = rows.length ? rows.map(rowHTML).join('') : `<div class="empty">${esc(t('emptyFilter'))}</div>`;
+}
+
+// Small warning when On Account by User and Trans. Ref. were pasted for different periods
+function renderPeriodHint() {
+  const a = store.periods.onAccount, b = store.periods.transRef;
+  const differ = a && b && (a.from !== b.from || a.to !== b.to);
+  $('periodHint').hidden = !differ;
+  if (!differ) return;
+  const d = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4);
+  $('periodHint').textContent = t('periodHint', { a: `${d(a.from)} – ${d(a.to)}`, b: `${d(b.from)} – ${d(b.to)}` });
 }
 
 function matchesFilter(r) {
@@ -867,7 +915,10 @@ function importBackup(file) {
       for (const [k, v] of Object.entries(data.items || {})) if (!store.items[k]) store.items[k] = v;
       for (const [k, v] of Object.entries(data.follow || {})) if (newer(v, store.follow[k])) { store.follow[k] = v; fol++; }
       for (const [k, v] of Object.entries(data.contacts || {})) if (newer(v, store.contacts[k])) { store.contacts[k] = v; con++; }
-      if (data.messages && Object.keys(data.messages).length) store.messages = data.messages;
+      // Messages: keep whichever was edited last
+      const fileMsgNewer = (data.messagesAt || '') > (store.messagesAt || '') || (!store.messagesAt && !Object.keys(store.messages).length);
+      if (data.messages && Object.keys(data.messages).length && fileMsgNewer) { store.messages = data.messages; store.messagesAt = data.messagesAt || ''; }
+      for (const [k, v] of Object.entries(data.periods || {})) rememberPeriod({ type: k, from: v.from, to: v.to });
       if (data.lastBackup && (!store.lastBackup || data.lastBackup > store.lastBackup)) store.lastBackup = data.lastBackup;
       pruneOld(); saveStore(wasEmpty && !store.dirty ? 'clean' : undefined); render();
       showImportResult(t('importDone', { inv, fol, con }));
@@ -889,6 +940,7 @@ function saveMessages() {
     welcomeAr: $('setWelcomeAr').value, welcomeEn: $('setWelcomeEn').value,
     refillAr: $('setRefillAr').value, refillEn: $('setRefillEn').value
   };
+  store.messagesAt = new Date().toISOString();
   saveStore(); $('messagesMsg').textContent = t('saved');
 }
 
@@ -994,6 +1046,7 @@ function endPhoneSession() {
 function usePhoneMessages() {
   if (!phone.received) return;
   store.messages = Object.assign({}, phone.received);
+  store.messagesAt = new Date().toISOString();
   saveStore();
   phone.received = null;
   endPhoneSession();
@@ -1014,7 +1067,7 @@ function bind() {
   $('btnPhoneEdit').onclick = startPhoneSession;
   $('btnPhoneUse').onclick = usePhoneMessages;
   $('dlgPhone').addEventListener('close', () => { phone.received = null; endPhoneSession(); });
-  $('btnResetMessages').onclick = () => { store.messages = {}; saveStore(); renderSettings(); };
+  $('btnResetMessages').onclick = () => { store.messages = {}; store.messagesAt = new Date().toISOString(); saveStore(); renderSettings(); };
   $('btnClearAll').onclick = () => { if (confirm(t('clearConfirm'))) { store = emptyStore(); saveStore('clean'); renderSettings(); render(); } };
   document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
   document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
@@ -1024,6 +1077,11 @@ function bind() {
     const parsed = parseReport($('pasteBox').value);
     const msg = $('pasteMsg');
     if (!parsed.invoices.length && !Object.keys(parsed.items).length) { msg.className = 'msg err'; msg.textContent = t('pasteNothing'); return; }
+    if (isIncomplete(parsed)) {
+      msg.className = 'msg err';
+      msg.textContent = t('pasteIncomplete', { n: parsed.rows, last: fmtDate(parsed.lastDate), to: fmtDate(parsed.to) });
+      return; // nothing is added from an incomplete copy
+    }
     const res = mergeParsed(parsed);
     saveStore();
     msg.className = 'msg ok'; msg.textContent = t('pasteResult', res);
