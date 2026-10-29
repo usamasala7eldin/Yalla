@@ -15,7 +15,7 @@
     --red: #b42318; --red-bg: #fde3e1;
     --grey-bg: #eef0f3;
     --qr2: #1a8f4c;
-    --milk: #7c3aed; --milk-bg: #f1eafe;
+    --milk: #1d4ed8; --milk-bg: #dbeafe;
     --orange: #c2410c; --orange-bg: #ffedd5; --teal: #0f766e;
   }
   * { box-sizing: border-box; }
@@ -55,8 +55,12 @@
   .list { display: flex; flex-direction: column; gap: 6px; }
   .row { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; grid-template-columns: 1fr auto auto; gap: 6px 12px; align-items: center; cursor: pointer; }
   .row:hover { border-color: #c9d3e3; }
-  .row.vc { background: #f1f6ff; border-color: #bcd3fb; border-left: 5px solid var(--accent); }
-  .row.milk { border-left: 5px solid var(--milk); }
+  .row.vc { background: #eef5ff; border-color: #c9dcf8; }
+  .row.milk { border-left: 6px solid var(--milk); }
+  .done-btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 600; }
+  .done-btn:hover { border-color: var(--green); color: var(--green); }
+  .line.done-line { color: var(--muted); }
+  .fbtn.done b { color: var(--muted); }
   .tag.milk { background: var(--milk-bg); color: var(--milk); font-weight: 600; }
   .seg button.auto { background: var(--milk-bg); color: var(--milk); }
   .period-hint { color: var(--yellow); font-size: 12px; margin: -4px 0 8px; }
@@ -318,7 +322,9 @@ const I18N = {
     milk: 'Milk', milkAuto: 'Milk: 1M is set automatically. Click another period to change it.',
     undo: 'Undo', periodSet: '{inv}: {p}', periodCleared: '{inv}: refill cleared',
     welcomeHint: 'Write the pharmacy address after the pharmacy name, then the pharmacy Google Maps link on the next line.',
-    stats: { due: 'Due now', soon: 'Coming soon', recent: 'Recently missed', missed: 'Missed', possible: 'Possible refill' },
+    stats: { due: 'Due now', soon: 'Coming soon', recent: 'Recently missed', missed: 'Missed', possible: 'Possible refill', done: 'Done' },
+    done: 'Done', undoDone: 'Undo', choosePeriodFirst: 'Choose 1M, 2M or 3M first.',
+    doneLine: 'Done on {d} · hidden until {u}', doneSet: '{inv}: done, hidden until {u}', doneUndone: '{inv}: back in the list',
     after: 'After {n} days', afterOne: 'After 1 day', today: 'Today', ago: '{n} days ago', agoOne: '1 day ago',
     noRefill: 'No refill', visits: '{n} visits', visit: '1 visit',
     copied: 'Copied {v}', copyHint: 'Click to copy',
@@ -555,6 +561,7 @@ function buildRows() {
     row.possible = possibleRefill(row, today);
     row.refill = refilledAt(row, byCardList[i.card]);
     row.active = ACTIVE_STATUSES.includes(row.status) || row.likely; // Possible refill has its own filter, like Missed
+    row.hidden = !!(row.follow.done && today <= dayNum(row.follow.done.until));
     return row;
   }).sort((a, b) => b.credit - a.credit);
 }
@@ -664,7 +671,7 @@ const ui = { filter: 'active', shown: SHOW_STEP }; // always opens on Active inv
 function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringify(ui)); } catch (e) {} }
 
 // Main filters are buttons; the rest are in the "More" menu
-const MAIN_FILTERS = ['active', 'due', 'soon', 'recent', 'missed', 'possible'];
+const MAIN_FILTERS = ['active', 'due', 'soon', 'recent', 'missed', 'possible', 'done'];
 const MORE_FILTERS = ['likely', 'notset', 'norefill', 'all'];
 function setupFilter() {
   $('filter').innerHTML = `<option value="">${esc(t('more'))}</option>` +
@@ -711,6 +718,9 @@ function renderPeriodHint() {
 }
 
 function matchesFilter(r) {
+  // Invoices marked Done are hidden everywhere until their date passes; they are listed only under Done
+  if (ui.filter === 'done') return r.hidden;
+  if (r.hidden) return false;
   switch (ui.filter) {
     case 'all': return true;
     case 'active': return r.active;
@@ -721,7 +731,7 @@ function matchesFilter(r) {
 }
 
 function renderStats() {
-  const n = k => rowsCache.filter(r => k === 'active' ? r.active : k === 'possible' ? !!r.possible : r.status === k).length;
+  const n = k => rowsCache.filter(r => k === 'done' ? r.hidden : !r.hidden && (k === 'active' ? r.active : k === 'possible' ? !!r.possible : r.status === k)).length;
   $('stats').innerHTML = MAIN_FILTERS.map(k =>
     `<button class="fbtn ${k} ${ui.filter === k ? 'on' : ''}" data-filter="${k}"><span>${esc(k === 'active' ? t('active') : t('stats.' + k))}</span><b>${n(k)}</b></button>`).join('');
   setupFilter();
@@ -742,6 +752,7 @@ function duesHTML(r) {
 
 function extraLinesHTML(r) {
   let html = '';
+  if (r.hidden) html += `<div class="line done-line">✓ ${esc(t('doneLine', { d: fmtDate(r.follow.done.at), u: fmtDate(r.follow.done.until) }))}</div>`;
   if (r.possible) {
     html += `<div class="line possible">🔁 ${esc(t('possibleLine', { p: r.period, m: r.possible.months, d: daysLabel(r.possible.days) }))}</div>`;
   }
@@ -784,6 +795,7 @@ function rowHTML(r) {
     <div class="actions">
       <div class="row-flex"><div class="seg">${segs}</div><span class="note-preview" dir="auto">${esc(r.follow.note || '')}</span></div>
       <div class="right">
+        <button class="done-btn" data-act="done" data-inv="${inv}">${r.hidden ? '↩ ' + esc(t('undoDone')) : '✓ ' + esc(t('done'))}</button>
         ${contactBtns}
         <button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-inv="${inv}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
       </div>
@@ -812,8 +824,35 @@ function touchFollow(inv) {
   const f = store.follow[inv];
   if (!f) return;
   f.updatedAt = new Date().toISOString();
-  if (!f.period && !f.note && !f.qrW && !f.qrR) delete store.follow[inv];
+  if (!f.period && !f.note && !f.qrW && !f.qrR && !f.done) delete store.follow[inv];
 }
+const dayNumToISO = n => { const d = new Date(n * 86400000); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
+const DONE_HIDE_DAYS = 20; // Done hides the invoice until 20 days after its current refill date
+
+// Done: hide the invoice for its current refill only. Needs a refill period (1M / 2M / 3M).
+function toggleDone(inv) {
+  const r = rowsCache.find(x => x.inv === inv);
+  if (!r) return;
+  const f = follow(inv);
+  const before = f.done ? Object.assign({}, f.done) : null;
+  if (r.hidden) {
+    delete f.done;
+    touchFollow(inv); saveStore(); render();
+    showUndo(t('doneUndone', { inv: shortInv(inv) }), () => { follow(inv).done = before; touchFollow(inv); saveStore(); render(); });
+    return;
+  }
+  if (!PERIODS[r.period]) { toast(t('choosePeriodFirst')); return; }
+  // Current refill date: the Possible refill being shown, otherwise the first refill date
+  const today = dayNum(todayISO());
+  const refillDay = r.possible ? today + r.possible.days : dayNum(r.date) + PERIODS[r.period];
+  f.done = { at: todayISO(), until: dayNumToISO(refillDay + DONE_HIDE_DAYS) };
+  touchFollow(inv); saveStore(); render();
+  showUndo(t('doneSet', { inv: shortInv(inv), u: fmtDate(f.done.until) }), () => {
+    const ff = follow(inv); if (before) ff.done = before; else delete ff.done;
+    touchFollow(inv); saveStore(); render();
+  });
+}
+
 function setPeriod(inv, val) {
   const row = rowsCache.find(x => x.inv === inv);
   const milk = !!(row && row.milk);
@@ -1184,6 +1223,7 @@ function bind() {
       case 'details': openDetails(inv); break;
       case 'qr': openQr(inv, b.dataset.type); break;
       case 'more': ui.shown += SHOW_STEP; render(); break;
+      case 'done': toggleDone(inv); break;
       case 'import': $('fileImport').click(); break;
       case 'paste': $('btnPaste').click(); break;
     }
