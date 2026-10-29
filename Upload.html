@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JSON Box</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --text:#1d2433; --muted:#6b7488;
+    --accent:#2f6fed; --accent-soft:#e8efff; --danger:#d93c3c; --border:#dfe4ee;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#12151c; --card:#1b2029; --text:#e6e9f0; --muted:#8b93a7;
+      --accent:#5b8dff; --accent-soft:#222c40; --danger:#ff6b6b; --border:#2a3140;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:640px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:20px;margin:0}
+  .icons{display:flex;gap:8px}
+  .icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:18px;cursor:pointer}
+  .icon-btn:hover{border-color:var(--accent)}
+  .drop{display:block;border:2px dashed var(--border);border-radius:14px;background:var(--card);padding:28px 16px;text-align:center;cursor:pointer;color:var(--muted);transition:.15s}
+  .drop.over,.drop:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
+  .drop input{display:none}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-top:14px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--muted);margin-bottom:12px}
+  .meta b{color:var(--text);word-break:break-all}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{flex:1;min-width:90px;padding:10px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;background:var(--accent-soft);color:var(--accent)}
+  .btn.danger{color:var(--danger)}
+  .btn:disabled{opacity:.5;cursor:default}
+  pre{margin:12px 0 0;max-height:320px;overflow:auto;background:var(--bg);border-radius:10px;padding:10px;font-size:12px;white-space:pre-wrap;word-break:break-all}
+  .empty{text-align:center;color:var(--muted);padding:18px 0}
+  .hidden{display:none!important}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;max-width:90%}
+  .toast.show{opacity:1}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal-box{background:var(--card);border-radius:14px;padding:18px;text-align:center;max-width:320px;width:100%}
+  #qr{display:inline-block;background:#fff;padding:10px;border-radius:10px}
+  .small{font-size:12px;color:var(--muted);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 data-t="title"></h1>
+    <div class="icons">
+      <button class="icon-btn" id="copyLinkBtn" data-tt="copyLink">🔗</button>
+      <button class="icon-btn" id="qrBtn" data-tt="showQr">▦</button>
+    </div>
+  </header>
+
+  <label class="drop" id="drop">
+    <input type="file" id="fileInput" accept=".json,application/json">
+    <div data-t="drop"></div>
+  </label>
+
+  <div class="card">
+    <div id="loading" class="empty" data-t="loading"></div>
+    <div id="empty" class="empty hidden" data-t="empty"></div>
+    <div id="fileView" class="hidden">
+      <div class="meta">
+        <span><span data-t="name"></span>: <b id="fName"></b></span>
+        <span><span data-t="size"></span>: <b id="fSize"></b></span>
+        <span><span data-t="uploaded"></span>: <b id="fTime"></b></span>
+      </div>
+      <div class="actions">
+        <button class="btn" id="copyBtn" data-t="copy"></button>
+        <button class="btn" id="downloadBtn" data-t="download"></button>
+        <button class="btn danger" id="deleteBtn" data-t="delete"></button>
+      </div>
+      <pre id="preview"></pre>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="qrModal">
+  <div class="modal-box">
+    <div id="qr"></div>
+    <div class="small" data-t="qrHint"></div>
+    <button class="btn" style="margin-top:12px;width:100%" id="closeQr" data-t="close"></button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// TODO: paste the same firebaseConfig used in the Sync page
+const firebaseConfig = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+
+const COLLECTION = "jsonbox";
+const MAX_STORED = 1000000; // Firestore document limit is ~1 MB
+const PREVIEW_CHARS = 5000;
+const LS_KEY = "jsonbox_link";
+
+// UI strings (localization-ready)
+const T = {
+  title: "JSON Box",
+  drop: "Drop a JSON file here, or tap to choose",
+  loading: "Loading…",
+  empty: "No file yet. Upload one above.",
+  name: "Name", size: "Size", uploaded: "Uploaded",
+  copy: "Copy", download: "Download", delete: "Delete", close: "Close",
+  copyLink: "Copy link", showQr: "Open on another device",
+  qrHint: "Scan to open this file on your phone. Keep the link safe — it is the only key.",
+  invalidJson: "This file is not valid JSON.",
+  tooLarge: "File is too large (max ~700 KB after compression).",
+  confirmReplace: "Replace the current file?",
+  confirmDelete: "Delete the file permanently?",
+  uploading: "Uploading…", uploaded_ok: "Uploaded ✓", deleted: "Deleted ✓",
+  copied: "Copied ✓", linkCopied: "Link copied ✓",
+  badKey: "Cannot open this file. The link may be damaged.",
+  error: "Something went wrong. Try again."
+};
+document.querySelectorAll("[data-t]").forEach(el => el.textContent = T[el.dataset.t]);
+document.querySelectorAll("[data-tt]").forEach(el => el.title = T[el.dataset.tt]);
+
+const $ = id => document.getElementById(id);
+const db = getFirestore(initializeApp(firebaseConfig));
+let current = null; // { name, text, size, time }
+
+// ---------- helpers ----------
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function toB64(u8){
+  let s = "";
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function fromB64(s){
+  const b = atob(s), u = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+  return u;
+}
+const toUrl = s => s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const fromUrl = s => s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4);
+const randomB64 = n => toUrl(toB64(crypto.getRandomValues(new Uint8Array(n))));
+function fmtSize(b){
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+  return (b / 1048576).toFixed(2) + " MB";
+}
+async function pipe(bytes, stream){
+  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+}
+function lsGet(){ try { return localStorage.getItem(LS_KEY); } catch { return null; } }
+function lsSet(v){ try { localStorage.setItem(LS_KEY, v); } catch {} }
+
+// ---------- link (id + key in the URL hash) ----------
+function getOrCreateLink(){
+  let h = location.hash.slice(1);
+  if (!h.includes(".")) {
+    const saved = lsGet();
+    h = saved && saved.includes(".") ? saved : randomB64(15) + "." + randomB64(16);
+    history.replaceState(null, "", "#" + h);
+  }
+  lsSet(h);
+  const [id, key] = h.split(".");
+  return { id, key };
+}
+const { id: DOC_ID, key: KEY_STR } = getOrCreateLink();
+const docRef = doc(db, COLLECTION, DOC_ID);
+const cryptoKey = await crypto.subtle.importKey("raw", fromB64(fromUrl(KEY_STR)), "AES-GCM", false, ["encrypt", "decrypt"]);
+
+async function encrypt(obj){
+  const zipped = await pipe(new TextEncoder().encode(JSON.stringify(obj)), new CompressionStream("gzip"));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cryptoKey, zipped));
+  return { iv: toB64(iv), data: toB64(enc) };
+}
+async function decrypt(d){
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(d.iv) }, cryptoKey, fromB64(d.data));
+  const unzipped = await pipe(new Uint8Array(plain), new DecompressionStream("gzip"));
+  return JSON.parse(new TextDecoder().decode(unzipped));
+}
+
+// ---------- render ----------
+function render(state){
+  $("loading").classList.toggle("hidden", state !== "loading");
+  $("empty").classList.toggle("hidden", state !== "empty");
+  $("fileView").classList.toggle("hidden", state !== "file");
+  if (state === "file") {
+    $("fName").textContent = current.name;
+    $("fSize").textContent = fmtSize(current.size);
+    $("fTime").textContent = new Date(current.time).toLocaleString();
+    let pretty;
+    try { pretty = JSON.stringify(JSON.parse(current.text), null, 2); } catch { pretty = current.text; }
+    $("preview").textContent = pretty.length > PREVIEW_CHARS ? pretty.slice(0, PREVIEW_CHARS) + "\n…" : pretty;
+  }
+}
+
+// Live updates: changes on one device appear on the other instantly
+onSnapshot(docRef, async snap => {
+  if (!snap.exists()) { current = null; render("empty"); return; }
+  try { current = await decrypt(snap.data()); render("file"); }
+  catch { current = null; render("empty"); toast(T.badKey); }
+}, () => toast(T.error));
+
+// ---------- upload ----------
+async function upload(file){
+  if (!file) return;
+  const text = await file.text();
+  try { JSON.parse(text); } catch { toast(T.invalidJson); return; }
+  if (current && !confirm(T.confirmReplace)) return;
+  toast(T.uploading);
+  try {
+    const payload = await encrypt({ name: file.name, text, size: file.size, time: Date.now() });
+    if (payload.data.length > MAX_STORED) { toast(T.tooLarge); return; }
+    await setDoc(docRef, payload);
+    toast(T.uploaded_ok);
+  } catch { toast(T.error); }
+}
+$("fileInput").addEventListener("change", e => { upload(e.target.files[0]); e.target.value = ""; });
+const drop = $("drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => upload(e.dataTransfer.files[0]));
+
+// ---------- actions ----------
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(current.text); toast(T.copied); } catch { toast(T.error); }
+};
+$("downloadBtn").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([current.text], { type: "application/json" }));
+  a.download = current.name || "data.json";
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$("deleteBtn").onclick = async () => {
+  if (!confirm(T.confirmDelete)) return;
+  try { await deleteDoc(docRef); toast(T.deleted); } catch { toast(T.error); }
+};
+$("copyLinkBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(location.href); toast(T.linkCopied); } catch { toast(T.error); }
+};
+let qrMade = false;
+$("qrBtn").onclick = () => {
+  if (!qrMade) { new QRCode($("qr"), { text: location.href, width: 200, height: 200 }); qrMade = true; }
+  $("qrModal").classList.remove("hidden");
+};
+$("closeQr").onclick = () => $("qrModal").classList.add("hidden");
+$("qrModal").onclick = e => { if (e.target.id === "qrModal") $("qrModal").classList.add("hidden"); };
+</script>
+</body>
+</html>
