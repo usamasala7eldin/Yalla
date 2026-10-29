@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loyalty Invoice Match</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #1d2330; --muted: #6b7385;
+    --border: #e1e4ea; --accent: #2563eb;
+    --ok: #16a34a; --ok-bg: #e9f8ef;
+    --warn: #d97706; --warn-bg: #fff4e0;
+    --bad: #dc2626; --bad-bg: #fdecec;
+    --out: #64748b; --out-bg: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b5;
+      --border: #2c3340; --accent: #60a5fa;
+      --ok: #4ade80; --ok-bg: #16301f;
+      --warn: #fbbf24; --warn-bg: #33270f;
+      --bad: #f87171; --bad-bg: #351818;
+      --out: #94a3b8; --out-bg: #232a35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+  header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  h1 { font-size: 18px; margin: 0; flex: 1; }
+  .help {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--card); color: var(--muted); cursor: pointer; font-weight: 700;
+  }
+  .pop {
+    display: none; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; color: var(--muted);
+  }
+  .pop.show { display: block; }
+  .pop ol { margin: 4px 0; padding-left: 18px; }
+  .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .inputs { grid-template-columns: 1fr; } }
+  .box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px;
+  }
+  .box-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .box-head b { flex: 1; font-size: 13px; }
+  textarea {
+    width: 100%; height: 110px; resize: vertical; border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px; background: var(--bg); color: var(--text);
+    font: 12px/1.4 ui-monospace, Consolas, monospace;
+  }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; min-height: 17px; }
+  button.sm {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    border-radius: 6px; padding: 3px 9px; font-size: 12px; cursor: pointer;
+  }
+  button.sm:hover { border-color: var(--accent); }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 14px 0 8px; }
+  .chip {
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: 1px solid transparent; user-select: none;
+  }
+  .chip.active { border-color: currentColor; }
+  .c-all { background: var(--out-bg); color: var(--text); }
+  .c-ok { background: var(--ok-bg); color: var(--ok); }
+  .c-multi { background: var(--warn-bg); color: var(--warn); }
+  .c-none { background: var(--bad-bg); color: var(--bad); }
+  .c-out { background: var(--out-bg); color: var(--out); }
+  .spacer { flex: 1; }
+  .notice {
+    background: var(--out-bg); color: var(--out); border-radius: 8px;
+    padding: 8px 12px; font-size: 13px; margin-bottom: 8px;
+  }
+  .list { display: grid; gap: 8px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 4px solid var(--out); border-radius: 10px; padding: 10px 12px;
+  }
+  .card.s-ok { border-left-color: var(--ok); }
+  .card.s-multi { border-left-color: var(--warn); }
+  .card.s-none { border-left-color: var(--bad); }
+  .row1 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .row1 .date { font-weight: 700; }
+  .row1 .amt { font-weight: 700; font-size: 15px; }
+  .row1 .lid { color: var(--muted); font-size: 12px; flex: 1; }
+  .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  details.cand {
+    margin-top: 6px; background: var(--bg); border-radius: 8px; padding: 6px 10px;
+  }
+  details.cand summary { cursor: pointer; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+  details.cand summary::-webkit-details-marker { display: none; }
+  .time { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .meta { color: var(--muted); font-size: 12px; }
+  .items { margin: 6px 0 2px; padding: 0; list-style: none; font-size: 12px; }
+  .items li { display: flex; gap: 8px; padding: 2px 0; border-top: 1px dashed var(--border); }
+  .items .q { color: var(--muted); min-width: 34px; }
+  .items .d { flex: 1; }
+  .items .v { font-variant-numeric: tabular-nums; }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+  .toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: var(--bg); padding: 7px 14px; border-radius: 8px;
+    font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 data-i18n="title"></h1>
+    <button class="help" id="helpBtn" aria-label="Help">?</button>
+  </header>
+
+  <div class="pop" id="helpPop">
+    <ol>
+      <li data-i18n="help1"></li>
+      <li data-i18n="help2"></li>
+      <li data-i18n="help3"></li>
+      <li data-i18n="help4"></li>
+    </ol>
+  </div>
+
+  <div class="inputs">
+    <div class="box">
+      <div class="box-head">
+        <b data-i18n="loyaltyLabel"></b>
+        <button class="sm" data-paste="loyIn" data-i18n="paste"></button>
+      </div>
+      <textarea id="loyIn" data-i18n-ph="loyaltyPh" spellcheck="false"></textarea>
+      <div class="hint" id="loyHint"></div>
+    </div>
+    <div class="box">
+      <div class="box-head">
+        <b data-i18n="detailLabel"></b>
+        <button class="sm" data-paste="detIn" data-i18n="paste"></button>
+      </div>
+      <textarea id="detIn" data-i18n-ph="detailPh" spellcheck="false"></textarea>
+      <div class="hint" id="detHint"></div>
+    </div>
+  </div>
+
+  <div class="bar" id="bar" hidden>
+    <span class="chip c-all active" data-filter="all"></span>
+    <span class="chip c-ok" data-filter="ok"></span>
+    <span class="chip c-multi" data-filter="multi"></span>
+    <span class="chip c-none" data-filter="none"></span>
+    <span class="chip c-out" data-filter="out"></span>
+    <span class="spacer"></span>
+    <button class="sm" id="copyBtn" data-i18n="copy"></button>
+    <button class="sm" id="clearBtn" data-i18n="clear"></button>
+  </div>
+
+  <div id="outNotice"></div>
+  <div class="list" id="list"><div class="empty" data-i18n="emptyState"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// All UI strings live here so other languages can be added later.
+const STR = {
+  en: {
+    title: "Loyalty Invoice Match",
+    help1: "Paste the Loyalty Invoices report in the first box.",
+    help2: "Paste the Invoice Detail report (same days) in the second box.",
+    help3: "Items with the same day, start time, employee and register are grouped into one invoice.",
+    help4: "Each loyalty invoice is matched by business date and total value. Nothing is saved or sent anywhere.",
+    loyaltyLabel: "Loyalty Invoices",
+    detailLabel: "Invoice Detail",
+    loyaltyPh: "Paste the Loyalty Invoices rows here…",
+    detailPh: "Paste the Invoice Detail rows here…",
+    paste: "Paste",
+    copy: "Copy results",
+    clear: "Clear",
+    emptyState: "Paste both reports to see matching invoice times.",
+    detected: "Detected: {loy} loyalty invoices, {items} item lines ({inv} invoices)",
+    nothing: "No recognised rows yet",
+    all: "All {n}", ok: "Matched {n}", multi: "Several {n}", none: "Not found {n}", out: "No data {n}",
+    sOk: "Matched", sMulti: "{n} possible", sNone: "Not found", sOut: "No detail data",
+    noteMulti: "Several invoices share this date and value. Check the items or the invoice number in the system.",
+    noteNone: "The day exists in the detail data but no invoice has this total. The report may not cover the whole day.",
+    noteOut: "This business date is not in the Invoice Detail data.",
+    outNotice: "Pull Invoice Detail for: {dates}",
+    itemsCount: "{n} items",
+    emp: "Emp", reg: "Reg",
+    copied: "Results copied",
+    pasteFail: "Paste blocked by the browser. Use Ctrl+V instead.",
+  }
+};
+const L = STR.en;
+const t = (k, v = {}) => (L[k] || k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? "");
+
+document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
+
+// Loyalty row: ID, DD-MM-YYYY, masked invoice, total
+const RE_LOY = /^\s*(\d+)\s+(\d{2})-(\d{2})-(\d{4})\s+(\S+)\s+(-?\d*\.?\d+)\s*$/;
+// Detail row: Invoice, Emp, M/D/YYYY, start, end, item, [barcode], desc, qty, total, "N S", reg
+const RE_DET = /^\s*(\S+)\s+(\d+)\s+(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})\s+(\d{2}:\d{2}:\d{2})\s+(\d+)\s+(?:(\d{6,})\s+)?(.+?)\s+(-?\d*\.?\d+)\s+(-?\d*\.?\d+)\s+(\d+)\s*S\s+(\d+)\s*$/;
+
+const pad = n => String(n).padStart(2, "0");
+const cents = s => Math.round(parseFloat(s) * 100);
+const money = c => (c / 100).toFixed(2);
+const showDate = iso => iso.split("-").reverse().join("-");
+const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// After-midnight invoices stay on the previous business date; sort them last.
+const timeOrder = tm => (tm < "06:00:00" ? "1" : "0") + tm;
+
+function parseText(text) {
+  const loy = [], items = [];
+  for (const line of text.split(/\r?\n/)) {
+    let m = line.match(RE_LOY);
+    if (m) {
+      loy.push({ id: m[1], date: `${m[4]}-${m[3]}-${m[2]}`, cents: cents(m[6]) });
+      continue;
+    }
+    m = line.match(RE_DET);
+    if (m) {
+      items.push({
+        emp: m[2], date: `${m[5]}-${pad(m[3])}-${pad(m[4])}`, start: m[6], end: m[7],
+        item: m[8], desc: m[10].trim(), qty: m[11], cents: cents(m[12]), dur: m[13], reg: m[14],
+      });
+    }
+  }
+  return { loy, items };
+}
+
+function groupInvoices(items) {
+  const map = new Map();
+  for (const it of items) {
+    const key = [it.date, it.start, it.emp, it.reg].join("|");
+    if (!map.has(key)) {
+      map.set(key, { date: it.date, start: it.start, end: it.end, emp: it.emp, reg: it.reg, dur: it.dur, cents: 0, items: [] });
+    }
+    const inv = map.get(key);
+    inv.cents += it.cents;
+    inv.items.push(it);
+  }
+  return [...map.values()];
+}
+
+let results = [], filter = "all";
+
+function run() {
+  const a = parseText(loyIn.value), b = parseText(detIn.value);
+  const loy = [...a.loy, ...b.loy];
+  const items = [...a.items, ...b.items];
+  const invoices = groupInvoices(items);
+
+  const hint = (p) => {
+    const inv = groupInvoices(p.items).length;
+    return (p.loy.length || p.items.length)
+      ? t("detected", { loy: p.loy.length, items: p.items.length, inv })
+      : (loyIn.value || detIn.value ? t("nothing") : "");
+  };
+  loyHint.textContent = loyIn.value.trim() ? hint(a) : "";
+  detHint.textContent = detIn.value.trim() ? hint(b) : "";
+
+  const byDate = new Map();
+  for (const inv of invoices) {
+    if (!byDate.has(inv.date)) byDate.set(inv.date, []);
+    byDate.get(inv.date).push(inv);
+  }
+
+  results = loy.map(l => {
+    const day = byDate.get(l.date);
+    if (!day) return { ...l, status: "out", cands: [] };
+    const cands = day.filter(i => Math.abs(i.cents - l.cents) <= 1)
+      .sort((x, y) => timeOrder(x.start).localeCompare(timeOrder(y.start)));
+    return { ...l, status: cands.length === 1 ? "ok" : cands.length > 1 ? "multi" : "none", cands };
+  }).sort((x, y) => y.date.localeCompare(x.date));
+
+  render();
+}
+
+function render() {
+  const bar = document.getElementById("bar");
+  if (!results.length) {
+    bar.hidden = true;
+    outNotice.innerHTML = "";
+    list.innerHTML = `<div class="empty">${esc(t("emptyState"))}</div>`;
+    return;
+  }
+  bar.hidden = false;
+  const count = s => results.filter(r => s === "all" || r.status === s).length;
+  bar.querySelectorAll(".chip").forEach(ch => {
+    const f = ch.dataset.filter;
+    ch.textContent = t(f, { n: count(f) });
+    ch.classList.toggle("active", f === filter);
+  });
+
+  const outDates = [...new Set(results.filter(r => r.status === "out").map(r => showDate(r.date)))];
+  outNotice.innerHTML = outDates.length
+    ? `<div class="notice">${esc(t("outNotice", { dates: outDates.join(", ") }))}</div>` : "";
+
+  const shown = results.filter(r => filter === "all" || r.status === filter);
+  list.innerHTML = shown.map(r => {
+    const badgeCls = { ok: "c-ok", multi: "c-multi", none: "c-none", out: "c-out" }[r.status];
+    const badgeTxt = { ok: t("sOk"), multi: t("sMulti", { n: r.cands.length }), none: t("sNone"), out: t("sOut") }[r.status];
+    const note = { multi: t("noteMulti"), none: t("noteNone"), out: t("noteOut") }[r.status];
+    const cands = r.cands.map(c => `
+      <details class="cand">
+        <summary>
+          <span class="time">${c.start} → ${c.end}</span>
+          <span class="meta">${t("emp")} ${c.emp} · ${t("reg")} ${c.reg} · ${c.dur}s · ${t("itemsCount", { n: c.items.length })}</span>
+        </summary>
+        <ul class="items">${c.items.map(i => `
+          <li><span class="q">${esc(i.qty)}×</span><span class="d">${esc(i.desc)}</span><span class="v">${money(i.cents)}</span></li>`).join("")}
+        </ul>
+      </details>`).join("");
+    return `
+      <div class="card s-${r.status}">
+        <div class="row1">
+          <span class="date">${showDate(r.date)}</span>
+          <span class="amt">${money(r.cents)}</span>
+          <span class="lid">${esc(r.id)}</span>
+          <span class="badge ${badgeCls}">${esc(badgeTxt)}</span>
+        </div>
+        ${note ? `<div class="note">${esc(note)}</div>` : ""}
+        ${cands}
+      </div>`;
+  }).join("") || `<div class="empty">—</div>`;
+}
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 1600);
+}
+
+let timer;
+[loyIn, detIn].forEach(el => el.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 250); }));
+
+document.querySelectorAll("[data-paste]").forEach(btn => btn.addEventListener("click", async () => {
+  const box = document.getElementById(btn.dataset.paste);
+  try {
+    box.value = await navigator.clipboard.readText();
+    run();
+  } catch {
+    box.focus();
+    toast(t("pasteFail"));
+  }
+}));
+
+document.getElementById("bar").addEventListener("click", e => {
+  const ch = e.target.closest(".chip");
+  if (!ch) return;
+  filter = ch.dataset.filter;
+  render();
+});
+
+copyBtn.addEventListener("click", async () => {
+  const lines = results.map(r => {
+    const head = `${showDate(r.date)} | ${money(r.cents)} | `;
+    if (!r.cands.length) return head + t(r.status === "out" ? "sOut" : "sNone");
+    return head + r.cands.map(c => `${c.start} (${t("emp")} ${c.emp})`).join(" / ");
+  });
+  try {
+    await navigator.clipboard.writeText(lines.join("\n"));
+    toast(t("copied"));
+  } catch {
+    toast(t("pasteFail"));
+  }
+});
+
+clearBtn.addEventListener("click", () => {
+  loyIn.value = detIn.value = "";
+  filter = "all";
+  run();
+  loyIn.focus();
+});
+
+helpBtn.addEventListener("click", () => helpPop.classList.toggle("show"));
+</script>
+</body>
+</html>
