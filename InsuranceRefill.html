@@ -40,7 +40,8 @@
   .banner .btn { padding: 3px 10px; }
 
   .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
-  .fbtn { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 110px; text-align: left; color: var(--muted); font-size: 12px; display: flex; flex-direction: column-reverse; }
+  .fbtn { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 110px; text-align: left; color: var(--muted); font-size: 12px; display: flex; flex-direction: column; }
+  .fbtn small { color: var(--muted); font-size: 11px; margin-top: 2px; }
   .fbtn:hover { border-color: var(--accent); }
   .fbtn b { font-size: 20px; color: var(--text); }
   .fbtn.active b { color: var(--accent); }
@@ -60,6 +61,11 @@
   .done-btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 600; }
   .done-btn:hover { border-color: var(--green); color: var(--green); }
   .line.done-line { color: var(--muted); }
+  .done-badge { background: var(--green); color: #fff; border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 700; }
+  .undo-small { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 8px; padding: 4px 8px; font-size: 11px; }
+  .undo-small:hover { color: var(--accent); border-color: var(--accent); }
+  .row.is-done { opacity: .6; }
+  .row.is-done:hover { opacity: 1; }
   .fbtn.done b { color: var(--muted); }
   .tag.milk { background: var(--milk-bg); color: var(--milk); font-weight: 600; }
   .seg button.auto { background: var(--milk-bg); color: var(--milk); }
@@ -78,6 +84,16 @@
   .small.dx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 640px; }
   .add-contact { border: 1px dashed var(--accent); background: var(--card); color: var(--accent); border-radius: 8px; padding: 5px 10px; font-size: 12px; }
   .meta { color: var(--muted); font-size: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .done-date { color: var(--green); font-weight: 600; }
+  .name-link { border: 0; background: none; padding: 0; color: #4a5263; font-size: 12px; text-decoration: underline dotted; cursor: pointer; text-align: left; }
+  .name-link:hover { color: var(--accent); }
+  dialog.wide { width: min(980px, calc(100vw - 32px)); }
+  .hist-sum { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .row.readonly { cursor: default; }
+  .rep-nums { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .rep-nums div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 110px; }
+  .rep-nums b { display: block; font-size: 20px; }
+  .rep-nums span { color: var(--muted); font-size: 12px; }
   .day-badge { background: #1d2330; color: #fff; border-radius: 6px; padding: 0 7px; font-weight: 700; line-height: 18px; }
 
   .dues { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
@@ -154,6 +170,7 @@
     <button class="btn primary" id="btnPaste" data-i18n="pasteData"></button>
     <button class="btn" id="btnExport"><span data-i18n="exportBackup"></span><span class="unsaved" id="unsavedMark" hidden></span></button>
     <button class="btn" id="btnImport" data-i18n="importBackup"></button>
+    <button class="btn" id="btnReport" data-i18n="report"></button>
     <input type="file" id="fileImport" accept=".json,application/json" hidden>
     <button class="icon-btn" id="btnSettings" data-i18n-title="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -228,6 +245,21 @@
   </div>
 </dialog>
 
+<!-- Patient history (read only) -->
+<dialog id="dlgHistory" class="wide">
+  <div class="dlg-head"><h2 id="histTitle" dir="auto"></h2><button class="icon-btn" data-close>✕</button></div>
+  <div class="dlg-body" id="histBody"></div>
+</dialog>
+
+<!-- Report -->
+<dialog id="dlgReport">
+  <div class="dlg-head"><h2 data-i18n="report"></h2><button class="icon-btn" data-close>✕</button></div>
+  <div class="dlg-body">
+    <div class="row-flex"><select id="reportPeriod"></select><span class="help" data-i18n="reportHelp"></span></div>
+    <div id="reportBody"></div>
+  </div>
+</dialog>
+
 <!-- Settings dialog -->
 <dialog id="dlgSettings">
   <div class="dlg-head"><h2 data-i18n="settings"></h2><button class="icon-btn" data-close>✕</button></div>
@@ -245,6 +277,15 @@
       <button class="btn" id="btnResetMessages" data-i18n="resetDefault"></button>
       <button class="btn" id="btnPhoneEdit" data-i18n="phoneEdit"></button>
       <span class="msg ok" id="messagesMsg"></span>
+    </div>
+
+    <h3 data-i18n="acuteSection"></h3>
+    <p class="help" data-i18n="acuteHelp"></p>
+    <textarea id="setAcute" rows="4" dir="ltr" style="font-family:ui-monospace,monospace;font-size:12px"></textarea>
+    <div class="row-flex" style="margin-top:8px">
+      <button class="btn primary" id="btnSaveAcute" data-i18n="save"></button>
+      <button class="btn" id="btnResetAcute" data-i18n="resetDefault"></button>
+      <span class="msg ok" id="acuteMsg"></span>
     </div>
 
     <h3 data-i18n="dataSection"></h3>
@@ -278,7 +319,14 @@ const EXCLUDED_INSURANCE = /promotion variance/i;
 // Milk (infant formula) diagnoses, as in the original spreadsheet. Milk invoices default to 1M.
 const MILK_CODES = ['K52.2', 'P92', 'E73.9', 'K90', 'P71', 'E73'];
 const MILK_DEFAULT_PERIOD = '1M';
-const NO_PERIOD = 'X'; // saved when the user clears the automatic Milk period
+const NO_PERIOD = 'X'; // saved when the user clears an automatic period (Milk or Acute)
+// Acute diagnoses: an invoice whose diagnoses are ALL in this list gets "No refill" automatically.
+// "A-B" is a range of 3-character categories; anything else matches codes starting with it. Editable in Settings.
+const DEFAULT_ACUTE = ['J00-J06', 'J09-J11', 'J12-J18', 'J20-J22', 'A00-A09', 'B00-B09', 'B30', 'H10', 'H00',
+  'B35-B37', 'B86', 'H60', 'H65', 'H66', 'H61.2', 'K02', 'K04', 'K05', 'K08', 'K12', 'K52.9', 'L01-L03', 'L08',
+  'L23-L25', 'L50', 'M62.6', 'N30', 'N34', 'N39.0', 'N76.0', 'R05', 'R10', 'R11', 'R19.7', 'R21', 'R50', 'R51',
+  'R52', 'S00-T14', 'T78.4'];
+const REFILL_WINDOW_AFTER_DONE = 14; // Report: a refill counts if it comes within 14 days after Done
 
 // Default WhatsApp messages. {name} = contact name. Editable in Settings.
 const DEFAULT_MESSAGES = {
@@ -320,11 +368,21 @@ const I18N = {
     addContact: '+ Add contact',
     transRefIncomplete: '⚠ Trans. Ref. may be incomplete: only {n} rows were copied (last date {last}). Copy it again with Rows per page → All.',
     openReceipt: 'Open the receipt', dayHint: 'Days since the invoice date',
+    acute: 'Acute', acuteAuto: 'Acute diagnosis: No refill is set automatically. Click another period to change it.',
+    doneDate: 'Done {d}', historyHint: 'Show all invoices of this patient',
+    histSummary: '{n} invoices · SAR {sar} · first visit {first} · card {card} · {company}',
+    histSamePhone: 'Same phone ({phone}): {name}',
+    report: 'Report', reportHelp: 'Invoices marked Done in this period. Refilled = a possible refill within 14 days after Done.',
+    rep_thisMonth: 'This month', rep_lastMonth: 'Last month', rep_last3: 'Last 3 months',
+    repDone: 'Done', repRefilled: 'Refilled', repNot: 'Not refilled', repWaiting: 'Waiting (under 14 days)',
+    repRate: 'Refill rate ({a} of {b})', repSar: 'Refill amount', repInv: 'Invoice', repDoneOn: 'Done on',
+    repRefillInv: 'Refill invoice', repRefillDate: 'Refill date', repNone: 'No refills yet in this period.',
+    acuteSection: 'Acute diagnoses', acuteHelp: 'An invoice whose diagnoses are all in this list gets No refill automatically. Separate codes with commas. A-B means a range, e.g. J00-J06.',
     milk: 'Milk', milkAuto: 'Milk: 1M is set automatically. Click another period to change it.',
     undo: 'Undo', periodSet: '{inv}: {p}', periodCleared: '{inv}: refill cleared',
     welcomeHint: 'Write the pharmacy address after the pharmacy name, then the pharmacy Google Maps link on the next line.',
     stats: { due: 'Due now', soon: 'Coming soon', recent: 'Recently missed', missed: 'Missed', possible: 'Possible refill', done: 'Done' },
-    done: 'Done', undoDone: 'Undo', choosePeriodFirst: 'Choose 1M, 2M or 3M first.',
+    done: 'Done', undoDone: 'Undo', markDone: 'Mark as done', choosePeriodFirst: 'Choose 1M, 2M or 3M first.',
     doneLine: 'Done on {d} · hidden until {u}', doneSet: '{inv}: done, hidden until {u}', doneUndone: '{inv}: back in the list',
     after: 'After {n} days', afterOne: 'After 1 day', today: 'Today', ago: '{n} days ago', agoOne: '1 day ago',
     noRefill: 'No refill', visits: '{n} visits', visit: '1 visit',
@@ -378,7 +436,7 @@ function applyI18n() {
 
 /* ===================== Storage ===================== */
 // invoices / items / follow are keyed by invoice no.; contacts by card no.; messages = WhatsApp templates
-function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, messagesAt: '', periods: {}, lastBackup: null, dirty: false }; }
+function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, messagesAt: '', periods: {}, acute: [], acuteAt: '', lastBackup: null, dirty: false }; }
 // Templates saved by earlier versions: drop the old defaults so the current defaults are used
 const OLD_DEFAULT_WELCOME = [
   'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف هنا اسم الفرع ورابط الموقع)',
@@ -585,8 +643,10 @@ function buildRows() {
       visits: visitsOf(pkey), contact: store.contacts[pkey] || {}
     });
     row.milk = i.dx.some(c => MILK_CODES.some(m => c.toUpperCase().startsWith(m)));
-    row.period = effectivePeriod(row.follow.period, row.milk);
-    row.autoPeriod = row.milk && !row.follow.period; // 1M chosen automatically for Milk
+    row.acute = !row.milk && i.dx.length > 0 && i.dx.every(isAcute);
+    row.autoDefault = row.milk ? MILK_DEFAULT_PERIOD : row.acute ? 'NR' : '';
+    row.period = effectivePeriod(row.follow.period, row.autoDefault);
+    row.autoPeriod = !!row.autoDefault && !row.follow.period; // set automatically (Milk 1M, Acute No refill)
     row.status = statusOf(row);
     // row.active is set below: invoices that need something today
     // "Likely due now": period not set and one of the 1M/2M/3M dates is in that period's Coming soon or Due range,
@@ -594,6 +654,7 @@ function buildRows() {
     row.likely = !row.period && Object.entries(dues).some(([k, d]) => ['soon', 'due'].includes(d.cat));
     row.possible = possibleRefill(row, today);
     row.refill = refilledAt(row, listOf[pkey]);
+    row.candidates = refillCandidates(row, listOf[pkey]);
     row.nextRefill = nextRefillDays(row, today);
     row.active = ACTIVE_STATUSES.includes(row.status) || row.likely; // Possible refill has its own filter, like Missed
     row.doneUntil = doneUntil(row);
@@ -630,9 +691,12 @@ function possibleRefill(r, today) {
 // A later invoice of the same patient that may be the refill: it shares a diagnosis and comes at least
 // one full period later (28 / 56 / 84 days; 28 when no period is chosen).
 // Prefer the same price, then the one closest to the refill date.
-function refilledAt(r, list) {
+function refillCandidates(r, list) {
   const minDays = PERIODS[r.period] || PERIODS['1M'];
-  const later = (list || []).filter(x => dayNum(x.date) - dayNum(r.date) >= minDays && x.dx.some(c => r.dx.includes(c)));
+  return (list || []).filter(x => dayNum(x.date) - dayNum(r.date) >= minDays && x.dx.some(c => r.dx.includes(c)));
+}
+function refilledAt(r, list) {
+  const later = refillCandidates(r, list);
   if (!later.length) return null;
   const target = dayNum(r.date) + (PERIODS[r.period] || PERIODS['1M']);
   const samePrice = x => Math.abs(x.credit - r.credit) < 0.01;
@@ -665,9 +729,18 @@ function doneUntil(r) {
   return dayNumToISO(dayNum(r.date) + k * step + DONE_HIDE_DAYS);
 }
 
-function effectivePeriod(saved, milk) {
+function effectivePeriod(saved, autoDefault) {
   if (saved === NO_PERIOD) return '';
-  return saved || (milk ? MILK_DEFAULT_PERIOD : '');
+  return saved || autoDefault || '';
+}
+
+function acuteList() { return store.acute && store.acute.length ? store.acute : DEFAULT_ACUTE; }
+function isAcute(code) {
+  const c = code.toUpperCase(), cat = c.slice(0, 3);
+  return acuteList().some(e => {
+    const [a, b] = e.toUpperCase().split('-');
+    return b ? cat >= a.slice(0, 3) && cat <= b.slice(0, 3) : c.startsWith(a);
+  });
 }
 
 // A status exists only after a refill period is chosen (or Milk's automatic 1M)
@@ -758,7 +831,7 @@ function render() {
   // Show the cards 20 at a time; the count above stays the full total
   const shown = rows.slice(0, ui.shown);
   const left = rows.length - shown.length;
-  list.innerHTML = shown.map(rowHTML).join('') +
+  list.innerHTML = shown.map(r => rowHTML(r)).join('') +
     (left > 0 ? `<button class="btn more-btn" data-act="more">${esc(t('showMore', { n: Math.min(SHOW_STEP, left), left }))}</button>` : '');
 }
 
@@ -777,6 +850,7 @@ function renderPeriodHint() {
 function matchesFilter(r) {
   // Invoices marked Done are hidden everywhere until their date passes; they are listed only under Done
   if (ui.filter === 'done') return r.hidden;
+  if (ui.filter === 'all') return true; // All invoices really shows everything, Done included
   if (r.hidden) return false;
   switch (ui.filter) {
     case 'all': return true;
@@ -790,9 +864,10 @@ function matchesFilter(r) {
 }
 
 function renderStats() {
-  const n = k => rowsCache.filter(r => k === 'done' ? r.hidden : !r.hidden && (k === 'active' ? r.active : k === 'possible' ? !!r.possible : r.status === k)).length;
-  $('stats').innerHTML = MAIN_FILTERS.map(k =>
-    `<button class="fbtn ${k} ${ui.filter === k ? 'on' : ''}" data-filter="${k}"><span>${esc(k === 'active' ? t('active') : t('stats.' + k))}</span><b>${n(k)}</b></button>`).join('');
+  const pick = k => rowsCache.filter(r => k === 'done' ? r.hidden : !r.hidden && (k === 'active' ? r.active : k === 'possible' ? !!r.possible : r.status === k));
+  const sar = list => 'SAR ' + Math.round(list.reduce((a, r) => a + r.credit, 0)).toLocaleString('en-US');
+  $('stats').innerHTML = MAIN_FILTERS.map(k => { const list = pick(k);
+    return `<button class="fbtn ${k} ${ui.filter === k ? 'on' : ''}" data-filter="${k}"><b>${list.length}</b><span>${esc(k === 'active' ? t('active') : t('stats.' + k))}</span><small>${sar(list)}</small></button>`; }).join('');
   setupFilter();
 }
 
@@ -809,10 +884,10 @@ function duesHTML(r) {
   return Object.keys(PERIODS).map(k => `<div class="chip">${k}<small>${esc(refillLabel(r.dues[k].days))}</small></div>`).join('');
 }
 
-function extraLinesHTML(r) {
+function extraLinesHTML(r, readonly) {
   let html = '';
-  if (r.hidden) html += `<div class="line done-line">✓ ${esc(t('doneLine', { d: fmtDate(r.follow.done.at), u: fmtDate(r.doneUntil) }))}</div>`;
-  if (r.possible) {
+  if (!readonly && r.hidden) html += `<div class="line done-line">✓ ${esc(t('doneLine', { d: fmtDate(r.follow.done.at), u: fmtDate(r.doneUntil) }))}</div>`;
+  if (!readonly && r.possible) {
     html += `<div class="line possible">🔁 ${esc(t('possibleLine', { p: r.period, m: r.possible.months, d: daysLabel(r.possible.days) }))}</div>`;
   }
   if (r.refill) {
@@ -824,42 +899,107 @@ function extraLinesHTML(r) {
   return html;
 }
 
-function rowHTML(r) {
+function rowHTML(r, readonly) {
   const inv = esc(r.inv);
   const p = r.period;
   const age = dayNum(todayISO()) - dayNum(r.date);
   // Milk's automatic 1M is shown in purple until the user picks a period himself
   const segs = [...Object.keys(PERIODS), 'NR'].map(k =>
-    `<button class="${p === k ? (r.autoPeriod ? 'auto' : 'on') : ''}" ${p === k && r.autoPeriod ? `title="${esc(t('milkAuto'))}"` : ''} data-act="period" data-inv="${inv}" data-val="${k}">${k === 'NR' ? esc(t('noRefill')) : k}</button>`).join('');
+    `<button class="${p === k ? (r.autoPeriod ? 'auto' : 'on') : ''}" ${p === k && r.autoPeriod ? `title="${esc(t(r.milk ? 'milkAuto' : 'acuteAuto'))}"` : ''} data-act="period" data-inv="${inv}" data-val="${k}">${k === 'NR' ? esc(t('noRefill')) : k}</button>`).join('');
   const contactBtns = r.contact.phone
     ? `<button class="qr-btn" data-act="qr" data-type="welcome" data-inv="${inv}">${r.follow.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
        <button class="qr-btn second" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>`
     : `<button class="add-contact" data-act="details" data-inv="${inv}">${esc(t('addContact'))}</button>`;
   const dx = dxNames(r.dx);
-  return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''}" data-row="${inv}">
+  return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''} ${!readonly && r.hidden ? 'is-done' : ''} ${readonly ? 'readonly' : ''}" ${readonly ? '' : `data-row="${inv}"`}>
     <div class="who">
       <div class="inv-line">
         <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${esc(shortInv(r.inv))}</button>${receiptBtn(r.inv, r.date)}
         ${r.items.length ? '<span class="tag vc">VC</span>' : ''}
         ${r.milk ? `<span class="tag milk">🍼 ${esc(t('milk'))}</span>` : ''}
+        ${r.acute ? `<span class="tag">${esc(t('acute'))}</span>` : ''}
         <span class="tag visits">${esc(r.visits === 1 ? t('visit') : t('visits', { n: r.visits }))}</span>
       </div>
-      <div class="small name" dir="auto">${esc(r.name)}</div>
+      <div class="small name" dir="auto">${readonly ? esc(r.name) : `<button class="name-link" data-act="history" data-inv="${inv}" title="${esc(t('historyHint'))}">${esc(r.name)}</button>`}</div>
       <div class="small dx" title="${esc(dx)}">${esc(dx)}</div>
-      <div class="meta"><span>${esc(fmtDate(r.date))}</span><span class="day-badge" title="${esc(t('dayHint'))}">${esc(t('day', { n: age }))}</span><span>${esc(r.ins)}</span></div>
-      ${extraLinesHTML(r)}
+      <div class="meta"><span>${esc(fmtDate(r.date))}</span><span class="day-badge" title="${esc(t('dayHint'))}">${esc(t('day', { n: age }))}</span><span>${esc(r.ins)}</span>${r.follow.done ? `<span class="done-date">${esc(t('doneDate', { d: fmtShort(r.follow.done.at) }))}</span>` : ''}</div>
+      ${extraLinesHTML(r, readonly)}
     </div>
     <div class="dues">${duesHTML(r)}</div>
     <div class="amount">${money(r.credit)}</div>
-    <div class="actions">
+    ${readonly ? '' : `<div class="actions">
       <div class="row-flex"><div class="seg">${segs}</div><span class="note-preview" dir="auto">${esc(r.follow.note || '')}</span></div>
       <div class="right">
-        <button class="done-btn" data-act="done" data-inv="${inv}">${r.hidden ? '↩ ' + esc(t('undoDone')) : '✓ ' + esc(t('done'))}</button>
+        ${r.hidden
+          ? `<span class="done-badge">✓ ${esc(t('done'))}</span><button class="undo-small" data-act="done" data-inv="${inv}">${esc(t('undoDone'))}</button>`
+          : `<button class="done-btn" data-act="done" data-inv="${inv}">${esc(t('markDone'))}</button>`}
         ${contactBtns}
         <button class="icon-btn" title="${esc(t('details'))}" data-act="details" data-inv="${inv}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
       </div>
-    </div>
+    </div>`}
   </div>`;
+}
+const fmtShort = iso => new Date(dayNum(iso) * 86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+
+/* ===================== Patient history ===================== */
+// All invoices of this patient (card + company), then invoices of other patients saved with the same phone
+function openHistory(inv) {
+  const r = rowsCache.find(x => x.inv === inv);
+  if (!r) return;
+  const byNewest = (a, b) => b.date.localeCompare(a.date);
+  const own = rowsCache.filter(x => x.pkey === r.pkey).sort(byNewest);
+  const phone = normalisePhone(r.contact.phone);
+  const others = {};
+  if (phone) for (const x of rowsCache) {
+    if (x.pkey !== r.pkey && normalisePhone(x.contact.phone) === phone) (others[x.pkey] = others[x.pkey] || []).push(x);
+  }
+  const total = own.reduce((a, x) => a + x.credit, 0);
+  $('histTitle').textContent = r.name || r.card;
+  let html = `<div class="hist-sum">${esc(t('histSummary', { n: own.length, sar: money(total), first: fmtDate(own[own.length - 1].date), card: r.card, company: r.pkey.split('|')[1] }))}</div>`;
+  html += `<div class="list">${own.map(x => rowHTML(x, true)).join('')}</div>`;
+  for (const list of Object.values(others)) {
+    list.sort(byNewest);
+    html += `<h3>${esc(t('histSamePhone', { name: list[0].name, phone: r.contact.phone }))}</h3><div class="list">${list.map(x => rowHTML(x, true)).join('')}</div>`;
+  }
+  $('histBody').innerHTML = html;
+  if (!$('dlgHistory').open) $('dlgHistory').showModal();
+}
+
+/* ===================== Report ===================== */
+// Invoices marked Done in the period: refilled if a "possibly refilled" invoice comes within 14 days after Done
+const REPORT_PERIODS = ['thisMonth', 'lastMonth', 'last3'];
+function reportRange(key) {
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth();
+  const iso = (yy, mm, dd) => { const x = new Date(Date.UTC(yy, mm, dd)); return x.toISOString().slice(0, 10); };
+  if (key === 'lastMonth') return [iso(y, m - 1, 1), iso(y, m, 0)];
+  if (key === 'last3') return [iso(y, m - 2, 1), todayISO()];
+  return [iso(y, m, 1), todayISO()];
+}
+function renderReport() {
+  const [from, to] = reportRange($('reportPeriod').value);
+  const today = dayNum(todayISO());
+  const done = rowsCache.filter(r => r.follow.done && r.follow.done.at >= from && r.follow.done.at <= to);
+  const refilled = [], notRefilled = [], waiting = [];
+  for (const r of done) {
+    const d0 = dayNum(r.follow.done.at);
+    const hit = r.candidates.filter(x => dayNum(x.date) >= d0 && dayNum(x.date) <= d0 + REFILL_WINDOW_AFTER_DONE)
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+    if (hit) refilled.push({ r, hit });
+    else if (today <= d0 + REFILL_WINDOW_AFTER_DONE) waiting.push(r);
+    else notRefilled.push(r);
+  }
+  const closed = refilled.length + notRefilled.length;
+  const rate = closed ? Math.round(refilled.length * 100 / closed) : 0;
+  const sar = refilled.reduce((a, x) => a + x.hit.credit, 0);
+  const box = (n, label) => `<div><b>${n}</b><span>${esc(label)}</span></div>`;
+  $('reportBody').innerHTML = `
+    <div class="rep-nums">
+      ${box(done.length, t('repDone'))}${box(refilled.length, t('repRefilled'))}${box(notRefilled.length, t('repNot'))}${box(waiting.length, t('repWaiting'))}
+      ${box(rate + '%', t('repRate', { a: refilled.length, b: closed }))}${box('SAR ' + money(sar), t('repSar'))}
+    </div>
+    ${refilled.length ? `<table class="mini"><thead><tr><th>${esc(t('repInv'))}</th><th>${esc(t('repDoneOn'))}</th><th>${esc(t('repRefillInv'))}</th><th>${esc(t('repRefillDate'))}</th><th>${esc(t('amount'))}</th></tr></thead><tbody>
+      ${refilled.map(({ r, hit }) => `<tr><td>${esc(shortInv(r.inv))}</td><td>${esc(fmtDate(r.follow.done.at))}</td><td>${esc(shortInv(hit.inv))}</td><td>${esc(fmtDate(hit.date))}</td><td>${money(hit.credit)}</td></tr>`).join('')}
+    </tbody></table>` : `<p class="help">${esc(t('repNone'))}</p>`}`;
 }
 
 /* ===================== Actions ===================== */
@@ -912,13 +1052,13 @@ function toggleDone(inv) {
 
 function setPeriod(inv, val) {
   const row = rowsCache.find(x => x.inv === inv);
-  const milk = !!(row && row.milk);
+  const auto = (row && row.autoDefault) || '';
   const f = follow(inv);
   const before = f.period || '';
   // Clicking the period that is already shown clears it (for Milk this also clears the automatic 1M)
-  if (effectivePeriod(before, milk) === val) f.period = milk ? NO_PERIOD : '';
+  if (effectivePeriod(before, auto) === val) f.period = auto ? NO_PERIOD : '';
   else f.period = val;
-  const now = effectivePeriod(f.period, milk);
+  const now = effectivePeriod(f.period, auto);
   touchFollow(inv); saveStore(); render();
   const shown = shortInv(inv);
   showUndo(now ? t('periodSet', { inv: shown, p: now === 'NR' ? t('noRefill') : now }) : t('periodCleared', { inv: shown }), () => {
@@ -1071,6 +1211,7 @@ function importBackup(file) {
       // Messages: keep whichever was edited last
       const fileMsgNewer = (data.messagesAt || '') > (store.messagesAt || '') || (!store.messagesAt && !Object.keys(store.messages).length);
       if (data.messages && Object.keys(data.messages).length && fileMsgNewer) { store.messages = data.messages; store.messagesAt = data.messagesAt || ''; }
+      if (Array.isArray(data.acute) && (data.acuteAt || '') > (store.acuteAt || '')) { store.acute = data.acute; store.acuteAt = data.acuteAt; }
       for (const [k, v] of Object.entries(data.periods || {})) rememberPeriod({ type: k, from: v.from, to: v.to });
       if (wasEmpty && data.transRefIncomplete) store.transRefIncomplete = data.transRefIncomplete;
       if (data.lastBackup && (!store.lastBackup || data.lastBackup > store.lastBackup)) store.lastBackup = data.lastBackup;
@@ -1086,7 +1227,8 @@ function renderSettings() {
   const m = messages();
   $('setWelcomeAr').value = m.welcomeAr; $('setWelcomeEn').value = m.welcomeEn;
   $('setRefillAr').value = m.refillAr; $('setRefillEn').value = m.refillEn;
-  $('messagesMsg').textContent = '';
+  $('messagesMsg').textContent = ''; $('acuteMsg').textContent = '';
+  $('setAcute').value = acuteList().join(', ');
   $('dataInfo').textContent = t('dataInfo', { inv: Object.keys(store.invoices).length, fol: Object.keys(store.follow).length, con: Object.keys(store.contacts).length, keep: KEEP_DAYS });
 }
 function saveMessages() {
@@ -1222,6 +1364,23 @@ function bind() {
   $('fileImport').onchange = e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; };
   $('btnSettings').onclick = () => { renderSettings(); $('dlgSettings').showModal(); };
   $('btnSaveMessages').onclick = saveMessages;
+  $('btnSaveAcute').onclick = () => {
+    store.acute = $('setAcute').value.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+    store.acuteAt = new Date().toISOString(); saveStore(); render(); $('acuteMsg').textContent = t('saved');
+  };
+  $('btnResetAcute').onclick = () => { store.acute = []; store.acuteAt = new Date().toISOString(); saveStore(); renderSettings(); render(); };
+  $('btnReport').onclick = () => {
+    $('reportPeriod').innerHTML = REPORT_PERIODS.map(k => `<option value="${k}">${esc(t('rep_' + k))}</option>`).join('');
+    renderReport(); $('dlgReport').showModal();
+  };
+  $('reportPeriod').onchange = renderReport;
+  // Copy / receipt inside the read-only history window
+  $('histBody').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    if (b.dataset.act === 'copy') copyText(shortInv(b.dataset.inv));
+    if (b.dataset.act === 'receipt') openReceipt(b.dataset.inv, b.dataset.date);
+  });
   $('btnPhoneEdit').onclick = startPhoneSession;
   $('btnPhoneUse').onclick = usePhoneMessages;
   $('dlgPhone').addEventListener('close', () => { phone.received = null; endPhoneSession(); });
@@ -1283,6 +1442,7 @@ function bind() {
       case 'qr': openQr(inv, b.dataset.type); break;
       case 'more': ui.shown += SHOW_STEP; render(); break;
       case 'done': toggleDone(inv); break;
+      case 'history': openHistory(inv); break;
       case 'import': $('fileImport').click(); break;
       case 'paste': $('btnPaste').click(); break;
     }
