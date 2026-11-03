@@ -349,7 +349,7 @@ const I18N = {
     unsavedNever: 'Unsaved changes. This browser may delete its data, so export before closing this page.',
     importLast: 'Import your last backup',
     unsavedShort: 'unsaved', lastExport: 'Last export: {d}',
-    day: 'Day {n}', refillIn: 'Refill in {n} days', refillAgo: 'Refill {n} days ago', refillToday: 'Refill today', refillIn1: 'Refill in 1 day', refillAgo1: 'Refill 1 day ago', more: 'More ▾', active: 'Active',
+    day: 'Day {n}', refillIn: 'Refill after {n} days', refillAgo: 'Refill {n} days ago', refillToday: 'Refill today', refillIn1: 'Refill after 1 day', refillAgo1: 'Refill 1 day ago', more: 'More ▾', active: 'Active',
     showMore: 'Show {n} more ({left} left)',
     importDone: 'Imported: {inv} new invoices, {fol} refill settings, {con} contacts.', importFail: 'This file is not a valid backup.',
     dataSection: 'Data',
@@ -647,15 +647,12 @@ function refilledAt(r, list) {
   };
 }
 
-// Days until the next refill date from today (any cycle, up to the follow-up limit); null if none
+// Days until the first refill date, if it is still ahead (later refills appear only under Possible refill)
 function nextRefillDays(r, today) {
   const p = r.period;
   if (!PERIODS[p]) return null;
-  for (let k = 1; k * PERIODS[p] <= FOLLOW_UNTIL[p]; k++) {
-    const days = dayNum(r.date) + k * PERIODS[p] - today;
-    if (days >= 0) return days;
-  }
-  return null;
+  const days = dayNum(r.date) + PERIODS[p] - today;
+  return days >= 0 ? days : null;
 }
 
 // Done keeps only the day it was pressed (raw data). The hiding is worked out here:
