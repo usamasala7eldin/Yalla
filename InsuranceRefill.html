@@ -84,6 +84,9 @@
   .small.dx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 640px; }
   .add-contact { border: 1px dashed var(--accent); background: var(--card); color: var(--accent); border-radius: 8px; padding: 5px 10px; font-size: 12px; }
   .meta { color: var(--muted); font-size: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .day-head { font-weight: 700; font-size: 14px; margin: 12px 0 2px; padding: 6px 10px; background: #1d2330; color: #fff; border-radius: 8px; }
+  .co-badge { background: #1d2330; color: #fff; font-weight: 800; letter-spacing: .04em; font-size: 14px; border-radius: 6px; padding: 1px 10px; }
+  .big-date { font-size: 15px; font-weight: 700; color: var(--text); }
   .done-date { color: var(--green); font-weight: 600; }
   .name-link { border: 0; background: none; padding: 0; color: #4a5263; font-size: 12px; text-decoration: underline dotted; cursor: pointer; text-align: left; }
   .name-link:hover { color: var(--accent); }
@@ -351,7 +354,7 @@ const I18N = {
     process: 'Process',
     pasteResult: 'On Account: {inv} invoices ({newInv} new). Transaction Reference: {items} items for {itemInv} invoices.',
     pasteNothing: 'No report rows were recognised. Copy the whole page including the Details table.',
-    filters: { active: 'Active invoices', within14: 'Refill within 2 weeks', within30: 'Refill within a month', likely: 'Refill not set · coming up', due: 'Due now', soon: 'Coming soon', recent: 'Recently missed', missed: 'Missed', possible: 'Possible refill', notset: 'Refill not set', norefill: 'No refill', all: 'All invoices' },
+    filters: { active: 'Active invoices', review: 'Review invoices', within14: 'Refill within 2 weeks', within30: 'Refill within a month', due: 'Due now', soon: 'Coming soon', recent: 'Recently missed', missed: 'Missed', possible: 'Possible refill', notset: 'Refill not set', norefill: 'No refill', all: 'All invoices' },
     possibleLine: 'Possible refill · {p} invoice · {m} months passed · {d}',
     refilledAt: 'Possibly refilled at {d} · Invoice No',
     samePrice: 'same price', sameDx: 'same diagnosis', sameItem: 'same item',
@@ -407,6 +410,7 @@ const I18N = {
     unsavedNever: 'Unsaved changes. This browser may delete its data, so export before closing this page.',
     importLast: 'Import your last backup',
     unsavedShort: 'unsaved', lastExport: 'Last export: {d}',
+    reviewDay: '{d} · {n} invoices · SAR {sar}', reviewDay1: '{d} · 1 invoice · SAR {sar}',
     day: 'Day {n}', refillIn: 'Refill after {n} days', refillAgo: 'Refill {n} days ago', refillToday: 'Refill today', refillIn1: 'Refill after 1 day', refillAgo1: 'Refill 1 day ago', more: 'More ▾', active: 'Active',
     showMore: 'Show {n} more ({left} left)',
     importDone: 'Imported: {inv} new invoices, {fol} refill settings, {con} contacts.', importFail: 'This file is not a valid backup.',
@@ -591,6 +595,7 @@ function companyOf(ins) {
   return hit ? hit[1] : (String(ins || '').trim().split(/\s+/)[0] || '').toLowerCase();
 }
 const patientKey = inv => `${inv.card}|${companyOf(inv.ins)}`;
+const companyLabel = ins => companyOf(ins).toUpperCase();
 
 // Contacts saved by card number only (older versions) are moved to card + company
 function migrateContacts(contacts, invoiceLists) {
@@ -802,7 +807,7 @@ function saveUi() { try { localStorage.setItem(STORAGE_KEY + '.ui', JSON.stringi
 
 // Main filters are buttons; the rest are in the "More" menu
 const MAIN_FILTERS = ['active', 'due', 'soon', 'recent', 'missed', 'possible', 'done'];
-const MORE_FILTERS = ['within14', 'within30', 'likely', 'notset', 'norefill', 'all'];
+const MORE_FILTERS = ['review', 'within14', 'within30', 'notset', 'norefill', 'all'];
 function setupFilter() {
   $('filter').innerHTML = `<option value="">${esc(t('more'))}</option>` +
     MORE_FILTERS.map(k => `<option value="${k}">${esc(t('filters.' + k))}</option>`).join('');
@@ -828,10 +833,23 @@ function render() {
     return;
   }
   if (!rows.length) { list.innerHTML = `<div class="empty">${esc(t('emptyFilter'))}</div>`; return; }
+  // Review invoices: newest first (date, then invoice number), with a header for each day
+  const review = ui.filter === 'review';
+  if (review) rows.sort((a, b) => b.date.localeCompare(a.date) || b.inv.localeCompare(a.inv));
   // Show the cards 20 at a time; the count above stays the full total
   const shown = rows.slice(0, ui.shown);
   const left = rows.length - shown.length;
-  list.innerHTML = shown.map(r => rowHTML(r)).join('') +
+  let lastDay = '';
+  list.innerHTML = shown.map(r => {
+    let head = '';
+    if (review && r.date !== lastDay) {
+      lastDay = r.date;
+      const day = rows.filter(x => x.date === r.date);
+      const d = new Date(dayNum(r.date) * 86400000).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+      head = `<div class="day-head">${esc(t(day.length === 1 ? 'reviewDay1' : 'reviewDay', { d, n: day.length, sar: money(day.reduce((a, x) => a + x.credit, 0)) }))}</div>`;
+    }
+    return head + rowHTML(r, { review });
+  }).join('') +
     (left > 0 ? `<button class="btn more-btn" data-act="more">${esc(t('showMore', { n: Math.min(SHOW_STEP, left), left }))}</button>` : '');
 }
 
@@ -850,12 +868,11 @@ function renderPeriodHint() {
 function matchesFilter(r) {
   // Invoices marked Done are hidden everywhere until their date passes; they are listed only under Done
   if (ui.filter === 'done') return r.hidden;
-  if (ui.filter === 'all') return true; // All invoices really shows everything, Done included
+  if (ui.filter === 'all' || ui.filter === 'review') return true; // these show everything, Done included
   if (r.hidden) return false;
   switch (ui.filter) {
     case 'all': return true;
     case 'active': return r.active;
-    case 'likely': return r.likely;
     case 'possible': return !!r.possible;
     case 'within14': return r.nextRefill !== null && r.nextRefill <= 14;
     case 'within30': return r.nextRefill !== null && r.nextRefill <= 30;
@@ -899,7 +916,9 @@ function extraLinesHTML(r, readonly) {
   return html;
 }
 
-function rowHTML(r, readonly) {
+// opts: { readonly } for the patient history window, { review } for Review invoices
+function rowHTML(r, opts = {}) {
+  const readonly = opts === true || !!opts.readonly, review = !!opts.review;
   const inv = esc(r.inv);
   const p = r.period;
   const age = dayNum(todayISO()) - dayNum(r.date);
@@ -911,10 +930,12 @@ function rowHTML(r, readonly) {
        <button class="qr-btn second" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>`
     : `<button class="add-contact" data-act="details" data-inv="${inv}">${esc(t('addContact'))}</button>`;
   const dx = dxNames(r.dx);
-  return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''} ${!readonly && r.hidden ? 'is-done' : ''} ${readonly ? 'readonly' : ''}" ${readonly ? '' : `data-row="${inv}"`}>
+  return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''} ${!readonly && r.hidden ? 'is-done' : ''} ${readonly ? 'readonly' : ''} ${review ? 'review' : ''}" ${readonly ? '' : `data-row="${inv}"`}>
     <div class="who">
       <div class="inv-line">
+        ${review ? `<span class="co-badge">${esc(companyLabel(r.ins))}</span>` : ''}
         <button class="inv" data-act="copy" data-inv="${inv}" title="${esc(t('copyHint'))}">${esc(shortInv(r.inv))}</button>${receiptBtn(r.inv, r.date)}
+        ${review ? `<span class="big-date">${esc(fmtDate(r.date))}</span>` : ''}
         ${r.items.length ? '<span class="tag vc">VC</span>' : ''}
         ${r.milk ? `<span class="tag milk">🍼 ${esc(t('milk'))}</span>` : ''}
         ${r.acute ? `<span class="tag">${esc(t('acute'))}</span>` : ''}
@@ -956,10 +977,10 @@ function openHistory(inv) {
   const total = own.reduce((a, x) => a + x.credit, 0);
   $('histTitle').textContent = r.name || r.card;
   let html = `<div class="hist-sum">${esc(t('histSummary', { n: own.length, sar: money(total), first: fmtDate(own[own.length - 1].date), card: r.card, company: r.pkey.split('|')[1] }))}</div>`;
-  html += `<div class="list">${own.map(x => rowHTML(x, true)).join('')}</div>`;
+  html += `<div class="list">${own.map(x => rowHTML(x, { readonly: true })).join('')}</div>`;
   for (const list of Object.values(others)) {
     list.sort(byNewest);
-    html += `<h3>${esc(t('histSamePhone', { name: list[0].name, phone: r.contact.phone }))}</h3><div class="list">${list.map(x => rowHTML(x, true)).join('')}</div>`;
+    html += `<h3>${esc(t('histSamePhone', { name: list[0].name, phone: r.contact.phone }))}</h3><div class="list">${list.map(x => rowHTML(x, { readonly: true })).join('')}</div>`;
   }
   $('histBody').innerHTML = html;
   if (!$('dlgHistory').open) $('dlgHistory').showModal();
