@@ -113,6 +113,8 @@
   .line.refilled { color: #4a5263; }
   .rcpt { border: 1px solid var(--line); background: var(--card); border-radius: 6px; padding: 0 5px; font-size: 13px; line-height: 20px; cursor: pointer; }
   .rcpt:hover { border-color: var(--accent); }
+  .rcpt.viewed { background: var(--green-bg); border-color: var(--green); color: var(--green); font-weight: 700; }
+  .row.last-viewed { outline: 3px solid var(--accent); outline-offset: -1px; }
   .inv-small { font-family: ui-monospace, Consolas, monospace; font-size: 12px; border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; }
   .tag.match { background: var(--green-bg); color: var(--green); font-weight: 600; }
   .amount { font-weight: 700; font-size: 15px; text-align: right; min-width: 80px; }
@@ -370,7 +372,7 @@ const I18N = {
     phonePrivacy: 'Only the message texts are sent, encrypted, and deleted within 5 minutes. Patient data never leaves this browser.',
     addContact: '+ Add contact',
     transRefIncomplete: '⚠ Trans. Ref. may be incomplete: only {n} rows were copied (last date {last}). Copy it again with Rows per page → All.',
-    openReceipt: 'Open the receipt', dayHint: 'Days since the invoice date',
+    openReceipt: 'Open the receipt', receiptViewed: 'Receipt viewed on {d}. Click to open again.', viewedCount: '{a}/{b} viewed', dayHint: 'Days since the invoice date',
     acute: 'Acute', acuteAuto: 'Acute diagnosis: No refill is set automatically. Click another period to change it.',
     doneDate: 'Done {d}', historyHint: 'Show all invoices of this patient',
     histSummary: '{n} invoices · SAR {sar} · first visit {first} · card {card} · {company}',
@@ -792,8 +794,16 @@ function openReceipt(inv, iso) {
   const top = Math.max(0, window.screenY + (window.outerHeight - height) / 2);
   const w = window.open(receiptUrl(inv, iso), name, `popup=yes,width=${width},height=${height},left=${left},top=${top}`);
   if (w) w.focus();
+  // Remember that this receipt was opened, and which one was opened last
+  const f = follow(inv);
+  f.viewed = todayISO();
+  store.lastViewed = inv;
+  touchFollow(inv); saveStore(); render();
 }
-const receiptBtn = (inv, iso) => `<button class="rcpt" data-act="receipt" data-inv="${esc(inv)}" data-date="${esc(iso)}" title="${esc(t('openReceipt'))}">🧾</button>`;
+const receiptBtn = (inv, iso) => {
+  const seen = store.follow[inv] && store.follow[inv].viewed;
+  return `<button class="rcpt ${seen ? 'viewed' : ''}" data-act="receipt" data-inv="${esc(inv)}" data-date="${esc(iso)}" title="${esc(seen ? t('receiptViewed', { d: fmtDate(seen) }) : t('openReceipt'))}">🧾${seen ? '✓' : ''}</button>`;
+};
 
 /* ===================== Rendering ===================== */
 const $ = id => document.getElementById(id);
@@ -846,7 +856,8 @@ function render() {
       lastDay = r.date;
       const day = rows.filter(x => x.date === r.date);
       const d = new Date(dayNum(r.date) * 86400000).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
-      head = `<div class="day-head">${esc(t(day.length === 1 ? 'reviewDay1' : 'reviewDay', { d, n: day.length, sar: money(day.reduce((a, x) => a + x.credit, 0)) }))}</div>`;
+      const seen = day.filter(x => x.follow.viewed).length;
+      head = `<div class="day-head">${esc(t(day.length === 1 ? 'reviewDay1' : 'reviewDay', { d, n: day.length, sar: money(day.reduce((a, x) => a + x.credit, 0)) }))} · ${esc(t('viewedCount', { a: seen, b: day.length }))}</div>`;
     }
     return head + rowHTML(r, { review });
   }).join('') +
@@ -930,7 +941,7 @@ function rowHTML(r, opts = {}) {
        <button class="qr-btn second" data-act="qr" data-type="refill" data-inv="${inv}">${r.follow.qrR ? '✓ ' : ''}${esc(t('qrRefill'))}</button>`
     : `<button class="add-contact" data-act="details" data-inv="${inv}">${esc(t('addContact'))}</button>`;
   const dx = dxNames(r.dx);
-  return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''} ${!readonly && r.hidden ? 'is-done' : ''} ${readonly ? 'readonly' : ''} ${review ? 'review' : ''}" ${readonly ? '' : `data-row="${inv}"`}>
+  return `<div class="row ${r.items.length ? 'vc' : ''} ${r.milk ? 'milk' : ''} ${!readonly && r.hidden ? 'is-done' : ''} ${readonly ? 'readonly' : ''} ${review ? 'review' : ''} ${!readonly && store.lastViewed === r.inv ? 'last-viewed' : ''}" ${readonly ? '' : `data-row="${inv}"`}>
     <div class="who">
       <div class="inv-line">
         ${review ? `<span class="co-badge">${esc(companyLabel(r.ins))}</span>` : ''}
@@ -1044,7 +1055,7 @@ function touchFollow(inv) {
   const f = store.follow[inv];
   if (!f) return;
   f.updatedAt = new Date().toISOString();
-  if (!f.period && !f.note && !f.qrW && !f.qrR && !f.done) delete store.follow[inv];
+  if (!f.period && !f.note && !f.qrW && !f.qrR && !f.done && !f.viewed) delete store.follow[inv];
 }
 const dayNumToISO = n => { const d = new Date(n * 86400000); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
 const DONE_HIDE_DAYS = 20; // Done hides the invoice until 20 days after its current refill date
@@ -1235,6 +1246,7 @@ function importBackup(file) {
       if (Array.isArray(data.acute) && (data.acuteAt || '') > (store.acuteAt || '')) { store.acute = data.acute; store.acuteAt = data.acuteAt; }
       for (const [k, v] of Object.entries(data.periods || {})) rememberPeriod({ type: k, from: v.from, to: v.to });
       if (wasEmpty && data.transRefIncomplete) store.transRefIncomplete = data.transRefIncomplete;
+      if (data.lastViewed && (wasEmpty || !store.lastViewed)) store.lastViewed = data.lastViewed;
       if (data.lastBackup && (!store.lastBackup || data.lastBackup > store.lastBackup)) store.lastBackup = data.lastBackup;
       pruneOld(); saveStore(wasEmpty && !store.dirty ? 'clean' : undefined); render();
       showImportResult(t('importDone', { inv, fol, con }));
