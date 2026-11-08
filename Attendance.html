@@ -120,7 +120,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .chip-btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
 /* Summary */
-.summary{display:grid;grid-template-columns:1.1fr 1fr 1fr 1.3fr;gap:12px}
+.summary{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;box-shadow:var(--shadow)}
 .card .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px}
 .card .v{font-family:var(--f-display);font-weight:800;font-size:32px;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
@@ -164,7 +164,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .date b{font-weight:700;display:block}
 .date .wd{color:var(--muted);font-size:12.5px}
 .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
-.tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;border-radius:4px;padding:1px 6px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;border-radius:4px;padding:1px 6px;border:1px solid var(--line);color:var(--muted);white-space:normal}
 .tag.exc{border-color:var(--accent);color:var(--accent)}
 .tag.late{border-color:var(--warn);color:var(--warn)}
 .side{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -200,7 +200,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:60}
 
 @media (max-width:860px){
-  .summary{grid-template-columns:1fr 1fr}
+  .summary{grid-template-columns:1fr}
 }
 @media (max-width:680px){
   .inputs{grid-template-columns:1fr}
@@ -314,17 +314,17 @@ const STR = { en: {
   excK:"Exceptional duties", excView:"View days", excLimit:"Limit 5 per month · late edits: {n}",
   peopleLbl:"By pharmacist", unassigned:"Unassigned",
   daysTitle:"Days", fIssues:"Issues ({n})", fAction:"Needs action ({n})", fExc:"Exceptional duties ({n})", fAll:"All days ({n})",
-  colEdited:"Edited", colRules:"Rules", excWithin:"Within 4 days", excAfter:"After {n} days", excRank:"{r} of 5", excOverRank:"{r} of 5 · over limit",
-  pillRulesOk:"Within rules", pillLate:"Late edit", pillOver:"Over limit", pillBoth:"Late and over limit",
-  excStill:"Still {m} min late", excClear:"No delay after edit", tagOver:"Over limit",
+  colEdited:"Edited", colRules:"Rules", excWithin:"Within 4 days", excAfter:"After 4 days · may not be accepted", excRank:"{r} of 5", excOverRank:"{r} of 5 · Over 5 · may not be accepted",
+  pillRulesOk:"Within rules", pillLate:"May not be accepted", pillOver:"May not be accepted", pillBoth:"May not be accepted",
+  excStill:"Still {m} min late", excClear:"No delay after edit", tagOver:"Over 5 · may not be accepted",
   usual:"Usual {time}", ifRejected:"If rejected: +{m} min", ifRejectedZero:"Breaks rules · +0 min", countedNow:"Counted now: {m} min",
   excSum:"If late and over-limit duties are rejected: +{m} min across {n} day(s). Usual times are estimated from the same weekday.",
   excSumOk:"All exceptional duties in this period follow the rules.",
   noAction:"Nothing needs action right now.", noExc:"No exceptional duties in this period.",
   colDate:"Date", colOut:"Clock out", colIn:"Clock in", colStatus:"Status",
-  sched:"Planned", tagExc:"Exceptional", tagLate:"Late edit", tagPlanned:"Planned change",
+  sched:"Planned", tagExc:"Exceptional", tagLate:"After 4 days · may not be accepted", tagPlanned:"Planned change",
   rOk:"On time", rMissed:"Missed · 30", rLate:"{m} min", rExcused:"Missed action", rPending:"Not yet", rNodata:"Not in report",
-  stRed:"Fix within {n} day(s)", stRedToday:"Fix today", stBlack:"Deadline passed", stOk:"On time", stWait:"Waiting", stNodata:"No clock data",
+  stRed:"Fix within {n} day(s)", stRedToday:"Fix today", stBlack:"Past 4 days", stBlackS:"Can still be submitted", stOk:"On time", stWait:"Waiting", stNodata:"No clock data",
   deadline:"Deadline {date}", noIssues:"No issues in this period.", noDays:"No past days to compare yet.",
   rulesTitle:"How it's calculated",
   rules:[
@@ -648,7 +648,6 @@ function render() {
   $("summary").innerHTML = `
     <div class="card ${S.total ? "is-bad" : "is-ok"}"><div class="k">${esc(t("totalK"))}</div><div class="v">${S.total}<small>${esc(t("minUnit"))}</small></div><div class="s">${esc(t("totalS", { days: S.compared }))}</div></div>
     <div class="card ${avgBad ? "is-bad" : "is-ok"}"><div class="k">${esc(t("avgK"))}</div><div class="v">${S.avg.toFixed(2)}<small>${esc(t("minUnit"))}</small></div><div class="s">${esc(t("avgS"))}</div></div>
-    <div class="card ${S.missed ? "is-bad" : ""}"><div class="k">${esc(t("missedK"))}</div><div class="v">${S.missed}</div><div class="s">${esc(t("missedS"))}</div></div>
     <div class="card"><div class="k"><span>${esc(t("excK"))}</span><button type="button" class="tiny" id="excBtn">${esc(t("excView"))}</button></div>${excRows}<div class="s">${esc(t("excLimit", { n: lateEdits }))}</div></div>`;
   $("excBtn").onclick = () => { state.filter = "exc"; render(); $("days").scrollIntoView({ behavior: "smooth", block: "start" }); };
 
@@ -658,7 +657,7 @@ function render() {
 
   // filter buttons
   const issues = S.days.filter(d => d.issue);
-  const action = A.days.filter(d => d.status === "red" && !d.exc.counted).sort((a, b) => a.day - b.day);
+  const action = A.days.filter(d => d.status === "red").sort((a, b) => a.day - b.day);
   const excList = S.exc.flatMap(e => e.list).sort((a, b) => b.day - a.day);
   $("fIssues").textContent = t("fIssues", { n: issues.length });
   $("fAction").textContent = t("fAction", { n: action.length });
@@ -701,7 +700,7 @@ function dayRow(d, hint) {
   if (d.exc.holiday) tags.push(`<span class="tag exc"><bdi>${esc(d.exc.holiday)}</bdi></span>`);
   let pill;
   if (d.status === "red") pill = `<span class="pill red">${esc(d.left === 0 ? t("stRedToday") : t("stRed", { n: d.left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDay(d.day + 4) }))}</span>`;
-  else if (d.status === "black") pill = `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${d.minutes} ${esc(t("minUnit"))}</span>`;
+  else if (d.status === "black") pill = `<span class="mins" style="font-weight:600">${d.minutes} ${esc(t("minUnit"))}</span><span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${esc(t("stBlackS"))}</span>`;
   else if (d.status === "ok") pill = `<span class="pill ok">${esc(t("stOk"))}</span>`;
   else if (d.status === "nodata") pill = `<span class="pill wait">${esc(t("stNodata"))}</span>`;
   else pill = `<span class="pill wait">${esc(t("stWait"))}</span>`;
