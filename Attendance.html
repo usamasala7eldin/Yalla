@@ -92,6 +92,8 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .storebar .code{font-family:var(--f-mono);font-weight:600}
 .storebar .muted{color:var(--muted)}
 .storebar.err{border-color:var(--bad);color:var(--bad)}
+.savestate{display:inline-flex;align-items:center;gap:6px;font-weight:600;margin-left:auto}
+.savestate.ok{color:var(--ok)} .savestate.bad{color:var(--bad)} .savestate.warn{color:var(--warn)}
 .storebar input{font:inherit;font-family:var(--f-mono);width:96px;border:1px solid var(--line);border-radius:6px;padding:4px 8px;background:var(--surface-2);color:var(--ink)}
 .storebar .btn{padding:4px 10px}
 .btn[disabled]{opacity:.55;cursor:default}
@@ -220,10 +222,6 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
         <span data-t="copy"></span>
       </button>
-      <button class="btn primary" id="saveBtn" type="button" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z" stroke-linejoin="round"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
-        <span id="saveLbl"></span>
-      </button>
     </div>
   </header>
 
@@ -322,7 +320,8 @@ const STR = { en: {
   ],
   excTitle:"Exceptional duties", excCounted:"Counted", excNot:"Not counted (edited before the day)", excLateEdit:"Late edit, may not be approved",
   excEdited:"Edited {date} by {who}", excNone:"No exceptional duties in this period.",
-  save:"Save", saved:"Saved", saving:"Saving…", saveOk:"Saved for store {store}", saveFail:"Couldn't save. Check the internet and try again.",
+  asSaving:"Saving…", asSaved:"Saved {time}", asFail:"Not saved yet. It will retry when the connection is back.", asRetry:"Retry now",
+  asNeedSched:"Not saved: paste the Store Attendance Duty page too, so we can be sure which store this is.", asLeave:"Some data is not saved yet.",
   sbLoading:"Loading saved data for store {store}…", sbFinding:"Looking up the store from the pharmacists…",
   sbLoaded:"Store", sbLast:"Last saved {when}", sbNever:"Nothing saved yet for this store", sbSavedDays:"{p} saved punches · {d} saved schedule days",
   sbAsk:"We couldn't tell which store this is. Paste the Store Attendance Duty page too.", sbFromSched:"from the schedule", sbFromStaff:"detected from pharmacists",
@@ -623,32 +622,53 @@ function renderStoreBar() {
     const src = cloud.source === "schedule" ? t("sbFromSched") : t("sbFromStaff");
     bar.innerHTML = `<span>${esc(t("sbLoaded"))} <span class="code">${esc(cloud.store)}</span></span><span class="muted">${esc(src)}</span><span class="muted">·</span>
       <span class="muted">${esc(when ? t("sbLast", { when }) : t("sbNever"))}</span><span class="muted">·</span>
-      <span class="muted">${esc(t("sbSavedDays", { p: cloud.recs.length, d: cloud.byDay.size }))}</span>`;
+      <span class="muted">${esc(t("sbSavedDays", { p: cloud.recs.length, d: cloud.byDay.size }))}</span>${saveStateHtml()}`;
   }
   const retry = $("sbRetry"); if (retry) retry.onclick = () => { cloud.tried = ""; run(); };
+  const again = $("asRetry"); if (again) again.onclick = () => saveCloud();
+}
+function saveStateHtml() {
+  if (autosave.busy) return `<span class="savestate"><span class="spin" aria-hidden="true"></span>${esc(t("asSaving"))}</span>`;
+  if (autosave.failed) return `<span class="savestate bad">${esc(t("asFail"))} <button type="button" class="linkbtn" id="asRetry">${esc(t("asRetry"))}</button></span>`;
+  if (autosave.blocked) return `<span class="savestate warn">${esc(t("asNeedSched"))}</span>`;
+  if (autosave.savedAt) return `<span class="savestate ok">${esc(t("asSaved", { time: fmt12(autosave.savedAt.getHours() * 60 + autosave.savedAt.getMinutes()) }))}</span>`;
+  return "";
+}
+// Saving is automatic: two seconds after the last paste, new data is merged into the saved data.
+const autosave = { timer: null, retry: null, busy: false, failed: false, blocked: false, savedAt: null };
+function scheduleAutoSave() {
+  clearTimeout(autosave.timer);
+  autosave.timer = setTimeout(saveCloud, 2000);
 }
 async function saveCloud() {
-  const btn = $("saveBtn"); btn.disabled = true; $("saveLbl").textContent = t("saving");
-  const pc = state.pasted.clock, ps = state.pasted.sched;
+  clearTimeout(autosave.timer); clearTimeout(autosave.retry);
+  if (autosave.busy || !state.A || !state.pasted) return;
+  autosave.busy = true; renderStoreBar();
+  const pc = state.pasted.clock, ps = state.pasted.sched, store = state.store;
   const days = state.A.days.filter(d => d.compared && d.day >= nowParts().today - 62).map(d => {
     const side = c => ({ planned: c.schedText, actual: c.rec ? fmt12(c.rec.tsMin) : "", minutes: c.minutes, byId: c.rec ? c.rec.id : "", byName: c.rec ? c.rec.name : "" });
     return { date: dateStr(d.day), weekday: WDN[ymd(d.day).wd], out: side(d.sides.out), in: side(d.sides.in), minutes: d.minutes, exceptional: d.exc.counted, lateEdit: d.exc.lateEdit };
   });
   const body = {
-    action: "save", store: state.store,
+    action: "save", store,
     punches: pc.recs.map(r => ({ date: dateStr(r.day), id: r.id, name: r.name, side: r.side, time: stampStr(r.tsMin) })),
     schedule: [...ps.byDay.values()].map(r => ({ date: dateStr(r.day), weekday: WDN[ymd(r.day).wd], out: r.outText, in: r.inText, type: r.type, by: r.byId, updated: r.updMin != null ? stampStr(r.updMin) : "" })),
     days
   };
   try {
     const res = await api(null, body);
-    cloud.store = state.store; cloud.recs = mergeClock(cloud.recs, pc.recs).recs; cloud.byDay = mergeSched(cloud.byDay, ps.byDay);
-    cloud.lastSaved = res.savedAt || new Date().toISOString(); cloud.status = "loaded"; cloud.tried = "store:" + state.store;
-    toast(t("saveOk", { store: state.store }));
-  } catch (e) { toast(t("saveFail")); }
-  btn.disabled = false;
+    cloud.store = store; cloud.recs = mergeClock(cloud.recs, pc.recs).recs; cloud.byDay = mergeSched(cloud.byDay, ps.byDay);
+    cloud.lastSaved = res.savedAt || new Date().toISOString(); cloud.status = "loaded"; cloud.tried = cloud.tried || "store:" + store;
+    autosave.failed = false; autosave.savedAt = new Date();
+  } catch (e) {
+    autosave.failed = true;
+    autosave.retry = setTimeout(saveCloud, 15000);
+  }
+  autosave.busy = false;
   run();
 }
+window.addEventListener("online", () => { if (autosave.failed) saveCloud(); });
+window.addEventListener("beforeunload", e => { if (autosave.failed || autosave.busy) { e.preventDefault(); e.returnValue = t("asLeave"); } });
 
 function applyStrings() {
   document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
@@ -767,13 +787,16 @@ function run() {
   const ready = hasC && hasS;
   $("results").hidden = !ready;
   $("copyBtn").hidden = !ready;
-  const canSave = !!API_URL && ready && /^\d{2,8}$/.test(state.store);
-  $("saveBtn").hidden = !canSave;
-  if (canSave && !$("saveBtn").disabled) {
-    const fresh = useCloud ? hasNewData(userClock, userSched) : (userClock.recs.length > 0 || userSched.byDay.size > 0);
-    $("saveLbl").textContent = fresh ? t("save") : t("saved");
-    $("saveBtn").classList.toggle("primary", fresh);
-  }
+  // Save only when the store is certain: taken from the schedule page, or two pasted pharmacists already saved under it.
+  const pastedIds = new Set(userClock.recs.map(r => r.id));
+  const savedIds = new Set(cloud.recs.map(r => r.id));
+  const confirmed = cloud.source === "schedule" || [...pastedIds].filter(id => savedIds.has(id)).length >= 2;
+  const canSave = !!API_URL && ready && useCloud && cloud.store === state.store && /^\d{2,8}$/.test(state.store);
+  autosave.blocked = canSave && !confirmed;
+  const shouldSave = canSave && confirmed && hasNewData(userClock, userSched);
+  if (shouldSave && !autosave.busy && !autosave.failed) scheduleAutoSave();
+  else if (!shouldSave) clearTimeout(autosave.timer);
+  renderStoreBar();
   if (!ready) {
     const note = !hasC && !hasS ? "empty" : !hasS ? "needSched" : "needClock";
     $("banner").innerHTML = `<div class="banner sample">${icoInfo}<span>${esc(t(note))}</span></div>`;
@@ -974,7 +997,6 @@ function boot() {
   for (const id of ["fIssues", "fAction", "fExc", "fAll"]) $(id).onclick = () => { state.filter = $(id).dataset.f; render(); };
   $("rulesBtn").onclick = openRules;
   $("copyBtn").onclick = copySummary;
-  $("saveBtn").onclick = saveCloud;
   $("modalX").onclick = closeModal;
   $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
