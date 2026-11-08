@@ -6,11 +6,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Arabic:wght@500;700&display=swap">
 <style>
-/* Layout: one column — summary tiles, then one row per pharmacy that expands into its late days. */
+/* Layout: period bar, summary tiles, then a pharmacy list (month) or a pharmacy-by-month grid (year); a pharmacy opens into calendar + day table. */
 :root{
   --bg:#f3f5f4; --surface:#ffffff; --surface-2:#f8faf9; --ink:#17201c; --muted:#5b6762; --line:#dde3e0;
   --accent:#0c6a57; --accent-ink:#ffffff; --accent-soft:#e2efeb;
-  --ok:#1d7a4c; --ok-soft:#e5f3eb; --bad:#c32a2a; --bad-soft:#fcebea; --warn:#9a6200; --warn-soft:#fbf0d9;
+  --ok:#1d7a4c; --ok-soft:#e5f3eb; --bad:#c32a2a; --bad-soft:#fcebea; --bad-mid:#f3b7b3; --warn:#9a6200; --warn-soft:#fbf0d9;
+  --exc:#2f5fb3; --exc-soft:#e6eefb; --blk:#141716; --blk-ink:#ffffff; --pend:#7a8580;
   --shadow:0 1px 2px rgba(20,32,28,.06),0 4px 14px rgba(20,32,28,.05);
   --f-display:"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-body:"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -20,24 +21,28 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0e1211; --surface:#161b19; --surface-2:#1b211f; --ink:#e6ebe9; --muted:#9ba6a1; --line:#2a312e;
   --accent:#4dbd9c; --accent-ink:#06231c; --accent-soft:#15302a;
-  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --warn:#e2a93b; --warn-soft:#2f240e;
+  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --bad-mid:#6a2522; --warn:#e2a93b; --warn-soft:#2f240e;
+  --exc:#7ea6ff; --exc-soft:#18233a; --blk:#000000; --blk-ink:#ffffff; --pend:#87928d;
   --shadow:none; color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --bg:#0e1211; --surface:#161b19; --surface-2:#1b211f; --ink:#e6ebe9; --muted:#9ba6a1; --line:#2a312e;
   --accent:#4dbd9c; --accent-ink:#06231c; --accent-soft:#15302a;
-  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --warn:#e2a93b; --warn-soft:#2f240e;
+  --ok:#5cc58e; --ok-soft:#12281d; --bad:#ff6a62; --bad-soft:#341614; --bad-mid:#6a2522; --warn:#e2a93b; --warn-soft:#2f240e;
+  --exc:#7ea6ff; --exc-soft:#18233a; --blk:#000000; --blk-ink:#ffffff; --pend:#87928d;
   --shadow:none; color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
-.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,input:focus-visible,.prow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 bdi.ar{font-family:var(--f-ar)}
+.small{font-size:12.5px;color:var(--muted)}
 
 /* Login */
 .login{max-width:360px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
@@ -45,9 +50,12 @@ bdi.ar{font-family:var(--f-ar)}
 .login p{margin:0;color:var(--muted)}
 .login input{font:inherit;font-size:16px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface-2);color:var(--ink)}
 .err{color:var(--bad);font-size:13px;min-height:18px}
+
+/* Buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px}
 .btn:hover{border-color:var(--muted)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);padding:10px 12px;font-size:14px}
+.btn.icon{padding:7px 9px}
 .btn[disabled]{opacity:.6;cursor:default}
 .btn svg{width:16px;height:16px}
 .linkbtn{background:none;border:0;padding:0;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
@@ -56,71 +64,164 @@ bdi.ar{font-family:var(--f-ar)}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .brand h1{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.02em;margin:0}
 .brand .sub{color:var(--muted);font-size:13px}
-.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Period bar */
+.periods{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.periods select{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 10px;font-size:13px;font-weight:600}
+.periods select.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Banner */
+.banner{border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:500;background:var(--bad);color:#fff}
+.banner svg{flex:none;width:18px;height:18px}
 
 /* Tiles */
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;box-shadow:var(--shadow)}
 .tile .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
-.tile .v{font-family:var(--f-display);font-weight:800;font-size:32px;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
-.tile .v small{font-size:15px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}
+.tile .v{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+.tile .v small{font-size:14px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}
 .tile .s{font-size:12.5px;color:var(--muted)}
 .tile.bad .v{color:var(--bad)} .tile.ok .v{color:var(--ok)} .tile.warn .v{color:var(--warn)}
 
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.sec-head h2{font-family:var(--f-display);font-size:17px;font-weight:700;margin:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+
 /* Pharmacy list */
-.list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.list-head h2{font-family:var(--f-display);font-size:17px;font-weight:700;margin:0}
-.list{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
-.prow{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr .9fr 1.2fr;gap:14px;align-items:center;padding:12px 14px 12px 16px;border-top:1px solid var(--line);position:relative;cursor:pointer}
+.prow{display:grid;grid-template-columns:1.25fr 1fr 1fr 1.05fr 1fr 96px;gap:14px;align-items:center;padding:12px 30px 12px 16px;border-top:1px solid var(--line);position:relative;cursor:pointer}
 .prow:first-child{border-top:0}
 .prow.colhead{cursor:default;background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding-block:8px}
 .prow::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
 .prow.st-red{background:var(--bad-soft)} .prow.st-red::before{background:var(--bad)}
 .prow.st-warn::before{background:var(--warn)}
-.prow:not(.colhead):hover{background:var(--surface-2)}
-.prow.st-red:hover{background:var(--bad-soft)}
-.cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.prow:not(.colhead):hover{filter:brightness(.98)}
+.cell{display:flex;flex-direction:column;gap:3px;min-width:0}
 .cell .lab{display:none;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
 .name b{font-size:15px;font-weight:700}
 .name .code{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
-.small{font-size:12.5px;color:var(--muted)}
+.chev{position:absolute;right:10px;top:50%;width:14px;height:14px;transform:translateY(-50%) rotate(-90deg);color:var(--muted)}
 .pill{display:inline-flex;align-self:flex-start;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
 .pill.ok{background:var(--ok-soft);color:var(--ok)}
 .pill.bad{background:var(--bad);color:#fff}
+.pill.black{background:var(--blk);color:var(--blk-ink);border:1px solid var(--line)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.exc{background:var(--exc-soft);color:var(--exc)}
 .pill.mute{color:var(--muted);border:1px dashed var(--line)}
-.mins{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums}
-.mins.bad{color:var(--bad)} .mins.ok{color:var(--ok)}
+.big{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums;font-size:15px}
+.big.bad{color:var(--bad)} .big.ok{color:var(--ok)}
 .meter{display:flex;gap:3px;width:100%;max-width:110px}
 .meter i{flex:1;height:9px;border-radius:2px;background:var(--line)}
 .meter.lv-ok i.on{background:var(--accent)} .meter.lv-warn i.on{background:var(--warn)} .meter.lv-bad i.on{background:var(--bad)}
-.chev{position:absolute;right:12px;top:50%;width:14px;height:14px;transform:translateY(-50%);color:var(--muted);transition:transform .15s}
-.prow[aria-expanded="true"] .chev{transform:translateY(-50%) rotate(180deg)}
+.spark{display:block;width:96px;height:30px}
+.spark rect{fill:var(--line)}
+.spark rect.on{fill:var(--bad)}
+.spark rect.zero{fill:var(--ok)}
 
-/* Details */
-.details{border-top:1px solid var(--line);background:var(--surface-2);padding:12px 16px 14px;display:flex;flex-direction:column;gap:10px}
-.details h3{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
-.drow{display:grid;grid-template-columns:120px 1fr 1fr 130px;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
-.drow.red{border-color:var(--bad)}
-.drow .times{font-family:var(--f-mono);font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.drow .who{font-size:12px;color:var(--muted)}
+/* Year grid */
+.gridwrap{overflow-x:auto}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;min-width:640px;font-variant-numeric:tabular-nums}
+.grid th,.grid td{padding:0;border-bottom:1px solid var(--line);text-align:center}
+.grid thead th{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding:8px 6px}
+.grid th.ph{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:8px 12px;min-width:120px;border-right:1px solid var(--line)}
+.grid thead th.ph{background:var(--surface-2)}
+.grid th.ph b{font-size:14px} .grid th.ph .code{display:block;font-family:var(--f-mono);font-size:11px;color:var(--muted);font-weight:400}
+.gcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:100%;min-height:52px;border:0;background:none;padding:6px 4px;border-left:1px solid var(--line)}
+.gcell .m{font-family:var(--f-mono);font-weight:600;font-size:13px}
+.gcell .x{font-size:11px;color:var(--muted)}
+.gcell.l0{background:var(--ok-soft)} .gcell.l0 .m{color:var(--ok)}
+.gcell.l1{background:var(--warn-soft)} .gcell.l1 .m{color:var(--warn)}
+.gcell.l2{background:var(--bad-soft)} .gcell.l2 .m{color:var(--bad)}
+.gcell.l3{background:var(--bad-mid)} .gcell.l3 .m{color:var(--bad)}
+.gcell.nd{background:repeating-linear-gradient(135deg,transparent 0 5px,var(--surface-2) 5px 10px)} .gcell.nd .m{color:var(--muted);font-weight:400}
+.gcell.over{box-shadow:inset 0 0 0 2px var(--bad)} .gcell.over .x{color:var(--bad);font-weight:700}
+.grid td.tot .gcell{border-left:2px solid var(--line);font-weight:700}
+.grid tfoot th,.grid tfoot td{background:var(--surface-2)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);padding:10px 14px;border-top:1px solid var(--line)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+
+/* Detail */
+.dhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.dname{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dname h2{margin:0;font-family:var(--f-display);font-size:24px;font-weight:800;line-height:1.2}
+.dhead h2{margin:0;font-family:var(--f-display);font-size:22px;font-weight:800}
+.mnav{display:flex;align-items:center;gap:6px}
+.mnav .mlabel{min-width:130px;text-align:center;font-weight:700}
+.people{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.people .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px}
+.person{display:inline-flex;align-items:baseline;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.person b{font-weight:700}
+.person .mins{font-family:var(--f-mono);font-weight:600}
+.person.has .mins{color:var(--bad)} .person.zero .mins{color:var(--ok)}
+
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:12px}
+.cal .wd{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:center;font-weight:600}
+.cday{border:1px solid var(--line);border-radius:8px;min-height:56px;padding:5px 7px;display:flex;flex-direction:column;justify-content:space-between;background:var(--surface);text-align:left}
+button.cday:hover{border-color:var(--muted)}
+.cday .d{font-weight:700;font-size:13px}
+.cday .t{font-family:var(--f-mono);font-size:11.5px;font-weight:600}
+.cday.ok{background:var(--ok-soft)} .cday.ok .t{color:var(--ok)}
+.cday.red{background:var(--bad);color:#fff;border-color:var(--bad)}
+.cday.black{background:var(--blk);color:var(--blk-ink);border-color:var(--blk)}
+.cday.exc{background:var(--exc-soft)} .cday.exc .t{color:var(--exc)}
+.cday.exclate{background:var(--exc-soft);box-shadow:inset 0 0 0 2px var(--bad)} .cday.exclate .t{color:var(--bad)}
+.cday.nd{background:repeating-linear-gradient(135deg,transparent 0 5px,var(--surface-2) 5px 10px);color:var(--muted)}
+.cday.future,.cday.blank{background:transparent;border-style:dashed;color:var(--muted)}
+.cday.blank{visibility:hidden}
+
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
+.drow{display:grid;grid-template-columns:150px 1fr 1fr 160px;gap:14px;align-items:center;padding:11px 14px 11px 16px;border-top:1px solid var(--line);position:relative}
+.drow:first-child{border-top:0}
+.drow.colhead{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding-block:8px}
+.drow::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent}
+.drow.st-red{background:var(--bad-soft)} .drow.st-red::before{background:var(--bad)}
+.drow.st-black::before{background:var(--blk)}
+.drow.flash{animation:flash 1.4s ease-out}
+@keyframes flash{0%{box-shadow:inset 0 0 0 2px var(--accent)}100%{box-shadow:inset 0 0 0 2px transparent}}
+.date b{font-weight:700;display:block}
+.date .wdn{color:var(--muted);font-size:12.5px}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;border-radius:4px;padding:1px 6px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.exc{border-color:var(--exc);color:var(--exc)}
+.tag.late{border-color:var(--warn);color:var(--warn)}
+.tag.over{border-color:var(--bad);color:var(--bad)}
+.tag.hol{border-color:var(--accent);color:var(--accent)}
+.side{display:flex;flex-direction:column;gap:2px;min-width:0}
+.side .lab{display:none;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.side .times{font-family:var(--f-mono);font-size:13px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.side .times .pl{color:var(--muted)}
+.side .who{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .res{font-family:var(--f-mono);font-size:12px;font-weight:600;border-radius:5px;padding:1px 6px}
-.res.ok{color:var(--ok);background:var(--ok-soft)} .res.bad{color:#fff;background:var(--bad)}
-.right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
-.none{color:var(--muted);font-size:13px}
+.res.ok{color:var(--ok);background:var(--ok-soft)}
+.res.late{color:#fff;background:var(--bad)}
+.res.excused{color:var(--exc);background:var(--exc-soft)}
+.res.warn{color:var(--warn);background:var(--warn-soft)}
+.status{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
+.status .mins{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 .state{padding:28px 16px;text-align:center;color:var(--muted)}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:60}
+.modal{position:fixed;inset:0;background:rgba(10,14,13,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal .box{background:var(--surface);border:1px solid var(--line);border-radius:14px;max-width:560px;width:100%;padding:16px}
+.modal textarea{width:100%;min-height:260px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:8px}
 
 @media (max-width:900px){ .tiles{grid-template-columns:1fr 1fr} }
 @media (max-width:760px){
-  .prow.colhead{display:none}
-  .prow{grid-template-columns:1fr 1fr;gap:10px 14px;padding-right:34px}
+  .prow.colhead,.drow.colhead{display:none}
+  .prow{grid-template-columns:1fr 1fr;gap:10px 14px}
   .prow .name{grid-column:1/-1}
-  .cell .lab{display:block}
-  .drow{grid-template-columns:1fr 1fr}
-  .drow .right{align-items:flex-start;text-align:left}
-  .tile .v{font-size:27px}
+  .cell .lab,.side .lab{display:block}
+  .drow{grid-template-columns:1fr 1fr;gap:8px 12px}
+  .drow .status{grid-column:2;grid-row:1}
+  .tile .v{font-size:25px}
+  .cday{min-height:46px;padding:4px 5px}
+  .cal{gap:4px;padding:8px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -134,10 +235,14 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
     <button class="btn primary" id="loginBtn" type="submit" data-t="open"></button>
   </form>
 
-  <div id="app" hidden>
+  <div id="app" hidden style="display:flex;flex-direction:column;gap:16px">
     <header class="top">
       <div class="brand"><h1 data-t="title"></h1><div class="sub" id="sub"></div></div>
       <div class="actions">
+        <button class="btn" id="copyBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
+          <span data-t="copy"></span>
+        </button>
         <button class="btn" id="refresh" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span data-t="refresh"></span>
@@ -145,27 +250,45 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
         <button class="linkbtn" id="signout" type="button" data-t="signOut"></button>
       </div>
     </header>
-    <section class="tiles" id="tiles"></section>
-    <section>
-      <div class="list-head" style="margin-bottom:10px"><h2 data-t="pharmacies"></h2><span class="small" data-t="tapHint"></span></div>
-      <div class="list" id="list"></div>
-    </section>
+    <div id="main"></div>
   </div>
 </div>
+
+<div class="modal" id="modal" hidden><div class="box"><div class="sec-head" style="margin-bottom:8px"><b data-t="copy"></b><button class="btn" id="modalX" type="button" data-t="close"></button></div><textarea id="copyTa" readonly></textarea></div></div>
 
 <script>
 /* ---------- Strings (localization-ready) ---------- */
 const STR = { en: {
-  title: "Attendance Overview", loginHint: "Enter the supervisor password.", open: "Open", opening: "Opening…",
+  title: "Attendance Overview", loginHint: "Enter the supervisor password.", open: "Open", opening: "Opening…", close: "Close",
   wrongPw: "Wrong password. Try again.", noPw: "No supervisor password has been set yet.", netErr: "Couldn't load the data. Check the internet and try again.",
-  refresh: "Refresh", signOut: "Sign out", updated: "{date} · updated {time}", pharmacies: "Pharmacies", tapHint: "Tap a pharmacy to see its late days",
-  tSaved: "Saved today", tSavedS: "{n} not saved today", tDelay: "Delay this month", tDelayS: "{n} pharmacy(ies) with delay", tAction: "Need exceptional duty", tActionS: "Days still inside the 4-day window",
-  tStale: "Data behind", tStaleS: "Latest day older than yesterday", min: "min",
-  cPharmacy: "Pharmacy", cSaved: "Last saved", cData: "Data up to", cDelay: "Delay this month", cExc: "Exceptional", cAction: "Needs action",
-  today: "Today {time}", yesterday: "Yesterday {time}", daysAgo: "{n} days ago", never: "Never saved", noData: "No data",
-  avg: "{a} min per day", days: "{n} day(s)", actionPill: "{n} day(s) · by {date}", actionNone: "Nothing due",
-  dAction: "Needs an exceptional duty", dIssues: "Late days this month", dNone: "No late days this month.",
-  out: "Out", in: "In", planned: "Planned", left0: "Fix today", leftN: "{n} day(s) left", deadline: "Deadline {date}", exc: "Exceptional duty"
+  refresh: "Refresh", signOut: "Sign out", copy: "Copy summary", copied: "Summary copied", updated: "{date} · updated {time}",
+  thisMonth: "This month", lastMonth: "Last month", year: "Year {y}", otherMonth: "Other month…",
+  alert: "{n} day(s) need an exceptional duty now. Earliest deadline: {date}.",
+  tSaved: "Saved today", tSavedS: "{n} not saved today", tAvg: "Daily average", tAvgS: "Total {t} min over {d} day(s)",
+  tExc: "Exceptional duties", tExcS: "{o} over limit · {l} late edit(s)", tAction: "Needs action now", tActionS: "Days still inside the 4-day window",
+  min: "min", perDay: "min/day",
+  pharmacies: "Pharmacies", tapHint: "Tap a pharmacy for its days",
+  cPharmacy: "Pharmacy", cSaved: "Last saved", cAvg: "Daily average", cExc: "Exceptional", cAction: "Needs action", cTrend: "Last 6 months",
+  today: "Today {time}", yesterday: "Yesterday {time}", daysAgo: "{n} days ago", never: "Never saved",
+  totalOf: "{t} min · {d} day(s)", noDays: "No saved days", excLine: "{o} over · {l} late", actionPill: "{n} day(s) · by {date}", actionNone: "Nothing due",
+  yearGrid: "Year {y}", gridHint: "Tap a month to open it", total: "Total", allPh: "All pharmacies",
+  lgNone: "No delay", lgLow: "Under 1 min/day", lgMid: "1 to 3 min/day", lgHigh: "Over 3 min/day", lgNd: "No saved data", lgOver: "Over 5 exceptional",
+  back: "All pharmacies", prev: "Previous month", next: "Next month",
+  dMissed: "Missed punches", dMissedS: "Each counts as 30 min", dExcS: "Limit 5 per month",
+  byPh: "By pharmacist", unassigned: "Unassigned",
+  calLegend: "", lgOk: "On time", lgRed: "Late, can still fix", lgBlack: "Late, deadline passed", lgExc: "Exceptional duty", lgExcLate: "Exceptional, breaks rules", lgNotSaved: "Not saved",
+  tIssues: "Issues ({n})", tActionTab: "Needs action ({n})", tExcTab: "Exceptional duties ({n})", tAll: "All days ({n})",
+  colDate: "Date", colOut: "Clock out", colIn: "Clock in", colStatus: "Status", colEdited: "Edited", colRules: "Rules", colNew: "New times",
+  planned: "Planned", rOk: "On time", rMissed: "Missed · 30", rLate: "{m} min", rExcused: "Missed action",
+  stOk: "On time", stRed: "Fix within {n} day(s)", stRed0: "Fix today", stBlack: "Deadline passed", stLateExc: "Late after edit", deadline: "Deadline {date}",
+  tagExc: "Exceptional", tagLate: "After {n} days", tagOver: "Over limit", tagRank: "{r} of 5",
+  pillRules: "Within rules", pillLate: "Late edit", pillOver: "Over limit", pillBoth: "Late and over limit", pillHol: "Holiday",
+  editedBy: "{date} · by {who}", stillLate: "Still {m} min late", noDelay: "No delay after edit", within: "Within 4 days",
+  noIssues: "No late days in this month.", noAction: "Nothing needs action.", noExc: "No exceptional duties in this month.", noData: "No saved days for this month.",
+  cpHead: "Attendance overview · {period}", cpAvg: "Daily average: {a} min · Total: {t} min over {d} day(s)", cpExc: "Exceptional duties: {n} · over limit: {o} · late edits: {l}",
+  cpAction: "Needs action now: {n} day(s)", cpLine: "{name} ({code}): {a} min/day · {t} min · exceptional {e}{over} · needs action {n}",
+  cpDetail: "{name} ({code}) · {month}", cpLate: "Late days:", cpNone: "No late days.",
+  cpDay: "{date} · {side} · planned {p} · actual {a} · {m} min · {who}"
 }};
 let LANG = "en";
 const t = (k, v = {}) => String((STR[LANG] && STR[LANG][k]) ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
@@ -175,21 +298,35 @@ const t = (k, v = {}) => String((STR[LANG] && STR[LANG][k]) ?? k).replace(/\{(\w
 const API_URL = "https://script.google.com/macros/s/AKfycbxai2MWsrqVcLeKrvV4wa1dQYzbBI3eNEZM11Ke3pKl6NZDH39XInlJzBqO0uNdQLxcZA/exec";
 const PW_KEY = "attendanceSupervisorPw";
 const MONS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const WDS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const WDL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pad = n => String(n).padStart(2, "0");
-const store = { get() { try { return localStorage.getItem(PW_KEY) || ""; } catch (e) { return ""; } },
+const ls = { get() { try { return localStorage.getItem(PW_KEY) || ""; } catch (e) { return ""; } },
   set(v) { try { localStorage.setItem(PW_KEY, v); } catch (e) {} }, clear() { try { localStorage.removeItem(PW_KEY); } catch (e) {} } };
 const dayNum = s => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+const dateOf = n => { const d = new Date(n * 864e5); return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()); };
 const fmtDay = s => { if (!s) return ""; const d = new Date(dayNum(s) * 864e5); return d.getUTCDate() + " " + MONS[d.getUTCMonth()]; };
+const wdOf = s => new Date(dayNum(s) * 864e5).getUTCDay();
 const fmtTime = d => { const h = d.getHours(); return ((h % 12) || 12) + ":" + pad(d.getMinutes()) + " " + (h < 12 ? "AM" : "PM"); };
-const state = { data: null, open: new Set(), pw: "" };
+const fmt24 = s => { const m = String(s).match(/(\d{2}):(\d{2})/); if (!m) return s; const h = +m[1]; return ((h % 12) || 12) + ":" + m[2] + " " + (h < 12 ? "AM" : "PM"); };
+const mName = k => MONL[+k.slice(5, 7) - 1] + " " + k.slice(0, 4);
+const mShort = k => MONS[+k.slice(5, 7) - 1];
+const addMonth = (k, n) => { let y = +k.slice(0, 4), m = +k.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + "-" + pad(m + 1); };
+const nameOf = by => String(by || "").split(" - ")[0];
+const icoWarn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l9.5 17h-19z" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.5v.3" stroke-linecap="round"/></svg>';
+const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const state = { pw: "", sum: null, period: null, view: "list", store: null, month: null, tab: "issues", cache: new Map(), loadedAt: null };
 
 function applyStrings() { document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t)); document.title = t("title"); }
+function toast(msg) { const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 1800); }
 
-async function fetchData(pw) {
-  const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "dashboard", password: pw }) });
+/* ---------- Data ---------- */
+async function api(body) {
+  const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ action: "dashboard", password: state.pw }, body)) });
   return res.json();
 }
 
@@ -198,106 +335,380 @@ function showLogin(msg) {
   $("loginErr").textContent = msg || ""; $("pw").value = ""; $("pw").focus();
 }
 
-async function load(pw, fromLogin) {
+async function loadSummary(fromLogin) {
   const btn = fromLogin ? $("loginBtn") : $("refresh");
   btn.disabled = true;
   if (fromLogin) btn.textContent = t("opening");
-  else if (!state.data) { $("app").hidden = false; $("list").innerHTML = `<div class="state"><span class="spin"></span></div>`; }
+  else if (!state.sum) { $("app").hidden = false; $("main").innerHTML = `<div class="state"><span class="spin"></span></div>`; }
   try {
-    const data = await fetchData(pw);
+    const data = await api({ mode: "summary" });
     if (!data.ok) {
-      if (data.auth === false) { store.clear(); showLogin(t("wrongPw")); }
-      else showLogin(data.error && /password/i.test(data.error) ? t("noPw") : t("netErr"));
+      if (data.auth === false) { ls.clear(); showLogin(t("wrongPw")); }
+      else showLogin(/password/i.test(data.error || "") ? t("noPw") : t("netErr"));
       return;
     }
-    state.pw = pw; store.set(pw); state.data = data; state.loadedAt = new Date();
+    ls.set(state.pw); state.sum = data; state.loadedAt = new Date(); state.cache.clear();
+    if (!state.period) state.period = data.today.slice(0, 7);
     $("login").hidden = true; $("app").hidden = false; render();
   } catch (e) {
-    if (fromLogin || !state.data) showLogin(t("netErr")); else $("sub").textContent = t("netErr");
+    if (fromLogin || !state.sum) showLogin(t("netErr")); else toast(t("netErr"));
   } finally {
     btn.disabled = false; if (fromLogin) btn.textContent = t("open");
   }
 }
 
-function savedInfo(p, todayN) {
+async function loadMonth(store, month) {
+  const key = store + "|" + month;
+  if (state.cache.has(key)) return state.cache.get(key);
+  const data = await api({ mode: "month", store, month });
+  if (!data.ok) throw new Error(data.error || "failed");
+  state.cache.set(key, data);
+  return data;
+}
+
+/* ---------- Summary helpers ---------- */
+const curMonth = () => state.sum.today.slice(0, 7);
+const yearMonths = () => { const cur = curMonth(), y = cur.slice(0, 4), out = []; for (let m = 1; m <= +cur.slice(5, 7); m++) out.push(y + "-" + pad(m)); return out; };
+const periodKeys = () => state.period === "year" ? yearMonths() : [state.period];
+function agg(p, keys) {
+  const a = { minutes: 0, days: 0, lateDays: 0, missed: 0, exc: 0, late: 0, over: 0, holiday: 0 };
+  for (const k of keys) { const m = p.months[k]; if (!m) continue; for (const f in a) a[f] += m[f] || 0; }
+  a.avg = a.days ? a.minutes / a.days : 0;
+  return a;
+}
+function savedInfo(p) {
+  const todayN = dayNum(state.sum.today);
   if (!p.lastSaved) return { text: t("never"), cls: "bad", today: false };
   const d = new Date(p.lastSaved), dn = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5, diff = todayN - dn;
   if (diff <= 0) return { text: t("today", { time: fmtTime(d) }), cls: "ok", today: true };
   if (diff === 1) return { text: t("yesterday", { time: fmtTime(d) }), cls: "warn", today: false };
   return { text: t("daysAgo", { n: diff }), cls: "bad", today: false };
 }
+const periodLabel = () => state.period === "year" ? t("year", { y: curMonth().slice(0, 4) }) : mName(state.period);
+const avgClass = a => a >= 1 ? "bad" : a > 0 ? "warn" : "ok";
 
+/* ---------- Render: overview ---------- */
 function render() {
-  const D = state.data, todayN = dayNum(D.today);
-  const now = state.loadedAt, td = new Date(todayN * 864e5);
+  const now = state.loadedAt, td = new Date(dayNum(state.sum.today) * 864e5);
   $("sub").textContent = t("updated", { date: WDS[td.getUTCDay()] + " " + td.getUTCDate() + " " + MONS[td.getUTCMonth()], time: fmtTime(now) });
+  if (state.view === "detail") return renderDetail();
 
-  const list = D.pharmacies.map(p => {
-    const sv = savedInfo(p, todayN);
-    const stale = !p.latestDay || dayNum(p.latestDay) < todayN - 1;
-    return Object.assign({}, p, { sv, stale });
-  }).sort((a, b) => (b.action.length - a.action.length) || (a.sv.today - b.sv.today) || (b.monthMinutes - a.monthMinutes));
+  const S = state.sum, keys = periodKeys(), cur = curMonth(), prev = addMonth(cur, -1);
+  const allMonths = [...new Set(S.pharmacies.flatMap(p => Object.keys(p.months)))].filter(m => m !== cur && m !== prev && m <= cur).sort().reverse();
+  const isOther = state.period !== "year" && state.period !== cur && state.period !== prev;
+  const periods = `<div class="periods">
+    <button type="button" class="chip" data-p="${cur}" aria-pressed="${state.period === cur}">${esc(t("thisMonth"))}</button>
+    <button type="button" class="chip" data-p="${prev}" aria-pressed="${state.period === prev}">${esc(t("lastMonth"))}</button>
+    <button type="button" class="chip" data-p="year" aria-pressed="${state.period === "year"}">${esc(t("year", { y: cur.slice(0, 4) }))}</button>
+    ${allMonths.length ? `<select id="otherSel" class="${isOther ? "on" : ""}" aria-label="${esc(t("otherMonth"))}"><option value="">${esc(t("otherMonth"))}</option>${allMonths.map(m => `<option value="${m}" ${state.period === m ? "selected" : ""}>${esc(mName(m))}</option>`).join("")}</select>` : ""}
+  </div>`;
 
-  const savedToday = list.filter(p => p.sv.today).length;
-  const totalMin = list.reduce((a, p) => a + p.monthMinutes, 0);
-  const withDelay = list.filter(p => p.monthMinutes > 0).length;
-  const actionDays = list.reduce((a, p) => a + p.action.length, 0);
-  const stale = list.filter(p => p.stale).length;
-  $("tiles").innerHTML = `
-    <div class="tile ${savedToday === list.length ? "ok" : "warn"}"><div class="k">${esc(t("tSaved"))}</div><div class="v">${savedToday}<small>/ ${list.length}</small></div><div class="s">${esc(t("tSavedS", { n: list.length - savedToday }))}</div></div>
-    <div class="tile ${totalMin ? "bad" : "ok"}"><div class="k">${esc(t("tDelay"))}</div><div class="v">${totalMin}<small>${esc(t("min"))}</small></div><div class="s">${esc(t("tDelayS", { n: withDelay }))}</div></div>
+  const rows = S.pharmacies.map(p => Object.assign({}, p, { a: agg(p, keys), sv: savedInfo(p) }));
+  const savedToday = rows.filter(p => p.sv.today).length;
+  const T = rows.reduce((x, p) => { for (const f of ["minutes", "days", "exc", "late", "over"]) x[f] += p.a[f]; return x; }, { minutes: 0, days: 0, exc: 0, late: 0, over: 0 });
+  const tAvg = T.days ? T.minutes / T.days : 0;
+  const actionDays = rows.reduce((n, p) => n + p.action.length, 0);
+  const firstDl = rows.flatMap(p => p.action.map(a => a.deadline)).sort()[0];
+
+  const banner = actionDays ? `<div class="banner">${icoWarn}<span>${esc(t("alert", { n: actionDays, date: fmtDay(firstDl) }))}</span></div>` : "";
+  const tiles = `<section class="tiles">
+    <div class="tile ${savedToday === rows.length ? "ok" : "warn"}"><div class="k">${esc(t("tSaved"))}</div><div class="v">${savedToday}<small>/ ${rows.length}</small></div><div class="s">${esc(t("tSavedS", { n: rows.length - savedToday }))}</div></div>
+    <div class="tile ${avgClass(tAvg) === "warn" ? "" : avgClass(tAvg)}"><div class="k">${esc(t("tAvg"))} · ${esc(periodLabel())}</div><div class="v">${tAvg.toFixed(2)}<small>${esc(t("perDay"))}</small></div><div class="s">${esc(t("tAvgS", { t: T.minutes, d: T.days }))}</div></div>
+    <div class="tile ${T.over ? "bad" : ""}"><div class="k">${esc(t("tExc"))} · ${esc(periodLabel())}</div><div class="v">${T.exc}</div><div class="s">${esc(t("tExcS", { o: T.over, l: T.late }))}</div></div>
     <div class="tile ${actionDays ? "bad" : "ok"}"><div class="k">${esc(t("tAction"))}</div><div class="v">${actionDays}</div><div class="s">${esc(t("tActionS"))}</div></div>
-    <div class="tile ${stale ? "warn" : "ok"}"><div class="k">${esc(t("tStale"))}</div><div class="v">${stale}</div><div class="s">${esc(t("tStaleS"))}</div></div>`;
+  </section>`;
 
-  const head = `<div class="prow colhead"><span>${esc(t("cPharmacy"))}</span><span>${esc(t("cSaved"))}</span><span>${esc(t("cData"))}</span><span>${esc(t("cDelay"))}</span><span>${esc(t("cExc"))}</span><span>${esc(t("cAction"))}</span></div>`;
-  $("list").innerHTML = head + list.map(p => pharmacyRow(p, todayN)).join("");
-  $("list").querySelectorAll(".prow[data-code]").forEach(el => {
-    const toggle = () => { const c = el.dataset.code; state.open.has(c) ? state.open.delete(c) : state.open.add(c); render(); };
-    el.onclick = toggle; el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
+  const body = state.period === "year" ? yearGrid(rows) : monthList(rows, keys[0]);
+  $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">${periods}${banner}${tiles}${body}</div>`;
+
+  $("main").querySelectorAll("[data-p]").forEach(b => b.onclick = () => { state.period = b.dataset.p; render(); });
+  const sel = $("otherSel"); if (sel) sel.onchange = () => { if (sel.value) { state.period = sel.value; render(); } };
+  $("main").querySelectorAll("[data-open]").forEach(el => {
+    const go = () => openDetail(el.dataset.open, el.dataset.month || (state.period === "year" ? cur : state.period));
+    el.onclick = go; el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
   });
 }
 
-function pharmacyRow(p, todayN) {
-  const open = state.open.has(p.code);
-  const avg = p.monthDays ? (p.monthMinutes / p.monthDays) : 0;
-  const lv = p.exceptions >= 5 ? "lv-bad" : p.exceptions >= 4 ? "lv-warn" : "lv-ok";
-  const segs = Array.from({ length: 5 }, (_, i) => `<i class="${i < p.exceptions ? "on" : ""}"></i>`).join("");
-  const firstDl = p.action.length ? p.action[0].deadline : "";
-  const actionCell = p.action.length ? `<span class="pill bad">${esc(t("actionPill", { n: p.action.length, date: fmtDay(firstDl) }))}</span>` : `<span class="pill ok">${esc(t("actionNone"))}</span>`;
-  const st = p.action.length ? "st-red" : (!p.sv.today || p.stale) ? "st-warn" : "";
-  const row = `<div class="prow ${st}" data-code="${esc(p.code)}" tabindex="0" role="button" aria-expanded="${open}">
-    <div class="cell name"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></div>
-    <div class="cell"><span class="lab">${esc(t("cSaved"))}</span><span class="pill ${p.sv.cls}">${esc(p.sv.text)}</span></div>
-    <div class="cell"><span class="lab">${esc(t("cData"))}</span><span class="${p.stale ? "mins bad" : "mins"}">${esc(p.latestDay ? fmtDay(p.latestDay) : t("noData"))}</span></div>
-    <div class="cell"><span class="lab">${esc(t("cDelay"))}</span><span class="mins ${p.monthMinutes ? "bad" : "ok"}">${p.monthMinutes} ${esc(t("min"))}</span><span class="small">${esc(t("avg", { a: avg.toFixed(2) }))}</span></div>
-    <div class="cell"><span class="lab">${esc(t("cExc"))}</span><span class="meter ${lv}">${segs}</span><span class="small num">${p.exceptions}/5</span></div>
-    <div class="cell"><span class="lab">${esc(t("cAction"))}</span>${actionCell}</div>
-    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>`;
-  if (!open) return row;
-  const act = p.action.length ? `<h3>${esc(t("dAction"))}</h3>` + p.action.map(x => dayLine(x, todayN, true)).join("") : "";
-  const iss = `<h3>${esc(t("dIssues"))}</h3>` + (p.issues.length ? p.issues.map(x => dayLine(x, todayN, false)).join("") : `<div class="none">${esc(t("dNone"))}</div>`);
-  return row + `<div class="details">${act}${iss}</div>`;
+function spark(p) {
+  const months = Array.from({ length: 6 }, (_, i) => addMonth(curMonth(), i - 5));
+  const vals = months.map(m => { const x = p.months[m]; return x && x.days ? x.minutes / x.days : null; });
+  const max = Math.max(1, ...vals.filter(v => v != null));
+  const bw = 12, gap = 4;
+  return `<svg class="spark" viewBox="0 0 ${6 * bw + 5 * gap} 30" aria-hidden="true">${vals.map((v, i) => {
+    const h = v == null ? 2 : Math.max(3, Math.round((v / max) * 28));
+    const cls = v == null ? "" : v > 0 ? "on" : "zero";
+    return `<rect class="${cls}" x="${i * (bw + gap)}" y="${30 - h}" width="${bw}" height="${h}" rx="2"><title>${esc(mShort(months[i]))}: ${v == null ? "—" : v.toFixed(2)}</title></rect>`;
+  }).join("")}</svg>`;
 }
 
-function dayLine(x, todayN, urgent) {
-  const side = (label, planned, actual, m, by) => {
-    if (!planned) return `<div></div>`;
-    const res = m ? `<span class="res bad">${m} ${esc(t("min"))}</span>` : `<span class="res ok">0</span>`;
-    return `<div><div class="times"><span class="small">${esc(label)}</span><span>${esc(planned)}</span><span class="small">→</span><span>${esc(actual || "—")}</span>${res}</div>${by ? `<div class="who"><bdi>${esc(by)}</bdi></div>` : ""}</div>`;
+function monthList(rows, month) {
+  rows.sort((x, y) => (y.action.length - x.action.length) || (y.a.avg - x.a.avg) || (y.a.minutes - x.a.minutes));
+  const head = `<div class="prow colhead"><span>${esc(t("cPharmacy"))}</span><span>${esc(t("cSaved"))}</span><span>${esc(t("cAvg"))}</span><span>${esc(t("cExc"))}</span><span>${esc(t("cAction"))}</span><span>${esc(t("cTrend"))}</span></div>`;
+  const list = rows.map(p => {
+    const a = p.a, lv = a.exc > 5 ? "lv-bad" : a.exc >= 4 ? "lv-warn" : "lv-ok";
+    const segs = Array.from({ length: 5 }, (_, i) => `<i class="${i < a.exc ? "on" : ""}"></i>`).join("");
+    const act = p.action.length ? `<span class="pill bad">${esc(t("actionPill", { n: p.action.length, date: fmtDay(p.action[0].deadline) }))}</span>` : `<span class="pill ok">${esc(t("actionNone"))}</span>`;
+    const st = p.action.length ? "st-red" : !p.sv.today ? "st-warn" : "";
+    return `<div class="prow ${st}" data-open="${esc(p.code)}" data-month="${esc(month)}" tabindex="0" role="button">
+      <div class="cell name"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></div>
+      <div class="cell"><span class="lab">${esc(t("cSaved"))}</span><span class="pill ${p.sv.cls}">${esc(p.sv.text)}</span></div>
+      <div class="cell"><span class="lab">${esc(t("cAvg"))}</span>${a.days ? `<span class="big ${a.avg >= 1 ? "bad" : a.avg > 0 ? "" : "ok"}">${a.avg.toFixed(2)}</span><span class="small">${esc(t("totalOf", { t: a.minutes, d: a.days }))}</span>` : `<span class="small">${esc(t("noDays"))}</span>`}</div>
+      <div class="cell"><span class="lab">${esc(t("cExc"))}</span><span class="meter ${lv}">${segs}</span><span class="small num">${a.exc}/5${a.over || a.late ? " · " + esc(t("excLine", { o: a.over, l: a.late })) : ""}</span></div>
+      <div class="cell"><span class="lab">${esc(t("cAction"))}</span>${act}</div>
+      <div class="cell"><span class="lab">${esc(t("cTrend"))}</span>${spark(p)}</div>
+      ${chev}
+    </div>`;
+  }).join("");
+  return `<section><div class="sec-head" style="margin-bottom:10px"><h2>${esc(t("pharmacies"))}</h2><span class="small">${esc(t("tapHint"))}</span></div><div class="panel">${head}${list}</div></section>`;
+}
+
+function level(m) {
+  if (!m || !m.days) return "nd";
+  const a = m.minutes / m.days;
+  return a === 0 ? "l0" : a < 1 ? "l1" : a <= 3 ? "l2" : "l3";
+}
+function gridCell(m, code, month) {
+  const lv = level(m), over = m && m.exc > 5;
+  const main = !m || !m.days ? "—" : m.minutes;
+  const sub = m && (m.exc || m.days) ? `<span class="x">${m.exc ? m.exc + "/5" : (m.minutes / m.days).toFixed(1)}</span>` : "";
+  const attrs = code ? `data-open="${esc(code)}" data-month="${month}" tabindex="0" role="button"` : "";
+  return `<td><button type="button" class="gcell ${lv} ${over ? "over" : ""}" ${attrs} title="${esc(mName(month))}"><span class="m">${main}</span>${sub}</button></td>`;
+}
+function yearGrid(rows) {
+  const months = yearMonths();
+  rows.sort((x, y) => (y.a.avg - x.a.avg) || (y.a.minutes - x.a.minutes));
+  const head = `<thead><tr><th class="ph">${esc(t("cPharmacy"))}</th>${months.map(m => `<th>${esc(mShort(m))}</th>`).join("")}<th>${esc(t("total"))}</th></tr></thead>`;
+  const body = rows.map(p => {
+    const tot = agg(p, months);
+    return `<tr><th class="ph"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></th>
+      ${months.map(m => gridCell(p.months[m], p.code, m)).join("")}
+      <td class="tot"><div class="gcell ${level(tot)}"><span class="m">${tot.days ? tot.minutes : "—"}</span><span class="x">${tot.days ? tot.avg.toFixed(2) : ""}</span></div></td></tr>`;
+  }).join("");
+  const foot = `<tfoot><tr><th class="ph"><b>${esc(t("allPh"))}</b></th>${months.map(m => {
+    const s = rows.reduce((x, p) => { const v = p.months[m]; if (v) { x.minutes += v.minutes; x.days += v.days; x.exc += v.exc; } return x; }, { minutes: 0, days: 0, exc: 0 });
+    return `<td><div class="gcell ${level(s)}"><span class="m">${s.days ? s.minutes : "—"}</span><span class="x">${s.exc ? s.exc : ""}</span></div></td>`;
+  }).join("")}<td></td></tr></tfoot>`;
+  const legend = `<div class="legend">
+    <span><i class="gcell l0" style="min-height:0;padding:0"></i>${esc(t("lgNone"))}</span>
+    <span><i class="gcell l1" style="min-height:0;padding:0"></i>${esc(t("lgLow"))}</span>
+    <span><i class="gcell l2" style="min-height:0;padding:0"></i>${esc(t("lgMid"))}</span>
+    <span><i class="gcell l3" style="min-height:0;padding:0"></i>${esc(t("lgHigh"))}</span>
+    <span><i class="gcell nd" style="min-height:0;padding:0"></i>${esc(t("lgNd"))}</span>
+    <span><i class="gcell over" style="min-height:0;padding:0"></i>${esc(t("lgOver"))}</span></div>`;
+  return `<section><div class="sec-head" style="margin-bottom:10px"><h2>${esc(t("yearGrid", { y: curMonth().slice(0, 4) }))}</h2><span class="small">${esc(t("gridHint"))}</span></div>
+    <div class="panel"><div class="gridwrap"><table class="grid">${head}<tbody>${body}</tbody>${foot}</table></div>${legend}</div></section>`;
+}
+
+/* ---------- Render: one pharmacy ---------- */
+function openDetail(code, month) {
+  state.view = "detail"; state.store = code; state.month = month; state.tab = "issues";
+  window.scrollTo(0, 0); render();
+}
+
+async function renderDetail() {
+  const p = state.sum.pharmacies.find(x => x.code === state.store);
+  const key = state.store + "|" + state.month, cur = curMonth();
+  const head = `<div class="dhead">
+      <button class="btn" id="backBtn" type="button">← ${esc(t("back"))}</button>
+      <div class="mnav"><button class="btn icon" id="prevM" type="button" aria-label="${esc(t("prev"))}">‹</button><span class="mlabel">${esc(mName(state.month))}</span><button class="btn icon" id="nextM" type="button" aria-label="${esc(t("next"))}" ${state.month >= cur ? "disabled" : ""}>›</button></div>
+    </div>
+    <div class="dname"><h2><bdi class="ar">${esc(p ? p.name : state.store)}</bdi></h2><span class="small mono">${esc(state.store)}</span></div>`;
+  const wire = () => {
+    $("backBtn").onclick = () => { state.view = "list"; render(); };
+    $("prevM").onclick = () => { state.month = addMonth(state.month, -1); render(); };
+    $("nextM").onclick = () => { if (state.month < cur) { state.month = addMonth(state.month, 1); render(); } };
   };
-  const left = dayNum(x.deadline) - todayN;
-  const right = urgent ? `<span class="pill bad">${esc(left <= 0 ? t("left0") : t("leftN", { n: left }))}</span><span class="small">${esc(t("deadline", { date: fmtDay(x.deadline) }))}</span>`
-    : `<span class="mins bad">${x.minutes} ${esc(t("min"))}</span>${x.exceptional ? `<span class="small">${esc(t("exc"))}</span>` : ""}`;
-  return `<div class="drow ${urgent ? "red" : ""}"><div><b>${esc(fmtDay(x.date))}</b><div class="small">${esc(x.weekday)}</div></div>
-    ${side(t("out"), x.outPlanned, x.outActual, x.outMin, x.outBy)}${side(t("in"), x.inPlanned, x.inActual, x.inMin, x.inBy)}<div class="right">${right}</div></div>`;
+  if (!state.cache.has(key)) {
+    $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">${head}<div class="panel"><div class="state"><span class="spin"></span></div></div></div>`;
+    wire();
+    try { await loadMonth(state.store, state.month); } catch (e) { $("main").querySelector(".state").textContent = t("netErr"); return; }
+    if (state.view !== "detail" || state.store + "|" + state.month !== key) return;
+  }
+  const D = state.cache.get(key);
+  $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">${head}${detailBody(D)}</div>`;
+  wire();
+  $("main").querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { state.tab = b.dataset.tab; render(); });
+  $("main").querySelectorAll("[data-goto]").forEach(b => b.onclick = () => {
+    state.tab = "all"; render();
+    setTimeout(() => { const r = document.getElementById("day-" + b.dataset.goto); if (r) { r.scrollIntoView({ behavior: "smooth", block: "center" }); r.classList.add("flash"); } }, 30);
+  });
+}
+
+function dayStatus(d, today) {
+  if (!d.minutes) return "ok";
+  if (d.exceptional) return "lateExc";
+  return d.deadline >= today ? "red" : "black";
+}
+
+function detailBody(D) {
+  const today = D.today;
+  const days = D.days.slice().sort((a, b) => a.date < b.date ? 1 : -1);
+  const byDate = new Map(days.map(d => [d.date, d]));
+  const sched = new Map(D.schedule.map(s => [s.date, s]));
+  const excBy = new Map(D.exceptions.map(e => [e.date, e]));
+  const holOf = date => (D.holidays.find(h => date >= h.from && date <= h.to) || {}).name || "";
+  const names = new Map();
+  for (const d of days) for (const by of [d.outBy, d.inBy]) { const m = String(by).match(/^(.*) - (\d+)$/); if (m) names.set(m[2], m[1]); }
+
+  // stats
+  const total = days.reduce((a, d) => a + d.minutes, 0), avg = days.length ? total / days.length : 0;
+  let missed = 0; for (const d of days) { if (d.outPlanned && d.outPlanned !== "Missed Action" && !d.outActual && d.outMin >= 30) missed++; if (d.inPlanned && d.inPlanned !== "Missed Action" && !d.inActual && d.inMin >= 30) missed++; }
+  const counted = D.exceptions.filter(e => e.rank > 0), over = counted.filter(e => e.over).length, lateE = counted.filter(e => e.lateEdit).length;
+  const tiles = `<section class="tiles">
+    <div class="tile ${avg >= 1 ? "bad" : avg === 0 && days.length ? "ok" : ""}"><div class="k">${esc(t("tAvg"))}</div><div class="v">${avg.toFixed(2)}<small>${esc(t("perDay"))}</small></div><div class="s">${esc(t("tAvgS", { t: total, d: days.length }))}</div></div>
+    <div class="tile ${missed ? "bad" : ""}"><div class="k">${esc(t("dMissed"))}</div><div class="v">${missed}</div><div class="s">${esc(t("dMissedS"))}</div></div>
+    <div class="tile ${counted.length > 5 ? "bad" : counted.length >= 4 ? "warn" : ""}"><div class="k">${esc(t("tExc"))}</div><div class="v">${counted.length}<small>/ 5</small></div><div class="s">${esc(t("tExcS", { o: over, l: lateE }))}</div></div>
+    <div class="tile ${days.some(d => dayStatus(d, today) === "red") ? "bad" : "ok"}"><div class="k">${esc(t("tAction"))}</div><div class="v">${days.filter(d => dayStatus(d, today) === "red").length}</div><div class="s">${esc(t("tActionS"))}</div></div>
+  </section>`;
+
+  // per pharmacist
+  const ppl = new Map();
+  for (const d of days) for (const [by, m] of [[d.outBy, d.outMin], [d.inBy, d.inMin]]) {
+    if (!by && !m) continue; const n = by ? nameOf(by) : t("unassigned"); ppl.set(n, (ppl.get(n) || 0) + m);
+  }
+  const people = ppl.size ? `<div class="people"><span class="lbl">${esc(t("byPh"))}</span>${[...ppl.entries()].sort((a, b) => b[1] - a[1]).map(([n, m]) => `<span class="person ${m ? "has" : "zero"}"><b><bdi>${esc(n)}</bdi></b><span class="mins">${m} ${esc(t("min"))}</span></span>`).join("")}</div>` : "";
+
+  // calendar
+  const first = D.month + "-01", startWd = wdOf(first), last = dateOf(dayNum(addMonth(D.month, 1) + "-01") - 1), nDays = +last.slice(8);
+  let cells = WDS.map(w => `<div class="wd">${esc(w)}</div>`).join("") + Array.from({ length: startWd }, () => `<div class="cday blank"></div>`).join("");
+  for (let i = 1; i <= nDays; i++) {
+    const date = D.month + "-" + pad(i), d = byDate.get(date), e = excBy.get(date);
+    let cls, txt = "";
+    if (date > today) cls = "future";
+    else if (!d) cls = sched.has(date) ? "nd" : "nd";
+    else {
+      const st = dayStatus(d, today);
+      if (e && e.rank > 0 && (e.lateEdit || e.over)) cls = "exclate";
+      else if (st === "red") cls = "red";
+      else if (st === "black" || st === "lateExc") cls = "black";
+      else if (e) cls = "exc";
+      else cls = "ok";
+      txt = d.minutes ? d.minutes + "m" : "✓";
+    }
+    const tag = d ? "button" : "div";
+    cells += `<${tag} ${d ? `type="button" data-goto="${date}"` : ""} class="cday ${cls}" title="${esc(fmtDay(date))}"><span class="d">${i}</span><span class="t">${txt}</span></${tag}>`;
+  }
+  const calLegend = `<div class="legend">
+    <span><i class="cday ok" style="min-height:0;padding:0"></i>${esc(t("lgOk"))}</span>
+    <span><i class="cday red" style="min-height:0;padding:0"></i>${esc(t("lgRed"))}</span>
+    <span><i class="cday black" style="min-height:0;padding:0"></i>${esc(t("lgBlack"))}</span>
+    <span><i class="cday exc" style="min-height:0;padding:0"></i>${esc(t("lgExc"))}</span>
+    <span><i class="cday exclate" style="min-height:0;padding:0"></i>${esc(t("lgExcLate"))}</span>
+    <span><i class="cday nd" style="min-height:0;padding:0"></i>${esc(t("lgNotSaved"))}</span></div>`;
+  const cal = `<div class="panel"><div class="cal">${cells}</div>${calLegend}</div>`;
+
+  // tabs
+  const issues = days.filter(d => d.minutes > 0), action = days.filter(d => dayStatus(d, today) === "red").sort((a, b) => a.date < b.date ? -1 : 1);
+  const excList = D.exceptions.slice().sort((a, b) => a.date < b.date ? 1 : -1);
+  const tabs = [["issues", t("tIssues", { n: issues.length })], ["action", t("tActionTab", { n: action.length })], ["exc", t("tExcTab", { n: excList.length })], ["all", t("tAll", { n: days.length })]];
+  const seg = `<div class="seg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${state.tab === k}">${esc(l)}</button>`).join("")}</div>`;
+
+  let table;
+  if (state.tab === "exc") {
+    const h = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colNew"))}</span><span>${esc(t("colEdited"))}</span><span style="text-align:right">${esc(t("colRules"))}</span></div>`;
+    table = excList.length ? h + excList.map(e => excRow(e, byDate.get(e.date), names)).join("") : `<div class="state">${esc(t("noExc"))}</div>`;
+  } else {
+    const list = state.tab === "issues" ? issues : state.tab === "action" ? action : days;
+    const h = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colOut"))}</span><span>${esc(t("colIn"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
+    const empty = !days.length ? t("noData") : state.tab === "action" ? t("noAction") : t("noIssues");
+    table = list.length ? h + list.map(d => dayRow(d, excBy.get(d.date), holOf(d.date), today)).join("") : `<div class="state">${esc(empty)}</div>`;
+  }
+  return `${tiles}${people}${cal}<section><div class="sec-head" style="margin-bottom:10px">${seg}</div><div class="panel">${table}</div></section>`;
+}
+
+function sideCell(label, planned, actual, m, by) {
+  if (!planned) return `<div class="side"><span class="lab">${esc(label)}</span><span class="who">—</span></div>`;
+  let res;
+  if (planned === "Missed Action") res = `<span class="res excused">${esc(t("rExcused"))}</span>`;
+  else if (!m) res = `<span class="res ok">${esc(t("rOk"))}</span>`;
+  else res = `<span class="res late">${esc(!actual && m >= 30 ? t("rMissed") : t("rLate", { m }))}</span>`;
+  return `<div class="side"><span class="lab">${esc(label)}</span>
+    <span class="times"><span class="pl">${esc(t("planned"))} ${esc(planned)}</span><span class="pl">→</span><span>${esc(actual || "—")}</span>${res}</span>
+    ${by ? `<span class="who"><bdi>${esc(by)}</bdi></span>` : ""}</div>`;
+}
+
+function dayRow(d, e, hol, today) {
+  const st = dayStatus(d, today);
+  const tags = [];
+  if (e && e.rank > 0) tags.push(`<span class="tag exc">${esc(t("tagExc"))} · ${esc(t("tagRank", { r: e.rank }))}</span>`);
+  if (e && e.rank > 0 && e.lateEdit) tags.push(`<span class="tag late">${esc(t("tagLate", { n: e.lag }))}</span>`);
+  if (e && e.over) tags.push(`<span class="tag over">${esc(t("tagOver"))}</span>`);
+  if (hol) tags.push(`<span class="tag hol"><bdi>${esc(hol)}</bdi></span>`);
+  let status;
+  if (st === "ok") status = `<span class="pill ok">${esc(t("stOk"))}</span>`;
+  else if (st === "red") { const left = dayNum(d.deadline) - dayNum(today); status = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill bad">${esc(left <= 0 ? t("stRed0") : t("stRed", { n: left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDay(d.deadline) }))}</span>`; }
+  else if (st === "lateExc") status = `<span class="pill black">${esc(t("stLateExc"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
+  else status = `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
+  const cls = st === "red" ? "st-red" : st === "black" || st === "lateExc" ? "st-black" : "";
+  return `<div class="drow ${cls}" id="day-${d.date}">
+    <div class="date"><b>${esc(fmtDay(d.date))}</b><span class="wdn">${esc(d.weekday || WDL[wdOf(d.date)])}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
+    ${sideCell(t("colOut"), d.outPlanned, d.outActual, d.outMin, d.outBy)}
+    ${sideCell(t("colIn"), d.inPlanned, d.inActual, d.inMin, d.inBy)}
+    <div class="status">${status}</div></div>`;
+}
+
+function excRow(e, d, names) {
+  const who = (names.get(e.by) ? names.get(e.by) + " - " : "") + e.by;
+  const tags = [];
+  if (e.holiday) tags.push(`<span class="tag hol"><bdi>${esc(e.holiday)}</bdi></span>`);
+  else {
+    tags.push(e.lateEdit ? `<span class="tag late">${esc(t("tagLate", { n: e.lag }))}</span>` : `<span class="tag exc">${esc(t("within"))}</span>`);
+    tags.push(e.over ? `<span class="tag over">${esc(t("tagRank", { r: e.rank }))} · ${esc(t("tagOver"))}</span>` : `<span class="tag">${esc(t("tagRank", { r: e.rank }))}</span>`);
+  }
+  let pill;
+  if (e.holiday) pill = `<span class="pill exc">${esc(t("pillHol"))}</span>`;
+  else if (e.lateEdit && e.over) pill = `<span class="pill bad">${esc(t("pillBoth"))}</span>`;
+  else if (e.over) pill = `<span class="pill bad">${esc(t("pillOver"))}</span>`;
+  else if (e.lateEdit) pill = `<span class="pill warn">${esc(t("pillLate"))}</span>`;
+  else pill = `<span class="pill ok">${esc(t("pillRules"))}</span>`;
+  const after = d ? `<span class="mins">${esc(d.minutes ? t("stillLate", { m: d.minutes }) : t("noDelay"))}</span>` : "";
+  const bad = !e.holiday && (e.lateEdit || e.over);
+  return `<div class="drow ${bad ? "st-red" : ""}">
+    <div class="date"><b>${esc(fmtDay(e.date))}</b><span class="wdn">${esc(e.weekday || WDL[wdOf(e.date)])}</span><div class="tags">${tags.join("")}</div></div>
+    <div class="side"><span class="lab">${esc(t("colNew"))}</span><span class="times"><span class="pl">${esc(t("colOut"))}</span><span>${esc(e.out)}</span></span><span class="times"><span class="pl">${esc(t("colIn"))}</span><span>${esc(e.in)}</span></span></div>
+    <div class="side"><span class="lab">${esc(t("colEdited"))}</span><span class="times"><span>${esc(fmtDay(e.updated.slice(0, 10)) + ", " + fmt24(e.updated))}</span></span><span class="who"><bdi>${esc(who)}</bdi></span></div>
+    <div class="status">${pill}${after}</div></div>`;
+}
+
+/* ---------- Copy ---------- */
+function summaryText() {
+  if (state.view === "detail") {
+    const D = state.cache.get(state.store + "|" + state.month); if (!D) return "";
+    const p = state.sum.pharmacies.find(x => x.code === state.store) || { name: state.store };
+    const days = D.days.slice().sort((a, b) => a.date < b.date ? -1 : 1);
+    const total = days.reduce((a, d) => a + d.minutes, 0), avg = days.length ? total / days.length : 0;
+    const counted = D.exceptions.filter(e => e.rank > 0);
+    const L = [t("cpDetail", { name: p.name, code: state.store, month: mName(state.month) }), t("cpAvg", { a: avg.toFixed(2), t: total, d: days.length }),
+      t("cpExc", { n: counted.length, o: counted.filter(e => e.over).length, l: counted.filter(e => e.lateEdit).length }), ""];
+    const late = days.filter(d => d.minutes > 0);
+    L.push(late.length ? t("cpLate") : t("cpNone"));
+    for (const d of late) for (const [side, pl, ac, m, by] of [[t("colOut"), d.outPlanned, d.outActual, d.outMin, d.outBy], [t("colIn"), d.inPlanned, d.inActual, d.inMin, d.inBy]]) {
+      if (m) L.push(t("cpDay", { date: fmtDay(d.date), side, p: pl, a: ac || "—", m, who: by ? nameOf(by) : t("unassigned") }));
+    }
+    return L.join("\n");
+  }
+  const keys = periodKeys();
+  const rows = state.sum.pharmacies.map(p => Object.assign({}, p, { a: agg(p, keys) })).sort((x, y) => y.a.avg - x.a.avg);
+  const T = rows.reduce((x, p) => { for (const f of ["minutes", "days", "exc", "late", "over"]) x[f] += p.a[f]; return x; }, { minutes: 0, days: 0, exc: 0, late: 0, over: 0 });
+  const actionDays = rows.reduce((n, p) => n + p.action.length, 0);
+  const L = [t("cpHead", { period: periodLabel() }), t("cpAvg", { a: (T.days ? T.minutes / T.days : 0).toFixed(2), t: T.minutes, d: T.days }),
+    t("cpExc", { n: T.exc, o: T.over, l: T.late }), t("cpAction", { n: actionDays }), ""];
+  for (const p of rows) L.push(t("cpLine", { name: p.name, code: p.code, a: p.a.avg.toFixed(2), t: p.a.minutes, e: p.a.exc, over: p.a.over ? " (" + p.a.over + " over)" : "", n: p.action.length }));
+  return L.join("\n");
+}
+function copySummary() {
+  const txt = summaryText(); if (!txt) return;
+  const fallback = () => { $("copyTa").value = txt; $("modal").hidden = false; $("copyTa").focus(); $("copyTa").select(); };
+  try { navigator.clipboard.writeText(txt).then(() => toast(t("copied")), fallback); } catch (e) { fallback(); }
 }
 
 /* ---------- Boot ---------- */
 applyStrings();
-$("login").addEventListener("submit", e => { e.preventDefault(); const pw = $("pw").value.trim(); if (pw) load(pw, true); });
-$("refresh").onclick = () => load(state.pw, false);
-$("signout").onclick = () => { store.clear(); state.data = null; state.pw = ""; showLogin(""); };
-const saved = store.get();
-if (saved) load(saved, false); else showLogin("");
+$("login").addEventListener("submit", e => { e.preventDefault(); const pw = $("pw").value.trim(); if (pw) { state.pw = pw; loadSummary(true); } });
+$("refresh").onclick = () => loadSummary(false);
+$("copyBtn").onclick = copySummary;
+$("modalX").onclick = () => { $("modal").hidden = true; };
+$("signout").onclick = () => { ls.clear(); state.sum = null; state.pw = ""; state.view = "list"; state.cache.clear(); showLogin(""); };
+const savedPw = ls.get();
+if (savedPw) { state.pw = savedPw; loadSummary(false); } else showLogin("");
 </script>
