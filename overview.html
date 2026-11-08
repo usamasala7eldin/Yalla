@@ -319,7 +319,7 @@ const STR = { en: {
   tAction: "Needs action ({n})", tIssues: "Issues ({n})", tExcTab: "Exceptional duties ({n})", tAll: "All days ({n})",
   colDate: "Date", colOut: "Clock out", colIn: "Clock in", colStatus: "Status", colNew: "New times", colEdited: "Edited", colRules: "Rules",
   planned: "Planned", rOk: "On time", rMissed: "Missed · 30", rLate: "{m} min", rExcused: "Missed action",
-  stOk: "On time", stRed: "Fix within {n} day(s)", stRed0: "Fix today", stBlack: "Past 4 days", stBlackS: "Can still be submitted", deadline: "Deadline {date}",
+  stOk: "On time", stRed: "Fix within {n} day(s)", stRed0: "Fix today", stBlack: "Past 4 days", stBlackS: "Fix it, but it may not be accepted", stClosed: "Month closed", deadline: "Deadline {date}",
   tagExc: "Exceptional · {r} of 5", tagLate: "After 4 days · may not be accepted", tagOver: "Over 5 · may not be accepted", within: "Within 4 days", rank: "{r} of 5",
   pillRules: "Within rules", pillLate: "May not be accepted", pillOver: "May not be accepted", pillBoth: "May not be accepted", pillHol: "Holiday",
   stillLate: "Still {m} min late", noDelay: "No delay after edit",
@@ -607,7 +607,14 @@ function dayRow(d, e, names) {
   let status;
   if (st === "ok") status = `<span class="pill ok">${esc(t("stOk"))}</span>`;
   else if (st === "red") { const left = dayNum(d.deadline) - dayNum(state.meta.today); status = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill bad">${esc(left <= 0 ? t("stRed0") : t("stRed", { n: left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDate(d.deadline) }))}</span>`; }
-  else status = `<span class="mins" style="font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${esc(t("stBlackS"))}</span>`;
+  else {
+    // After the 4 days a fix may still go through: always in this month, and for up to 10 days for a day from last month.
+    const today = dayNum(state.meta.today), day = dayNum(d.date);
+    const open = d.date.slice(0, 7) === state.meta.today.slice(0, 7) || today <= day + 10;
+    status = `<span class="mins" style="font-weight:600">${d.minutes} ${esc(t("min"))}</span>` + (open
+      ? `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${esc(t("stBlackS"))}</span>`
+      : `<span class="pill black">${esc(t("stClosed"))}</span>`);
+  }
   const cls = st === "red" ? "st-red" : st === "black" ? "st-black" : "";
   return `<div class="drow ${cls}">
     <div class="date"><b>${esc(fmtDate(d.date))}</b><span class="wdn">${esc(d.weekday || WDL[ymd(dayNum(d.date)).wd])}</span><span class="ph">${esc(names.get(d.store) || d.store)}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
