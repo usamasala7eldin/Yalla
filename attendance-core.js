@@ -258,8 +258,9 @@ function punchesPayload(recs) {
 function schedPayload(byDay) {
   return [...byDay.values()].map(r => ({ date: dateStr(r.day), weekday: WDN[ymd(r.day).wd], out: r.outText, in: r.inText, type: r.type, by: r.byId, updated: r.updMin != null ? stampStr(r.updMin) : "" }));
 }
+// Every compared day of the year is sent; the sheet keeps days older than 31 days unchanged.
 function daysPayload(A, today) {
-  return A.days.filter(d => d.compared && d.day >= today - 62).map(d => {
+  return A.days.filter(d => d.compared && d.day <= today).map(d => {
     const side = c => ({ planned: c.schedText, actual: c.rec ? fmt12(c.rec.tsMin) : "", minutes: c.minutes, byId: c.rec ? c.rec.id : "", byName: c.rec ? c.rec.name : "" });
     return { date: dateStr(d.day), weekday: WDN[ymd(d.day).wd], out: side(d.sides.out), in: side(d.sides.in), minutes: d.minutes, exceptional: d.exc.counted, lateEdit: d.exc.lateEdit };
   });
