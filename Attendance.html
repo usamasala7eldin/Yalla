@@ -589,10 +589,10 @@ function run() {
   const ready = hasC && hasS;
   $("results").hidden = !ready;
   $("copyBtn").hidden = !ready;
-  // Save only when the store is certain: taken from the schedule page, or two pasted pharmacists already saved under it.
   const pastedIds = new Set(userClock.recs.map(r => r.id));
   const savedIds = new Set(cloud.recs.map(r => r.id));
-  const confirmed = cloud.source === "schedule" || cloud.confident || cloud.matched >= 2 || [...pastedIds].filter(id => savedIds.has(id)).length >= 2;
+  // Save only when the store is certain: from a pasted schedule page, or from the supervisor's imported schedules.
+  const confirmed = cloud.source === "schedule" || cloud.confident;
   const canSave = !!API_URL && ready && useCloud && cloud.store === state.store && /^\d{2,8}$/.test(state.store);
   autosave.blocked = canSave && !confirmed;
   // Saved once per visit even with nothing new, so days missing in the sheet are filled in.
