@@ -78,7 +78,7 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .banner svg{flex:none;width:18px;height:18px}
 
 /* Tiles */
-.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;box-shadow:var(--shadow)}
 .tile .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
 .tile .v{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
@@ -186,7 +186,7 @@ button.cday:hover{border-color:var(--muted)}
 .date b{font-weight:700;display:block}
 .date .wdn{color:var(--muted);font-size:12.5px}
 .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
-.tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;border-radius:4px;padding:1px 6px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;border-radius:4px;padding:1px 6px;border:1px solid var(--line);color:var(--muted);white-space:normal}
 .tag.exc{border-color:var(--exc);color:var(--exc)}
 .tag.late{border-color:var(--warn);color:var(--warn)}
 .tag.over{border-color:var(--bad);color:var(--bad)}
@@ -228,7 +228,7 @@ button.cday:hover{border-color:var(--muted)}
 .irow.colhead{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding-block:8px}
 .irow .res-cell{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
 .ifoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line);background:var(--surface-2)}
-@media (max-width:900px){ .tiles{grid-template-columns:1fr 1fr} }
+@media (max-width:560px){ .tiles{grid-template-columns:1fr} }
 @media (max-width:760px){ .irow.colhead{display:none} .irow{grid-template-columns:1fr 1fr} .irow .nm{grid-column:1/-1} }
 @media (max-width:760px){
   .prow.colhead,.drow.colhead{display:none}
@@ -319,9 +319,9 @@ const STR = { en: {
   tAction: "Needs action ({n})", tIssues: "Issues ({n})", tExcTab: "Exceptional duties ({n})", tAll: "All days ({n})",
   colDate: "Date", colOut: "Clock out", colIn: "Clock in", colStatus: "Status", colNew: "New times", colEdited: "Edited", colRules: "Rules",
   planned: "Planned", rOk: "On time", rMissed: "Missed · 30", rLate: "{m} min", rExcused: "Missed action",
-  stOk: "On time", stRed: "Fix within {n} day(s)", stRed0: "Fix today", stBlack: "Deadline passed", stLateExc: "Late after edit", deadline: "Deadline {date}",
-  tagExc: "Exceptional · {r} of 5", tagLate: "After {n} days", tagOver: "Over limit", within: "Within 4 days", rank: "{r} of 5",
-  pillRules: "Within rules", pillLate: "Late edit", pillOver: "Over limit", pillBoth: "Late and over limit", pillHol: "Holiday",
+  stOk: "On time", stRed: "Fix within {n} day(s)", stRed0: "Fix today", stBlack: "Past 4 days", stBlackS: "Can still be submitted", deadline: "Deadline {date}",
+  tagExc: "Exceptional · {r} of 5", tagLate: "After 4 days · may not be accepted", tagOver: "Over 5 · may not be accepted", within: "Within 4 days", rank: "{r} of 5",
+  pillRules: "Within rules", pillLate: "May not be accepted", pillOver: "May not be accepted", pillBoth: "May not be accepted", pillHol: "Holiday",
   stillLate: "Still {m} min late", noDelay: "No delay after edit",
   noAction: "Nothing needs action.", noIssues: "No late days.", noExc: "No exceptional duties.", noDays: "No saved days.",
   gridTitle: "Year {y}", gridHint: "Tap a month to open it", cPharmacy: "Pharmacy", total: "Total",
@@ -463,7 +463,6 @@ function markExc(days, excMap) {
 }
 function dayStatus(d) {
   if (!d.minutes) return "ok";
-  if (d.exc) return "lateExc";
   return d.deadline >= state.meta.today ? "red" : "black";
 }
 function missedCount(d) {
@@ -522,7 +521,6 @@ async function render() {
   const tiles = `<section class="tiles">
     <div class="tile ${total ? "bad" : "ok"}"><div class="k">${esc(t("tDelay"))}</div><div class="v">${total}<small>${esc(t("min"))}</small></div><div class="s">${esc(t("tDelayS", { d: days.length }))}</div></div>
     <div class="tile ${avg >= 1 ? "bad" : "ok"}"><div class="k">${esc(t("tAvg"))}</div><div class="v">${avg.toFixed(2)}<small>${esc(t("min"))}</small></div><div class="s">${esc(t("tAvgS"))}</div></div>
-    <div class="tile ${missed ? "bad" : ""}"><div class="k">${esc(t("tMissed"))}</div><div class="v">${missed}</div><div class="s">${esc(t("tMissedS"))}</div></div>
     <div class="tile ${overStores ? "bad" : ""}"><div class="k">${esc(t("tExc"))}</div><div class="v">${counted.length}${store && state.period !== "year" ? "<small>/ 5</small>" : ""}</div><div class="s">${esc(state.period === "year" ? t("tExcYear", { o: overStores, l: lateEdits }) : store ? t("tExcOne", { l: lateEdits }) : t("tExcAll", { o: overStores, l: lateEdits }))}</div></div>
   </section>`;
 
@@ -609,9 +607,8 @@ function dayRow(d, e, names) {
   let status;
   if (st === "ok") status = `<span class="pill ok">${esc(t("stOk"))}</span>`;
   else if (st === "red") { const left = dayNum(d.deadline) - dayNum(state.meta.today); status = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill bad">${esc(left <= 0 ? t("stRed0") : t("stRed", { n: left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDate(d.deadline) }))}</span>`; }
-  else if (st === "lateExc") status = `<span class="pill black">${esc(t("stLateExc"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
-  else status = `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
-  const cls = st === "red" ? "st-red" : st === "black" || st === "lateExc" ? "st-black" : "";
+  else status = `<span class="mins" style="font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${esc(t("stBlackS"))}</span>`;
+  const cls = st === "red" ? "st-red" : st === "black" ? "st-black" : "";
   return `<div class="drow ${cls}">
     <div class="date"><b>${esc(fmtDate(d.date))}</b><span class="wdn">${esc(d.weekday || WDL[ymd(dayNum(d.date)).wd])}</span><span class="ph">${esc(names.get(d.store) || d.store)}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
     ${sideCell(t("colOut"), d.oP, d.oA, d.oM, d.oBy)}
