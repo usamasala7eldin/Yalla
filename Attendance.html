@@ -100,6 +100,12 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .spin{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* Paste bar */
+.pastebar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.pastebar .small{color:var(--muted);font-size:13px;flex:1;min-width:180px}
+.btn.big{padding:11px 22px;font-size:15px}
+.btn.big svg{width:18px;height:18px}
+
 /* Banners */
 .banner{border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:500}
 .banner svg{flex:none;width:18px;height:18px}
@@ -225,7 +231,16 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
     </div>
   </header>
 
-  <section class="inputs" aria-label="Reports">
+  <section class="pastebar">
+    <button class="btn primary big" id="pasteBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 10h6M9 14h6" stroke-linecap="round"/></svg>
+      <span data-t="pasteBtn"></span>
+    </button>
+    <span class="small" data-t="pasteHint"></span>
+    <button class="linkbtn" id="clearBtn" type="button" data-t="clearPage"></button>
+  </section>
+
+  <section class="inputs" aria-label="Reports" hidden>
     <div class="paste">
       <div class="paste-head">
         <label><span class="step">1</span><span data-t="clockLabel"></span></label>
@@ -286,8 +301,11 @@ const STR = { en: {
   clockOk:"Total: {n} punches · {from} – {to} · {p} pharmacist(s)", clockNone:"No punches found. Copy the whole Employee InOut page, including the table rows.",
   schedOk:"Total: {n} days · {months}", schedNone:"No days found. Copy the whole Store Attendance Duty page, including the dated rows.",
   dupNote:" · {d} duplicate(s) ignored", waiting:"Waiting for paste",
-  empty:"Paste both reports above to see the results.",
-  needSched:"Employee InOut is loaded. Paste Store Attendance Duty to compare.", needClock:"Store Attendance Duty is loaded. Paste Employee InOut to compare.",
+  empty:"",
+  needSched:"Copy the Store Attendance Duty page too, then press Paste.", needClock:"Copy the Employee InOut page, then press Paste.",
+  pasteBtn:"Paste", pasteHint:"Copy the Employee InOut page, then press Paste.", clearPage:"Clear",
+  pastedClock:"Employee InOut added", pastedSched:"Store Attendance Duty added", pasteNone:"Nothing to read in what you copied. Copy the whole page and try again.",
+  pasteDup:"This page is already added.", pressCtrlV:"Press Ctrl+V to paste.", clipEmpty:"Nothing is copied yet. Copy the page first.",
   alert:"<b>{n} day(s)</b> need an exceptional duty. Earliest deadline: <b>{date}</b>.",
   monthLbl:"Month", allMonths:"All",
   totalK:"Total delay", totalS:"{days} day(s) compared", minUnit:"min",
@@ -580,6 +598,7 @@ function run() {
   renderStoreBar();
   if (!ready) {
     const note = !hasC && !hasS ? "empty" : !hasS ? "needSched" : "needClock";
+    if (note === "empty") { $("banner").innerHTML = ""; return; }
     $("banner").innerHTML = `<div class="banner sample">${icoInfo}<span>${esc(t(note))}</span></div>`;
     return;
   }
@@ -740,6 +759,7 @@ function openExc() {
   openModal(`<h3>${esc(t("excTitle"))}</h3>${body}`);
 }
 function toast(msg) {
+  document.querySelectorAll(".toast").forEach(x => x.remove());
   const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el);
   setTimeout(() => el.remove(), 1800);
 }
@@ -766,6 +786,36 @@ function copySummary() {
 }
 
 /* ---------- Boot ---------- */
+/* ---------- One Paste button: it reads what was copied and puts it in the right place ---------- */
+function addPasted(text) {
+  if (!text || !text.trim()) return false;
+  let kind = null;
+  if (parseClock(text).recs.length) kind = "clock";
+  else {
+    const p = parseSchedule(text);
+    if (p.multi) { toast(t("boxMulti")); return true; }
+    if (p.byDay.size) kind = "sched";
+  }
+  if (!kind) { toast(t("pasteNone")); return true; }
+  const host = $(HOST[kind]), areas = [...host.querySelectorAll("textarea")];
+  if (areas.some(x => x.value === text)) { toast(t("pasteDup")); return true; }
+  let ta = areas.find(x => !x.value.trim());
+  if (!ta) { addBox(kind); ta = host.lastElementChild.querySelector("textarea"); }
+  ta.value = text; schedule();
+  toast(kind === "clock" ? t("pastedClock") : t("pastedSched"));
+  return true;
+}
+async function pasteFromClipboard() {
+  try {
+    const txt = await navigator.clipboard.readText();
+    if (!addPasted(txt)) toast(t("clipEmpty"));
+  } catch (e) { toast(t("pressCtrlV")); }
+}
+function clearAllPastes() {
+  for (const k of ["clock", "sched"]) { $(HOST[k]).innerHTML = ""; addBox(k); }
+  state.scope = null; run();
+}
+
 function boot() {
   applyStrings();
   addBox("clock"); addBox("sched");
@@ -778,6 +828,15 @@ function boot() {
   for (const id of ["fIssues", "fAction", "fExc", "fAll"]) $(id).onclick = () => { state.filter = $(id).dataset.f; render(); };
   $("rulesBtn").onclick = openRules;
   $("copyBtn").onclick = copySummary;
+  $("pasteBtn").onclick = pasteFromClipboard;
+  $("clearBtn").onclick = clearAllPastes;
+  // Ctrl+V anywhere on the page works the same as the Paste button.
+  document.addEventListener("paste", e => {
+    const el = e.target;
+    if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) return;
+    const txt = e.clipboardData && e.clipboardData.getData("text");
+    if (txt) { e.preventDefault(); addPasted(txt); }
+  });
   $("modalX").onclick = closeModal;
   $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
