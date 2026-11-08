@@ -252,6 +252,14 @@ button.cday:hover{border-color:var(--muted)}
 .phchip b{font-weight:700;font-family:var(--f-ar)}
 .phchip .mins{font-family:var(--f-mono);font-weight:600}
 .phchip.has .mins{color:var(--bad)} .phchip.zero .mins{color:var(--ok)}
+.covrow{display:grid;grid-template-columns:130px 1fr 70px;gap:12px;align-items:center;padding:9px 14px;border-top:1px solid var(--line)}
+.covrow b{font-size:14px}
+.sqs{display:flex;flex-wrap:wrap;gap:3px}
+.sq{width:13px;height:13px;border-radius:3px;background:var(--line)}
+.sq.on{background:var(--ok)} .sq.fut{background:transparent;border:1px dashed var(--line)}
+.covrow .num{text-align:right;font-weight:600;font-size:12.5px} .covrow .num.bad{color:var(--bad)} .covrow .num.ok{color:var(--ok)}
+.gcell.part{outline:2px dashed var(--warn);outline-offset:-4px}
+@media (max-width:760px){ .covrow{grid-template-columns:1fr auto} .covrow .sqs{grid-column:1/-1;grid-row:2} }
 .phchip .ago{font-size:11px;font-weight:600}
 .phchip .ago.ok{color:var(--ok)} .phchip .ago.warn{color:var(--warn)} .phchip .ago.bad{color:var(--bad)}
 .phchip[aria-pressed="true"] .ago{color:inherit;opacity:.8}
@@ -303,7 +311,8 @@ const STR = { en: {
   wrongPw: "Wrong password. Try again.", noPw: "No supervisor password has been set yet.", netErr: "Couldn't load the data. Check the internet and try again.",
   refresh: "Refresh", signOut: "Sign out", copy: "Copy summary", copied: "Summary copied", updated: "{date} · updated {time}",
   thisMonth: "This month", lastMonth: "Last month", year: "Year {y}", otherMonth: "Other month…",
-  alert: "{n} day(s) need an exceptional duty now. Earliest deadline: {date}.", notSaved: "Employee InOut not pasted today:", never: "Never", agoToday: "Today", agoYesterday: "Yesterday", agoDays: "{n} days ago", lastImport: "last import {date}, {time}",
+  alert: "{n} day(s) need an exceptional duty now. Earliest deadline: {date}.", notSaved: "Missing yesterday's Employee InOut:", upTo: "Up to {d}", noData: "No data",
+  tSavedTab: "Saved days", savedOf: "{n} of {t}", savedHint: "Green: day saved · grey: day missing", lastImport: "last import {date}, {time}",
   tDelay: "Total delay", tDelayS: "{d} day(s) compared", tAvg: "Daily average", tAvgS: "Target: under 1 min per day",
   tMissed: "Missed punches", tMissedS: "Each counts as 30 min", tExc: "Exceptional duties", tExcAll: "{o} pharmacy(ies) over 5 · {l} late edit(s)", tExcOne: "Limit 5 per month · {l} late edit(s)", tExcYear: "Over 5 in {o} pharmacy-month(s) · {l} late edit(s)",
   min: "min", all: "All pharmacies", byPh: "By pharmacy",
@@ -316,7 +325,7 @@ const STR = { en: {
   stillLate: "Still {m} min late", noDelay: "No delay after edit",
   noAction: "Nothing needs action.", noIssues: "No late days.", noExc: "No exceptional duties.", noDays: "No saved days.",
   gridTitle: "Year {y}", gridHint: "Tap a month to open it", cPharmacy: "Pharmacy", total: "Total",
-  lgNone: "No delay", lgLow: "Under 1 min/day", lgMid: "1 to 3 min/day", lgHigh: "Over 3 min/day", lgNd: "No saved data", lgOver: "Over 5 exceptional",
+  lgNone: "No delay", lgLow: "Under 1 min/day", lgMid: "1 to 3 min/day", lgHigh: "Over 3 min/day", lgNd: "No saved data", lgOver: "Over 5 exceptional", lgPart: "Some days missing", dCount: "{n}d",
   cpHead: "Attendance overview · {period}{ph}", cpAvg: "Daily average: {a} min · Total: {t} min over {d} day(s)", cpExc: "Exceptional duties: {n} · over limit: {o} · late edits: {l}",
   cpAction: "Needs action now: {n} day(s)", cpLine: "{name}: {t} min · {a} min/day · exceptional {e}",
   import: "Import schedules", impTitle: "Import schedules",
@@ -380,7 +389,6 @@ async function ensureMonths(keys, force) {
   // Stores tab by column name, so new columns never need a change in the sheet's script.
   const head = data.storeHead || [], col = name => head.indexOf(name);
   const stores = new Map((data.stores || []).map(r => [String(r[0]), {
-    lastPaste: col("Last InOut paste") >= 0 ? r[col("Last InOut paste")] : "",
     lastImport: col("Last import") >= 0 ? r[col("Last import")] : ""
   }]));
   state.meta = { today: data.today, pharmacies: data.pharmacies, stores, holidays: holidaysFrom(data.holidays) };
@@ -433,18 +441,15 @@ function collect(keys, store) {
   }
   return { days, sched };
 }
-// Days since the pharmacy last pasted Employee InOut (null = never).
-function pasteAgo(code) {
-  const s = state.meta.stores.get(code), v = s && s.lastPaste;
-  if (!v) return null;
-  const d = new Date(v); if (isNaN(d)) return null;
-  return dayNum(state.meta.today) - dayOf(d.getFullYear(), d.getMonth(), d.getDate());
+// Latest day with saved punches for a pharmacy, from the loaded months (null = none).
+function lastDay(code) {
+  let best = null;
+  for (const m of state.months.values()) for (const r of m.days) if (r[0] === code && (!best || r[1] > best)) best = r[1];
+  return best;
 }
-function agoText(code) {
-  const n = pasteAgo(code);
-  return n == null ? t("never") : n <= 0 ? t("agoToday") : n === 1 ? t("agoYesterday") : t("agoDays", { n });
-}
-const agoClass = code => { const n = pasteAgo(code); return n === 0 ? "ok" : n === 1 ? "warn" : "bad"; };
+const yesterday = () => dateStr(dayNum(state.meta.today) - 1);
+function agoText(code) { const d = lastDay(code); return d ? t("upTo", { d: fmtDate(d) }) : t("noData"); }
+const agoClass = code => { const d = lastDay(code); if (!d) return "bad"; const gap = dayNum(yesterday()) - dayNum(d); return gap <= 0 ? "ok" : gap === 1 ? "warn" : "bad"; };
 function lastImportText() {
   let best = null;
   for (const s of state.meta.stores.values()) { const d = s.lastImport ? new Date(s.lastImport) : null; if (d && !isNaN(d) && (!best || d > best)) best = d; }
@@ -504,7 +509,7 @@ async function render() {
   </div>`;
 
   // not saved today
-  const missing = state.meta.pharmacies.filter(p => pasteAgo(p.code) !== 0);
+  const missing = state.meta.pharmacies.filter(p => { const d = lastDay(p.code); return !d || d < yesterday(); });
   const notSaved = missing.length ? `<div class="notsaved"><span>${esc(t("notSaved"))}</span>${missing.map(p => `<bdi>${esc(p.name)}</bdi>`).join("<span>·</span>")}</div>` : "";
 
   const banner = action.length ? `<div class="banner">${icoWarn}<span>${esc(t("alert", { n: action.length, date: fmtDate(action[0].deadline) }))}</span></div>` : "";
@@ -543,11 +548,12 @@ async function render() {
 function dayTable(days, action, excList) {
   const issues = days.filter(d => d.minutes > 0).sort((a, b) => a.date < b.date ? 1 : -1);
   const sorted = days.slice().sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : (a.store < b.store ? -1 : 1));
-  const tabs = [["action", t("tAction", { n: action.length })], ["issues", t("tIssues", { n: issues.length })], ["exc", t("tExcTab", { n: excList.length })], ["all", t("tAll", { n: days.length })]];
+  const tabs = [["action", t("tAction", { n: action.length })], ["issues", t("tIssues", { n: issues.length })], ["exc", t("tExcTab", { n: excList.length })], ["all", t("tAll", { n: days.length })], ["saved", t("tSavedTab")]];
   const seg = `<div class="seg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${state.tab === k}">${esc(l)}</button>`).join("")}</div>`;
   const names = nameMap(), excBy = rankExceptions(collect(state.period === "year" ? yearMonths() : [state.period], "").sched, state.meta.holidays);
   let table;
-  if (state.tab === "exc") {
+  if (state.tab === "saved") table = savedDays();
+  else if (state.tab === "exc") {
     const byKey = new Map(days.map(d => [d.store + "|" + d.date, d]));
     const ids = idNames(days);
     const h = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colNew"))}</span><span>${esc(t("colEdited"))}</span><span style="text-align:right">${esc(t("colRules"))}</span></div>`;
@@ -559,6 +565,25 @@ function dayTable(days, action, excList) {
     table = list.length ? h + list.map(d => dayRow(d, excBy.get(d.store + "|" + d.date), names)).join("") : `<div class="state">${esc(empty)}</div>`;
   }
   return `<section><div class="sec-head" style="margin-bottom:10px">${seg}</div><div class="panel">${table}</div></section>`;
+}
+// One row per pharmacy with a square for each day of the month: green when that day is saved.
+function savedDays() {
+  const m = state.period, md = state.months.get(m) || { days: [] };
+  const first = dayNum(m + "-01"), n = ymd(dayNum(addMonth(m, 1) + "-01") - 1).d, today = dayNum(state.meta.today);
+  const upto = Math.max(0, Math.min(n, today - first)); // up to yesterday: today's report is not complete yet
+  const have = new Set(md.days.map(r => r[0] + "|" + r[1]));
+  const list = state.meta.pharmacies.filter(p => !state.store || p.code === state.store);
+  const rows = list.map(p => {
+    let got = 0, sq = "";
+    for (let i = 0; i < n; i++) {
+      const date = dateStr(first + i), on = have.has(p.code + "|" + date), fut = i >= upto;
+      if (on) got++;
+      sq += `<i class="sq ${on ? "on" : fut ? "fut" : ""}" title="${esc(fmtDate(date))}"></i>`;
+    }
+    return { p, got, sq };
+  }).sort((a, b) => a.got - b.got);
+  return `<div class="legend">${esc(t("savedHint"))}</div>` + rows.map(r => `<div class="covrow">
+    <b><bdi class="ar">${esc(r.p.name)}</bdi></b><div class="sqs">${r.sq}</div><span class="num ${r.got < upto ? "bad" : "ok"}">${esc(t("savedOf", { n: r.got, t: upto }))}</span></div>`).join("");
 }
 function idNames(days) {
   const m = new Map();
@@ -625,6 +650,11 @@ function monthStats(code, m, exc) {
   for (const e of exc.values()) if (e.store === code && e.date.slice(0, 7) === m && e.rank > 0) { n++; if (e.over) over = true; }
   return { minutes, days, exc: n, over };
 }
+// Days that should be saved in a month: the whole month, or up to yesterday for this month.
+function monthLen(m) {
+  const first = dayNum(m + "-01"), n = ymd(dayNum(addMonth(m, 1) + "-01") - 1).d;
+  return Math.max(0, Math.min(n, dayNum(state.meta.today) - first));
+}
 function level(s) {
   if (!s || !s.days) return "nd";
   const a = s.minutes / s.days;
@@ -639,7 +669,7 @@ function yearGrid(names) {
   }).sort((a, b) => (b.tot.days ? b.tot.minutes / b.tot.days : 0) - (a.tot.days ? a.tot.minutes / a.tot.days : 0));
   const head = `<thead><tr><th class="ph">${esc(t("cPharmacy"))}</th>${months.map(m => `<th>${esc(mShort(m))}</th>`).join("")}<th>${esc(t("total"))}</th></tr></thead>`;
   const body = list.map(({ p, cells, tot }) => `<tr><th class="ph"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></th>
-    ${cells.map((c, i) => `<td><button type="button" class="gcell ${level(c)} ${c && c.exc > 5 ? "over" : ""}" data-cell="${esc(p.code)}|${months[i]}" title="${esc(mName(months[i]))}"><span class="m">${c && c.days ? c.minutes : "—"}</span>${c && c.exc ? `<span class="x">${c.exc}/5</span>` : ""}</button></td>`).join("")}
+    ${cells.map((c, i) => `<td><button type="button" class="gcell ${level(c)} ${c && c.exc > 5 ? "over" : ""} ${c && c.days && c.days < monthLen(months[i]) ? "part" : ""}" data-cell="${esc(p.code)}|${months[i]}" title="${esc(mName(months[i]))}"><span class="m">${c && c.days ? c.minutes : "—"}</span>${c && c.days ? `<span class="x">${esc(t("dCount", { n: c.days }))}${c.exc ? " · " + c.exc + "/5" : ""}</span>` : ""}</button></td>`).join("")}
     <td class="tot"><div class="gcell ${level(tot)}"><span class="m">${tot.days ? tot.minutes : "—"}</span><span class="x">${tot.days ? (tot.minutes / tot.days).toFixed(2) : ""}</span></div></td></tr>`).join("");
   const legend = `<div class="legend">
     <span><i class="gcell l0" style="min-height:0;padding:0"></i>${esc(t("lgNone"))}</span>
@@ -647,7 +677,8 @@ function yearGrid(names) {
     <span><i class="gcell l2" style="min-height:0;padding:0"></i>${esc(t("lgMid"))}</span>
     <span><i class="gcell l3" style="min-height:0;padding:0"></i>${esc(t("lgHigh"))}</span>
     <span><i class="gcell nd" style="min-height:0;padding:0"></i>${esc(t("lgNd"))}</span>
-    <span><i class="gcell over" style="min-height:0;padding:0"></i>${esc(t("lgOver"))}</span></div>`;
+    <span><i class="gcell over" style="min-height:0;padding:0"></i>${esc(t("lgOver"))}</span>
+    <span><i class="gcell part" style="min-height:0;padding:0"></i>${esc(t("lgPart"))}</span></div>`;
   return `<section><div class="sec-head" style="margin-bottom:10px"><h2>${esc(t("gridTitle", { y: curMonth().slice(0, 4) }))}</h2><span class="small">${esc(t("gridHint"))}</span></div>
     <div class="panel"><div class="gridwrap"><table class="grid">${head}<tbody>${body}</tbody></table></div>${legend}</div></section>`;
 }
