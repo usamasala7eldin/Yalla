@@ -230,12 +230,12 @@ function fromSaved(res) {
   const recs = [];
   for (const x of res.punches || []) {
     const day = isoDay(x.date), tsMin = isoMin(x.time);
-    if (day == null || tsMin == null || !/^(in|out)$/.test(x.side)) continue;
+    if (day == null || tsMin == null || !/^(in|out)$/.test(x.side) || ymd(day).y !== thisYear()) continue;
     recs.push({ day, id: String(x.id), name: x.name || String(x.id), side: x.side, tsMin });
   }
   const byDay = new Map();
   for (const x of res.schedule || []) {
-    const day = isoDay(x.date); if (day == null) continue;
+    const day = isoDay(x.date); if (day == null || ymd(day).y !== thisYear()) continue;
     byDay.set(day, { day, out: parseTime12(x.out), in: parseTime12(x.in), outText: x.out, inText: x.in, type: x.type || "", byId: x.by || "", updMin: isoMin(x.updated) });
   }
   return { recs, byDay };
