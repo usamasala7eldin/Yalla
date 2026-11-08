@@ -242,6 +242,23 @@ button.cday:hover{border-color:var(--muted)}
   .cal{gap:4px;padding:8px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Combined view */
+.notsaved{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:9px 14px;font-weight:600}
+.notsaved bdi{font-family:var(--f-ar)}
+.byph{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.byph .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px}
+.phchip{display:inline-flex;align-items:baseline;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+.phchip b{font-weight:700;font-family:var(--f-ar)}
+.phchip .mins{font-family:var(--f-mono);font-weight:600}
+.phchip.has .mins{color:var(--bad)} .phchip.zero .mins{color:var(--ok)}
+.phchip .ago{font-size:11px;font-weight:600}
+.phchip .ago.ok{color:var(--ok)} .phchip .ago.warn{color:var(--warn)} .phchip .ago.bad{color:var(--bad)}
+.phchip[aria-pressed="true"] .ago{color:inherit;opacity:.8}
+.phchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.phchip[aria-pressed="true"] .mins{color:inherit}
+.date .ph{display:block;font-family:var(--f-ar);font-weight:700;font-size:12.5px;color:var(--accent);margin-top:2px}
+.ipanel h2{margin:0;font-family:var(--f-display);font-size:18px}
 </style>
 
 <div class="wrap">
@@ -286,35 +303,25 @@ const STR = { en: {
   wrongPw: "Wrong password. Try again.", noPw: "No supervisor password has been set yet.", netErr: "Couldn't load the data. Check the internet and try again.",
   refresh: "Refresh", signOut: "Sign out", copy: "Copy summary", copied: "Summary copied", updated: "{date} · updated {time}",
   thisMonth: "This month", lastMonth: "Last month", year: "Year {y}", otherMonth: "Other month…",
-  alert: "{n} day(s) need an exceptional duty now. Earliest deadline: {date}.",
-  tSaved: "Saved today", tSavedS: "{n} not saved today", tAvg: "Daily average", tAvgS: "Total {t} min over {d} day(s)",
-  tExc: "Exceptional duties", tExcS: "{o} over limit · {l} late edit(s)", tAction: "Needs action now", tActionS: "Days still inside the 4-day window",
-  min: "min", perDay: "min/day",
-  pharmacies: "Pharmacies", tapHint: "Tap a pharmacy for its days",
-  cPharmacy: "Pharmacy", cSaved: "Last saved", cAvg: "Daily average", cExc: "Exceptional", cAction: "Needs action", cTrend: "Last 6 months",
-  today: "Today {time}", yesterday: "Yesterday {time}", daysAgo: "{n} days ago", never: "Never saved",
-  totalOf: "{t} min · {d} day(s)", noDays: "No saved days", excLine: "{o} over · {l} late", actionPill: "{n} day(s) · by {date}", actionNone: "Nothing due",
-  yearGrid: "Year {y}", gridHint: "Tap a month to open it", total: "Total", allPh: "All pharmacies",
-  lgNone: "No delay", lgLow: "Under 1 min/day", lgMid: "1 to 3 min/day", lgHigh: "Over 3 min/day", lgNd: "No saved data", lgOver: "Over 5 exceptional",
-  back: "All pharmacies", prev: "Previous month", next: "Next month",
-  dMissed: "Missed punches", dMissedS: "Each counts as 30 min", dExcS: "Limit 5 per month",
-  byPh: "By pharmacist", unassigned: "Unassigned",
-  calLegend: "", lgOk: "On time", lgRed: "Late, can still fix", lgBlack: "Late, deadline passed", lgExc: "Exceptional duty", lgExcLate: "Exceptional, breaks rules", lgNotSaved: "Not saved",
-  tIssues: "Issues ({n})", tActionTab: "Needs action ({n})", tExcTab: "Exceptional duties ({n})", tAll: "All days ({n})",
-  colDate: "Date", colOut: "Clock out", colIn: "Clock in", colStatus: "Status", colEdited: "Edited", colRules: "Rules", colNew: "New times",
+  alert: "{n} day(s) need an exceptional duty now. Earliest deadline: {date}.", notSaved: "Employee InOut not pasted today:", never: "Never", agoToday: "Today", agoYesterday: "Yesterday", agoDays: "{n} days ago", lastImport: "last import {date}, {time}",
+  tDelay: "Total delay", tDelayS: "{d} day(s) compared", tAvg: "Daily average", tAvgS: "Target: under 1 min per day",
+  tMissed: "Missed punches", tMissedS: "Each counts as 30 min", tExc: "Exceptional duties", tExcAll: "{o} pharmacy(ies) over 5 · {l} late edit(s)", tExcOne: "Limit 5 per month · {l} late edit(s)", tExcYear: "Over 5 in {o} pharmacy-month(s) · {l} late edit(s)",
+  min: "min", all: "All pharmacies", byPh: "By pharmacy",
+  tAction: "Needs action ({n})", tIssues: "Issues ({n})", tExcTab: "Exceptional duties ({n})", tAll: "All days ({n})",
+  colDate: "Date", colOut: "Clock out", colIn: "Clock in", colStatus: "Status", colNew: "New times", colEdited: "Edited", colRules: "Rules",
   planned: "Planned", rOk: "On time", rMissed: "Missed · 30", rLate: "{m} min", rExcused: "Missed action",
   stOk: "On time", stRed: "Fix within {n} day(s)", stRed0: "Fix today", stBlack: "Deadline passed", stLateExc: "Late after edit", deadline: "Deadline {date}",
-  tagExc: "Exceptional", tagLate: "After {n} days", tagOver: "Over limit", tagRank: "{r} of 5",
+  tagExc: "Exceptional · {r} of 5", tagLate: "After {n} days", tagOver: "Over limit", within: "Within 4 days", rank: "{r} of 5",
   pillRules: "Within rules", pillLate: "Late edit", pillOver: "Over limit", pillBoth: "Late and over limit", pillHol: "Holiday",
-  editedBy: "{date} · by {who}", stillLate: "Still {m} min late", noDelay: "No delay after edit", within: "Within 4 days",
-  noIssues: "No late days in this month.", noAction: "Nothing needs action.", noExc: "No exceptional duties in this month.", noData: "No saved days for this month.",
-  cpHead: "Attendance overview · {period}", cpAvg: "Daily average: {a} min · Total: {t} min over {d} day(s)", cpExc: "Exceptional duties: {n} · over limit: {o} · late edits: {l}",
-  cpAction: "Needs action now: {n} day(s)", cpLine: "{name} ({code}): {a} min/day · {t} min · exceptional {e}{over} · needs action {n}",
-  cpDetail: "{name} ({code}) · {month}", cpLate: "Late days:", cpNone: "No late days.",
-  cpDay: "{date} · {side} · planned {p} · actual {a} · {m} min · {who}",
+  stillLate: "Still {m} min late", noDelay: "No delay after edit",
+  noAction: "Nothing needs action.", noIssues: "No late days.", noExc: "No exceptional duties.", noDays: "No saved days.",
+  gridTitle: "Year {y}", gridHint: "Tap a month to open it", cPharmacy: "Pharmacy", total: "Total",
+  lgNone: "No delay", lgLow: "Under 1 min/day", lgMid: "1 to 3 min/day", lgHigh: "Over 3 min/day", lgNd: "No saved data", lgOver: "Over 5 exceptional",
+  cpHead: "Attendance overview · {period}{ph}", cpAvg: "Daily average: {a} min · Total: {t} min over {d} day(s)", cpExc: "Exceptional duties: {n} · over limit: {o} · late edits: {l}",
+  cpAction: "Needs action now: {n} day(s)", cpLine: "{name}: {t} min · {a} min/day · exceptional {e}",
   import: "Import schedules", impTitle: "Import schedules",
   impHint: "Store Attendance Duty → Report. Filter on your pharmacies, show as many rows as possible, copy the whole page and paste it here. If the report has more than one page, add each page.",
-  impPh: "Click, then Ctrl+V", addPage: "Add page", remove: "Remove", clearAll: "Clear all",
+  impPh: "Click, then Ctrl+V", addPage: "Add page", remove: "Remove", clearAll: "Clear all", back: "Back",
   impNone: "Nothing found in this paste", impBox: "{s} pharmacy(ies) · {n} days",
   impEmpty: "Paste the report to see which pharmacies will be updated.",
   impIgnored: "Not in your pharmacy list, skipped: {list}",
@@ -336,319 +343,228 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const ls = { get() { try { return localStorage.getItem(PW_KEY) || ""; } catch (e) { return ""; } },
   set(v) { try { localStorage.setItem(PW_KEY, v); } catch (e) {} }, clear() { try { localStorage.removeItem(PW_KEY); } catch (e) {} } };
-const dayNum = s => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
-const dateOf = n => { const d = new Date(n * 864e5); return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()); };
 // Month and weekday names, pad() and the attendance rules come from attendance-core.js.
-const fmtDate = s => { if (!s) return ""; const d = new Date(dayNum(s) * 864e5); return d.getUTCDate() + " " + MONS[d.getUTCMonth()]; };
-const wdOf = s => new Date(dayNum(s) * 864e5).getUTCDay();
+const dayNum = s => isoDay(s);
+const fmtDate = s => { if (!s) return ""; const x = ymd(dayNum(s)); return x.d + " " + MONS[x.m]; };
 const fmtTime = d => { const h = d.getHours(); return ((h % 12) || 12) + ":" + pad(d.getMinutes()) + " " + (h < 12 ? "AM" : "PM"); };
 const fmt24 = s => { const m = String(s).match(/(\d{2}):(\d{2})/); if (!m) return s; const h = +m[1]; return ((h % 12) || 12) + ":" + m[2] + " " + (h < 12 ? "AM" : "PM"); };
 const mName = k => MONL[+k.slice(5, 7) - 1] + " " + k.slice(0, 4);
 const mShort = k => MONS[+k.slice(5, 7) - 1];
 const addMonth = (k, n) => { let y = +k.slice(0, 4), m = +k.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + "-" + pad(m + 1); };
-const nameOf = by => String(by || "").split(" - ")[0];
 const icoWarn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3l9.5 17h-19z" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.5v.3" stroke-linecap="round"/></svg>';
-const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const state = { pw: "", sum: null, period: null, view: "list", store: null, month: null, tab: "issues", cache: new Map(), loadedAt: null };
+// meta: pharmacies, stores, holidays, today. months: month key -> { days, schedule } as sent by the sheet.
+const state = { pw: "", meta: null, months: new Map(), period: null, store: "", tab: "action", view: "main", loadedAt: null };
 
 function applyStrings() { document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t)); document.title = t("title"); }
-function toast(msg) { const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 1800); }
+function toast(msg) { document.querySelectorAll(".toast").forEach(x => x.remove()); const el = document.createElement("div"); el.className = "toast"; el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 1800); }
 
 /* ---------- Data ---------- */
 async function api(body) {
   const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ action: "dashboard", password: state.pw }, body)) });
   return res.json();
 }
+function showLogin(msg) { $("app").hidden = true; $("login").hidden = false; $("loginErr").textContent = msg || ""; $("pw").value = ""; $("pw").focus(); }
 
-function showLogin(msg) {
-  $("app").hidden = true; $("login").hidden = false;
-  $("loginErr").textContent = msg || ""; $("pw").value = ""; $("pw").focus();
-}
-
-async function loadSummary(fromLogin) {
-  const btn = fromLogin ? $("loginBtn") : $("refresh");
-  btn.disabled = true;
-  if (fromLogin) btn.textContent = t("opening");
-  else if (!state.sum) { $("app").hidden = false; $("main").innerHTML = `<div class="state"><span class="spin"></span></div>`; }
-  try {
-    const data = await api({ mode: "summary" });
-    if (!data.ok) {
-      if (data.auth === false) { ls.clear(); showLogin(t("wrongPw")); }
-      else showLogin(/password/i.test(data.error || "") ? t("noPw") : t("netErr"));
-      return;
-    }
-    ls.set(state.pw); state.sum = data; state.loadedAt = new Date(); state.cache.clear();
-    if (!state.period || (state.period !== "year" && state.period.slice(0, 4) !== data.today.slice(0, 4))) state.period = data.today.slice(0, 7);
-    $("login").hidden = true; $("app").hidden = false; render();
-  } catch (e) {
-    if (fromLogin || !state.sum) showLogin(t("netErr")); else toast(t("netErr"));
-  } finally {
-    btn.disabled = false; if (fromLogin) btn.textContent = t("open");
+// Loads the given months (only the ones not loaded yet) in one request.
+async function ensureMonths(keys, force) {
+  const need = force ? keys : keys.filter(k => !state.months.has(k));
+  if (!need.length) return true;
+  need.sort();
+  const data = await api({ from: need[0], to: need[need.length - 1] });
+  if (!data.ok) {
+    if (data.auth === false) { ls.clear(); showLogin(t("wrongPw")); }
+    else showLogin(/password/i.test(data.error || "") ? t("noPw") : t("netErr"));
+    return false;
   }
+  // Stores tab by column name, so new columns never need a change in the sheet's script.
+  const head = data.storeHead || [], col = name => head.indexOf(name);
+  const stores = new Map((data.stores || []).map(r => [String(r[0]), {
+    lastPaste: col("Last InOut paste") >= 0 ? r[col("Last InOut paste")] : "",
+    lastImport: col("Last import") >= 0 ? r[col("Last import")] : ""
+  }]));
+  state.meta = { today: data.today, pharmacies: data.pharmacies, stores, holidays: holidaysFrom(data.holidays) };
+  let k = data.from;
+  while (k <= data.to) { state.months.set(k, { days: [], schedule: [] }); k = addMonth(k, 1); }
+  for (const r of data.days) { const m = state.months.get(r[1].slice(0, 7)); if (m) m.days.push(r); }
+  for (const r of data.schedule) { const m = state.months.get(r[1].slice(0, 7)); if (m) m.schedule.push(r); }
+  ls.set(state.pw); state.loadedAt = new Date();
+  return true;
 }
 
-async function loadMonth(store, month) {
-  const key = store + "|" + month;
-  if (state.cache.has(key)) return state.cache.get(key);
-  const data = await api({ mode: "month", store, month });
-  if (!data.ok) throw new Error(data.error || "failed");
-  state.cache.set(key, data);
-  return data;
+const curMonth = () => (state.meta ? state.meta.today : new Date().toISOString()).slice(0, 7);
+const prevMonth = () => { const p = addMonth(curMonth(), -1); return p.slice(0, 4) === curMonth().slice(0, 4) ? p : null; };
+const yearMonths = () => { const c = curMonth(), out = []; for (let m = 1; m <= +c.slice(5, 7); m++) out.push(c.slice(0, 4) + "-" + pad(m)); return out; };
+const recentMonths = () => [prevMonth(), curMonth()].filter(Boolean);
+
+async function start(fromLogin) {
+  const btn = fromLogin ? $("loginBtn") : null;
+  if (btn) { btn.disabled = true; btn.textContent = t("opening"); }
+  else { $("app").hidden = false; $("login").hidden = true; $("main").innerHTML = `<div class="state"><span class="spin"></span></div>`; }
+  try {
+    const ok = await ensureMonths(recentMonths());
+    if (!ok) return;
+    if (!state.period) state.period = curMonth();
+    $("login").hidden = true; $("app").hidden = false; render();
+  } catch (e) { showLogin(t("netErr")); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = t("open"); } }
 }
 
-/* ---------- Summary helpers ---------- */
-const curMonth = () => state.sum.today.slice(0, 7);
-const yearMonths = () => { const cur = curMonth(), y = cur.slice(0, 4), out = []; for (let m = 1; m <= +cur.slice(5, 7); m++) out.push(y + "-" + pad(m)); return out; };
-const periodKeys = () => state.period === "year" ? yearMonths() : [state.period];
-function agg(p, keys) {
-  const a = { minutes: 0, days: 0, lateDays: 0, missed: 0, exc: 0, late: 0, over: 0, holiday: 0 };
-  for (const k of keys) { const m = p.months[k]; if (!m) continue; for (const f in a) a[f] += m[f] || 0; }
-  a.avg = a.days ? a.minutes / a.days : 0;
-  return a;
+async function refresh() {
+  const keys = state.period === "year" ? yearMonths() : [...new Set(recentMonths().concat([state.period]))];
+  $("refresh").disabled = true;
+  try { state.months.clear(); if (await ensureMonths(keys, true)) render(); } catch (e) { toast(t("netErr")); }
+  $("refresh").disabled = false;
 }
-function savedInfo(p) {
-  const todayN = dayNum(state.sum.today);
-  if (!p.lastSaved) return { text: t("never"), cls: "bad", today: false };
-  const d = new Date(p.lastSaved), dn = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5, diff = todayN - dn;
-  if (diff <= 0) return { text: t("today", { time: fmtTime(d) }), cls: "ok", today: true };
-  if (diff === 1) return { text: t("yesterday", { time: fmtTime(d) }), cls: "warn", today: false };
-  return { text: t("daysAgo", { n: diff }), cls: "bad", today: false };
+
+/* ---------- Building the view ---------- */
+const nameMap = () => new Map(state.meta.pharmacies.map(p => [p.code, p.name]));
+function dayObj(r) {
+  const [store, date, weekday, oP, oA, oM, oBy, iP, iA, iM, iBy, minutes, exc] = r;
+  return { store, date, weekday, oP, oA, oM, oBy, iP, iA, iM, iBy, minutes, exc: !!exc, deadline: dateStr(dayNum(date) + 4) };
+}
+// Rows of the given months, only for pharmacies in the list (and the chosen one, if any).
+function collect(keys, store) {
+  const names = nameMap(), days = [], sched = [];
+  for (const k of keys) {
+    const m = state.months.get(k); if (!m) continue;
+    for (const r of m.days) if (names.has(r[0]) && (!store || r[0] === store)) days.push(dayObj(r));
+    for (const r of m.schedule) if (names.has(r[0]) && (!store || r[0] === store)) sched.push(r);
+  }
+  return { days, sched };
+}
+// Days since the pharmacy last pasted Employee InOut (null = never).
+function pasteAgo(code) {
+  const s = state.meta.stores.get(code), v = s && s.lastPaste;
+  if (!v) return null;
+  const d = new Date(v); if (isNaN(d)) return null;
+  return dayNum(state.meta.today) - dayOf(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function agoText(code) {
+  const n = pasteAgo(code);
+  return n == null ? t("never") : n <= 0 ? t("agoToday") : n === 1 ? t("agoYesterday") : t("agoDays", { n });
+}
+const agoClass = code => { const n = pasteAgo(code); return n === 0 ? "ok" : n === 1 ? "warn" : "bad"; };
+function lastImportText() {
+  let best = null;
+  for (const s of state.meta.stores.values()) { const d = s.lastImport ? new Date(s.lastImport) : null; if (d && !isNaN(d) && (!best || d > best)) best = d; }
+  return best ? t("lastImport", { date: best.getDate() + " " + MONS[best.getMonth()], time: fmtTime(best) }) : "";
+}
+
+// A day counts as having an exceptional duty if the saved result says so or the saved schedule shows one.
+function markExc(days, excMap) {
+  for (const d of days) { const e = excMap.get(d.store + "|" + d.date); if (e && e.rank > 0) d.exc = true; }
+  return days;
+}
+function dayStatus(d) {
+  if (!d.minutes) return "ok";
+  if (d.exc) return "lateExc";
+  return d.deadline >= state.meta.today ? "red" : "black";
+}
+function missedCount(d) {
+  let n = 0;
+  if (d.oP && d.oP !== "Missed Action" && !d.oA && d.oM >= 30) n++;
+  if (d.iP && d.iP !== "Missed Action" && !d.iA && d.iM >= 30) n++;
+  return n;
 }
 const periodLabel = () => state.period === "year" ? t("year", { y: curMonth().slice(0, 4) }) : mName(state.period);
-const avgClass = a => a >= 1 ? "bad" : a > 0 ? "warn" : "ok";
 
-/* ---------- Render: overview ---------- */
-function render() {
-  const now = state.loadedAt, td = new Date(dayNum(state.sum.today) * 864e5);
-  $("sub").textContent = t("updated", { date: WDS[td.getUTCDay()] + " " + td.getUTCDate() + " " + MONS[td.getUTCMonth()], time: fmtTime(now) });
-  if (state.view === "detail") return renderDetail();
+async function render() {
+  const td = ymd(dayNum(state.meta.today));
+  const li = lastImportText();
+  $("sub").textContent = t("updated", { date: WDS[td.wd] + " " + td.d + " " + MONS[td.m], time: fmtTime(state.loadedAt || new Date()) }) + (li ? " · " + li : "");
   if (state.view === "import") { if (!$("impBoxes")) renderImport(); return; }
 
-  const S = state.sum, keys = periodKeys(), cur = curMonth(), prev = addMonth(cur, -1);
-  const year = cur.slice(0, 4), showPrev = prev.slice(0, 4) === year;
-  const allMonths = [...new Set(S.pharmacies.flatMap(p => Object.keys(p.months)))].filter(m => m.slice(0, 4) === year && m !== cur && m !== prev && m <= cur).sort().reverse();
-  const isOther = state.period !== "year" && state.period !== cur && state.period !== prev;
+  const keys = state.period === "year" ? yearMonths() : [state.period];
+  if (keys.some(k => !state.months.has(k))) {
+    $("main").innerHTML = `<div class="state"><span class="spin"></span></div>`;
+    try { if (!(await ensureMonths(keys))) return; } catch (e) { $("main").innerHTML = `<div class="state">${esc(t("netErr"))}</div>`; return; }
+  }
+
+  const names = nameMap(), cur = curMonth(), prev = prevMonth();
+  const store = state.store && names.has(state.store) ? state.store : "";
+  const excAll = rankExceptions(collect(keys, "").sched, state.meta.holidays);
+  const days = markExc(collect(keys, store).days, excAll);
+  const excList = [...excAll.values()].filter(e => names.has(e.store) && (!store || e.store === store)).sort((a, b) => a.date < b.date ? 1 : -1);
+  const counted = excList.filter(e => e.rank > 0);
+
+  // "Needs action" is about now, so it always looks at this month and last month.
+  const recentExc = rankExceptions(collect(recentMonths(), "").sched, state.meta.holidays);
+  const recent = markExc(collect(recentMonths(), store).days, recentExc);
+  const action = recent.filter(d => dayStatus(d) === "red").sort((a, b) => a.deadline < b.deadline ? -1 : 1);
+
+  // period bar
+  const others = yearMonths().filter(m => m !== cur && m !== prev).reverse();
+  const isOther = others.includes(state.period);
   const periods = `<div class="periods">
     <button type="button" class="chip" data-p="${cur}" aria-pressed="${state.period === cur}">${esc(t("thisMonth"))}</button>
-    ${showPrev ? `<button type="button" class="chip" data-p="${prev}" aria-pressed="${state.period === prev}">${esc(t("lastMonth"))}</button>` : ""}
+    ${prev ? `<button type="button" class="chip" data-p="${prev}" aria-pressed="${state.period === prev}">${esc(t("lastMonth"))}</button>` : ""}
     <button type="button" class="chip" data-p="year" aria-pressed="${state.period === "year"}">${esc(t("year", { y: cur.slice(0, 4) }))}</button>
-    ${allMonths.length ? `<select id="otherSel" class="${isOther ? "on" : ""}" aria-label="${esc(t("otherMonth"))}"><option value="">${esc(t("otherMonth"))}</option>${allMonths.map(m => `<option value="${m}" ${state.period === m ? "selected" : ""}>${esc(mName(m))}</option>`).join("")}</select>` : ""}
+    ${others.length ? `<select id="otherSel" class="${isOther ? "on" : ""}" aria-label="${esc(t("otherMonth"))}"><option value="">${esc(t("otherMonth"))}</option>${others.map(m => `<option value="${m}" ${state.period === m ? "selected" : ""}>${esc(mName(m))}</option>`).join("")}</select>` : ""}
   </div>`;
 
-  const rows = S.pharmacies.map(p => Object.assign({}, p, { a: agg(p, keys), sv: savedInfo(p) }));
-  const savedToday = rows.filter(p => p.sv.today).length;
-  const T = rows.reduce((x, p) => { for (const f of ["minutes", "days", "exc", "late", "over"]) x[f] += p.a[f]; return x; }, { minutes: 0, days: 0, exc: 0, late: 0, over: 0 });
-  const tAvg = T.days ? T.minutes / T.days : 0;
-  const actionDays = rows.reduce((n, p) => n + p.action.length, 0);
-  const firstDl = rows.flatMap(p => p.action.map(a => a.deadline)).sort()[0];
+  // not saved today
+  const missing = state.meta.pharmacies.filter(p => pasteAgo(p.code) !== 0);
+  const notSaved = missing.length ? `<div class="notsaved"><span>${esc(t("notSaved"))}</span>${missing.map(p => `<bdi>${esc(p.name)}</bdi>`).join("<span>·</span>")}</div>` : "";
 
-  const banner = actionDays ? `<div class="banner">${icoWarn}<span>${esc(t("alert", { n: actionDays, date: fmtDate(firstDl) }))}</span></div>` : "";
+  const banner = action.length ? `<div class="banner">${icoWarn}<span>${esc(t("alert", { n: action.length, date: fmtDate(action[0].deadline) }))}</span></div>` : "";
+
+  // tiles
+  const total = days.reduce((a, d) => a + d.minutes, 0), avg = days.length ? total / days.length : 0;
+  const missed = days.reduce((a, d) => a + missedCount(d), 0);
+  const lateEdits = counted.filter(e => e.lateEdit).length;
+  const overStores = new Set(counted.filter(e => e.over).map(e => e.store + "|" + e.date.slice(0, 7))).size;
   const tiles = `<section class="tiles">
-    <div class="tile ${savedToday === rows.length ? "ok" : "warn"}"><div class="k">${esc(t("tSaved"))}</div><div class="v">${savedToday}<small>/ ${rows.length}</small></div><div class="s">${esc(t("tSavedS", { n: rows.length - savedToday }))}</div></div>
-    <div class="tile ${avgClass(tAvg) === "warn" ? "" : avgClass(tAvg)}"><div class="k">${esc(t("tAvg"))} · ${esc(periodLabel())}</div><div class="v">${tAvg.toFixed(2)}<small>${esc(t("perDay"))}</small></div><div class="s">${esc(t("tAvgS", { t: T.minutes, d: T.days }))}</div></div>
-    <div class="tile ${T.over ? "bad" : ""}"><div class="k">${esc(t("tExc"))} · ${esc(periodLabel())}</div><div class="v">${T.exc}</div><div class="s">${esc(t("tExcS", { o: T.over, l: T.late }))}</div></div>
-    <div class="tile ${actionDays ? "bad" : "ok"}"><div class="k">${esc(t("tAction"))}</div><div class="v">${actionDays}</div><div class="s">${esc(t("tActionS"))}</div></div>
+    <div class="tile ${total ? "bad" : "ok"}"><div class="k">${esc(t("tDelay"))}</div><div class="v">${total}<small>${esc(t("min"))}</small></div><div class="s">${esc(t("tDelayS", { d: days.length }))}</div></div>
+    <div class="tile ${avg >= 1 ? "bad" : "ok"}"><div class="k">${esc(t("tAvg"))}</div><div class="v">${avg.toFixed(2)}<small>${esc(t("min"))}</small></div><div class="s">${esc(t("tAvgS"))}</div></div>
+    <div class="tile ${missed ? "bad" : ""}"><div class="k">${esc(t("tMissed"))}</div><div class="v">${missed}</div><div class="s">${esc(t("tMissedS"))}</div></div>
+    <div class="tile ${overStores ? "bad" : ""}"><div class="k">${esc(t("tExc"))}</div><div class="v">${counted.length}${store && state.period !== "year" ? "<small>/ 5</small>" : ""}</div><div class="s">${esc(state.period === "year" ? t("tExcYear", { o: overStores, l: lateEdits }) : store ? t("tExcOne", { l: lateEdits }) : t("tExcAll", { o: overStores, l: lateEdits }))}</div></div>
   </section>`;
 
-  const body = state.period === "year" ? yearGrid(rows) : monthList(rows, keys[0]);
-  $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">${periods}${banner}${tiles}${body}</div>`;
+  // by pharmacy
+  const all = collect(keys, "").days, mins = new Map();
+  for (const d of all) mins.set(d.store, (mins.get(d.store) || 0) + d.minutes);
+  const chips = state.meta.pharmacies.map(p => ({ code: p.code, name: p.name, m: mins.get(p.code) || 0 })).sort((a, b) => b.m - a.m);
+  const byPh = `<div class="byph"><span class="lbl">${esc(t("byPh"))}</span>
+    <button type="button" class="phchip zero" data-store="" aria-pressed="${!store}"><b style="font-family:inherit">${esc(t("all"))}</b></button>
+    ${chips.map(c => `<button type="button" class="phchip ${c.m ? "has" : "zero"}" data-store="${esc(c.code)}" aria-pressed="${store === c.code}"><b>${esc(c.name)}</b><span class="mins">${c.m}</span><span class="ago ${agoClass(c.code)}">${esc(agoText(c.code))}</span></button>`).join("")}</div>`;
+
+  const body = state.period === "year" ? yearGrid(names) : dayTable(days, action, excList);
+  $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">${periods}${notSaved}${banner}${tiles}${byPh}${body}</div>`;
 
   $("main").querySelectorAll("[data-p]").forEach(b => b.onclick = () => { state.period = b.dataset.p; render(); });
   const sel = $("otherSel"); if (sel) sel.onchange = () => { if (sel.value) { state.period = sel.value; render(); } };
-  $("main").querySelectorAll("[data-open]").forEach(el => {
-    const go = () => openDetail(el.dataset.open, el.dataset.month || (state.period === "year" ? cur : state.period));
-    el.onclick = go; el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
-  });
-}
-
-function spark(p) {
-  const months = Array.from({ length: 6 }, (_, i) => addMonth(curMonth(), i - 5));
-  const vals = months.map(m => { const x = p.months[m]; return x && x.days ? x.minutes / x.days : null; });
-  const max = Math.max(1, ...vals.filter(v => v != null));
-  const bw = 12, gap = 4;
-  return `<svg class="spark" viewBox="0 0 ${6 * bw + 5 * gap} 30" aria-hidden="true">${vals.map((v, i) => {
-    const h = v == null ? 2 : Math.max(3, Math.round((v / max) * 28));
-    const cls = v == null ? "" : v > 0 ? "on" : "zero";
-    return `<rect class="${cls}" x="${i * (bw + gap)}" y="${30 - h}" width="${bw}" height="${h}" rx="2"><title>${esc(mShort(months[i]))}: ${v == null ? "—" : v.toFixed(2)}</title></rect>`;
-  }).join("")}</svg>`;
-}
-
-function monthList(rows, month) {
-  rows.sort((x, y) => (y.action.length - x.action.length) || (y.a.avg - x.a.avg) || (y.a.minutes - x.a.minutes));
-  const head = `<div class="prow colhead"><span>${esc(t("cPharmacy"))}</span><span>${esc(t("cSaved"))}</span><span>${esc(t("cAvg"))}</span><span>${esc(t("cExc"))}</span><span>${esc(t("cAction"))}</span><span>${esc(t("cTrend"))}</span></div>`;
-  const list = rows.map(p => {
-    const a = p.a, lv = a.exc > 5 ? "lv-bad" : a.exc >= 4 ? "lv-warn" : "lv-ok";
-    const segs = Array.from({ length: 5 }, (_, i) => `<i class="${i < a.exc ? "on" : ""}"></i>`).join("");
-    const act = p.action.length ? `<span class="pill bad">${esc(t("actionPill", { n: p.action.length, date: fmtDate(p.action[0].deadline) }))}</span>` : `<span class="pill ok">${esc(t("actionNone"))}</span>`;
-    const st = p.action.length ? "st-red" : !p.sv.today ? "st-warn" : "";
-    return `<div class="prow ${st}" data-open="${esc(p.code)}" data-month="${esc(month)}" tabindex="0" role="button">
-      <div class="cell name"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></div>
-      <div class="cell"><span class="lab">${esc(t("cSaved"))}</span><span class="pill ${p.sv.cls}">${esc(p.sv.text)}</span></div>
-      <div class="cell"><span class="lab">${esc(t("cAvg"))}</span>${a.days ? `<span class="big ${a.avg >= 1 ? "bad" : a.avg > 0 ? "" : "ok"}">${a.avg.toFixed(2)}</span><span class="small">${esc(t("totalOf", { t: a.minutes, d: a.days }))}</span>` : `<span class="small">${esc(t("noDays"))}</span>`}</div>
-      <div class="cell"><span class="lab">${esc(t("cExc"))}</span><span class="meter ${lv}">${segs}</span><span class="small num">${a.exc}/5${a.over || a.late ? " · " + esc(t("excLine", { o: a.over, l: a.late })) : ""}</span></div>
-      <div class="cell"><span class="lab">${esc(t("cAction"))}</span>${act}</div>
-      <div class="cell"><span class="lab">${esc(t("cTrend"))}</span>${spark(p)}</div>
-      ${chev}
-    </div>`;
-  }).join("");
-  return `<section><div class="sec-head" style="margin-bottom:10px"><h2>${esc(t("pharmacies"))}</h2><span class="small">${esc(t("tapHint"))}</span></div><div class="panel">${head}${list}</div></section>`;
-}
-
-function level(m) {
-  if (!m || !m.days) return "nd";
-  const a = m.minutes / m.days;
-  return a === 0 ? "l0" : a < 1 ? "l1" : a <= 3 ? "l2" : "l3";
-}
-function gridCell(m, code, month) {
-  const lv = level(m), over = m && m.exc > 5;
-  const main = !m || !m.days ? "—" : m.minutes;
-  const sub = m && (m.exc || m.days) ? `<span class="x">${m.exc ? m.exc + "/5" : (m.minutes / m.days).toFixed(1)}</span>` : "";
-  const attrs = code ? `data-open="${esc(code)}" data-month="${month}" tabindex="0" role="button"` : "";
-  return `<td><button type="button" class="gcell ${lv} ${over ? "over" : ""}" ${attrs} title="${esc(mName(month))}"><span class="m">${main}</span>${sub}</button></td>`;
-}
-function yearGrid(rows) {
-  const months = yearMonths();
-  rows.sort((x, y) => (y.a.avg - x.a.avg) || (y.a.minutes - x.a.minutes));
-  const head = `<thead><tr><th class="ph">${esc(t("cPharmacy"))}</th>${months.map(m => `<th>${esc(mShort(m))}</th>`).join("")}<th>${esc(t("total"))}</th></tr></thead>`;
-  const body = rows.map(p => {
-    const tot = agg(p, months);
-    return `<tr><th class="ph"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></th>
-      ${months.map(m => gridCell(p.months[m], p.code, m)).join("")}
-      <td class="tot"><div class="gcell ${level(tot)}"><span class="m">${tot.days ? tot.minutes : "—"}</span><span class="x">${tot.days ? tot.avg.toFixed(2) : ""}</span></div></td></tr>`;
-  }).join("");
-  const foot = `<tfoot><tr><th class="ph"><b>${esc(t("allPh"))}</b></th>${months.map(m => {
-    const s = rows.reduce((x, p) => { const v = p.months[m]; if (v) { x.minutes += v.minutes; x.days += v.days; x.exc += v.exc; } return x; }, { minutes: 0, days: 0, exc: 0 });
-    return `<td><div class="gcell ${level(s)}"><span class="m">${s.days ? s.minutes : "—"}</span><span class="x">${s.exc ? s.exc : ""}</span></div></td>`;
-  }).join("")}<td></td></tr></tfoot>`;
-  const legend = `<div class="legend">
-    <span><i class="gcell l0" style="min-height:0;padding:0"></i>${esc(t("lgNone"))}</span>
-    <span><i class="gcell l1" style="min-height:0;padding:0"></i>${esc(t("lgLow"))}</span>
-    <span><i class="gcell l2" style="min-height:0;padding:0"></i>${esc(t("lgMid"))}</span>
-    <span><i class="gcell l3" style="min-height:0;padding:0"></i>${esc(t("lgHigh"))}</span>
-    <span><i class="gcell nd" style="min-height:0;padding:0"></i>${esc(t("lgNd"))}</span>
-    <span><i class="gcell over" style="min-height:0;padding:0"></i>${esc(t("lgOver"))}</span></div>`;
-  return `<section><div class="sec-head" style="margin-bottom:10px"><h2>${esc(t("yearGrid", { y: curMonth().slice(0, 4) }))}</h2><span class="small">${esc(t("gridHint"))}</span></div>
-    <div class="panel"><div class="gridwrap"><table class="grid">${head}<tbody>${body}</tbody>${foot}</table></div>${legend}</div></section>`;
-}
-
-/* ---------- Render: one pharmacy ---------- */
-function openDetail(code, month) {
-  state.view = "detail"; state.store = code; state.month = month; state.tab = "issues";
-  window.scrollTo(0, 0); render();
-}
-
-async function renderDetail() {
-  const p = state.sum.pharmacies.find(x => x.code === state.store);
-  const key = state.store + "|" + state.month, cur = curMonth();
-  const head = `<div class="dhead">
-      <button class="btn" id="backBtn" type="button">← ${esc(t("back"))}</button>
-      <div class="mnav"><button class="btn icon" id="prevM" type="button" aria-label="${esc(t("prev"))}" ${state.month.slice(5, 7) === "01" ? "disabled" : ""}>‹</button><span class="mlabel">${esc(mName(state.month))}</span><button class="btn icon" id="nextM" type="button" aria-label="${esc(t("next"))}" ${state.month >= cur ? "disabled" : ""}>›</button></div>
-    </div>
-    <div class="dname"><h2><bdi class="ar">${esc(p ? p.name : state.store)}</bdi></h2><span class="small mono">${esc(state.store)}</span></div>`;
-  const wire = () => {
-    $("backBtn").onclick = () => { state.view = "list"; render(); };
-    $("prevM").onclick = () => { if (state.month.slice(5, 7) !== "01") { state.month = addMonth(state.month, -1); render(); } };
-    $("nextM").onclick = () => { if (state.month < cur) { state.month = addMonth(state.month, 1); render(); } };
-  };
-  if (!state.cache.has(key)) {
-    $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">${head}<div class="panel"><div class="state"><span class="spin"></span></div></div></div>`;
-    wire();
-    try { await loadMonth(state.store, state.month); } catch (e) { $("main").querySelector(".state").textContent = t("netErr"); return; }
-    if (state.view !== "detail" || state.store + "|" + state.month !== key) return;
-  }
-  const D = state.cache.get(key);
-  $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">${head}${detailBody(D)}</div>`;
-  wire();
+  $("main").querySelectorAll("[data-store]").forEach(b => b.onclick = () => { state.store = b.dataset.store; render(); });
   $("main").querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { state.tab = b.dataset.tab; render(); });
-  $("main").querySelectorAll("[data-goto]").forEach(b => b.onclick = () => {
-    state.tab = "all"; render();
-    setTimeout(() => { const r = document.getElementById("day-" + b.dataset.goto); if (r) { r.scrollIntoView({ behavior: "smooth", block: "center" }); r.classList.add("flash"); } }, 30);
-  });
+  $("main").querySelectorAll("[data-cell]").forEach(b => b.onclick = () => { const [code, m] = b.dataset.cell.split("|"); state.store = code; state.period = m; state.tab = "issues"; render(); window.scrollTo(0, 0); });
 }
 
-function dayStatus(d, today) {
-  if (!d.minutes) return "ok";
-  if (d.exceptional) return "lateExc";
-  return d.deadline >= today ? "red" : "black";
-}
-
-function detailBody(D) {
-  const today = D.today;
-  const days = D.days.slice().sort((a, b) => a.date < b.date ? 1 : -1);
-  const byDate = new Map(days.map(d => [d.date, d]));
-  const sched = new Map(D.schedule.map(s => [s.date, s]));
-  const excBy = new Map(D.exceptions.map(e => [e.date, e]));
-  const holOf = date => (D.holidays.find(h => date >= h.from && date <= h.to) || {}).name || "";
-  const names = new Map();
-  for (const d of days) for (const by of [d.outBy, d.inBy]) { const m = String(by).match(/^(.*) - (\d+)$/); if (m) names.set(m[2], m[1]); }
-
-  // stats
-  const total = days.reduce((a, d) => a + d.minutes, 0), avg = days.length ? total / days.length : 0;
-  let missed = 0; for (const d of days) { if (d.outPlanned && d.outPlanned !== "Missed Action" && !d.outActual && d.outMin >= 30) missed++; if (d.inPlanned && d.inPlanned !== "Missed Action" && !d.inActual && d.inMin >= 30) missed++; }
-  const counted = D.exceptions.filter(e => e.rank > 0), over = counted.filter(e => e.over).length, lateE = counted.filter(e => e.lateEdit).length;
-  const tiles = `<section class="tiles">
-    <div class="tile ${avg >= 1 ? "bad" : avg === 0 && days.length ? "ok" : ""}"><div class="k">${esc(t("tAvg"))}</div><div class="v">${avg.toFixed(2)}<small>${esc(t("perDay"))}</small></div><div class="s">${esc(t("tAvgS", { t: total, d: days.length }))}</div></div>
-    <div class="tile ${missed ? "bad" : ""}"><div class="k">${esc(t("dMissed"))}</div><div class="v">${missed}</div><div class="s">${esc(t("dMissedS"))}</div></div>
-    <div class="tile ${counted.length > 5 ? "bad" : counted.length >= 4 ? "warn" : ""}"><div class="k">${esc(t("tExc"))}</div><div class="v">${counted.length}<small>/ 5</small></div><div class="s">${esc(t("tExcS", { o: over, l: lateE }))}</div></div>
-    <div class="tile ${days.some(d => dayStatus(d, today) === "red") ? "bad" : "ok"}"><div class="k">${esc(t("tAction"))}</div><div class="v">${days.filter(d => dayStatus(d, today) === "red").length}</div><div class="s">${esc(t("tActionS"))}</div></div>
-  </section>`;
-
-  // per pharmacist
-  const ppl = new Map();
-  for (const d of days) for (const [by, m] of [[d.outBy, d.outMin], [d.inBy, d.inMin]]) {
-    if (!by && !m) continue; const n = by ? nameOf(by) : t("unassigned"); ppl.set(n, (ppl.get(n) || 0) + m);
-  }
-  const people = ppl.size ? `<div class="people"><span class="lbl">${esc(t("byPh"))}</span>${[...ppl.entries()].sort((a, b) => b[1] - a[1]).map(([n, m]) => `<span class="person ${m ? "has" : "zero"}"><b><bdi>${esc(n)}</bdi></b><span class="mins">${m} ${esc(t("min"))}</span></span>`).join("")}</div>` : "";
-
-  // calendar
-  const first = D.month + "-01", startWd = wdOf(first), last = dateOf(dayNum(addMonth(D.month, 1) + "-01") - 1), nDays = +last.slice(8);
-  let cells = WDS.map(w => `<div class="wd">${esc(w)}</div>`).join("") + Array.from({ length: startWd }, () => `<div class="cday blank"></div>`).join("");
-  for (let i = 1; i <= nDays; i++) {
-    const date = D.month + "-" + pad(i), d = byDate.get(date), e = excBy.get(date);
-    let cls, txt = "";
-    if (date > today) cls = "future";
-    else if (!d) cls = sched.has(date) ? "nd" : "nd";
-    else {
-      const st = dayStatus(d, today);
-      if (e && e.rank > 0 && (e.lateEdit || e.over)) cls = "exclate";
-      else if (st === "red") cls = "red";
-      else if (st === "black" || st === "lateExc") cls = "black";
-      else if (e) cls = "exc";
-      else cls = "ok";
-      txt = d.minutes ? d.minutes + "m" : "✓";
-    }
-    const tag = d ? "button" : "div";
-    cells += `<${tag} ${d ? `type="button" data-goto="${date}"` : ""} class="cday ${cls}" title="${esc(fmtDate(date))}"><span class="d">${i}</span><span class="t">${txt}</span></${tag}>`;
-  }
-  const calLegend = `<div class="legend">
-    <span><i class="cday ok" style="min-height:0;padding:0"></i>${esc(t("lgOk"))}</span>
-    <span><i class="cday red" style="min-height:0;padding:0"></i>${esc(t("lgRed"))}</span>
-    <span><i class="cday black" style="min-height:0;padding:0"></i>${esc(t("lgBlack"))}</span>
-    <span><i class="cday exc" style="min-height:0;padding:0"></i>${esc(t("lgExc"))}</span>
-    <span><i class="cday exclate" style="min-height:0;padding:0"></i>${esc(t("lgExcLate"))}</span>
-    <span><i class="cday nd" style="min-height:0;padding:0"></i>${esc(t("lgNotSaved"))}</span></div>`;
-  const cal = `<div class="panel"><div class="cal">${cells}</div>${calLegend}</div>`;
-
-  // tabs
-  const issues = days.filter(d => d.minutes > 0), action = days.filter(d => dayStatus(d, today) === "red").sort((a, b) => a.date < b.date ? -1 : 1);
-  const excList = D.exceptions.slice().sort((a, b) => a.date < b.date ? 1 : -1);
-  const tabs = [["issues", t("tIssues", { n: issues.length })], ["action", t("tActionTab", { n: action.length })], ["exc", t("tExcTab", { n: excList.length })], ["all", t("tAll", { n: days.length })]];
+/* ---------- Day table (same look as the attendance page) ---------- */
+function dayTable(days, action, excList) {
+  const issues = days.filter(d => d.minutes > 0).sort((a, b) => a.date < b.date ? 1 : -1);
+  const sorted = days.slice().sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : (a.store < b.store ? -1 : 1));
+  const tabs = [["action", t("tAction", { n: action.length })], ["issues", t("tIssues", { n: issues.length })], ["exc", t("tExcTab", { n: excList.length })], ["all", t("tAll", { n: days.length })]];
   const seg = `<div class="seg" role="group">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${state.tab === k}">${esc(l)}</button>`).join("")}</div>`;
-
+  const names = nameMap(), excBy = rankExceptions(collect(state.period === "year" ? yearMonths() : [state.period], "").sched, state.meta.holidays);
   let table;
   if (state.tab === "exc") {
+    const byKey = new Map(days.map(d => [d.store + "|" + d.date, d]));
+    const ids = idNames(days);
     const h = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colNew"))}</span><span>${esc(t("colEdited"))}</span><span style="text-align:right">${esc(t("colRules"))}</span></div>`;
-    table = excList.length ? h + excList.map(e => excRow(e, byDate.get(e.date), names)).join("") : `<div class="state">${esc(t("noExc"))}</div>`;
+    table = excList.length ? h + excList.map(e => excRow(e, byKey.get(e.store + "|" + e.date), names, ids)).join("") : `<div class="state">${esc(t("noExc"))}</div>`;
   } else {
-    const list = state.tab === "issues" ? issues : state.tab === "action" ? action : days;
+    const list = state.tab === "action" ? action : state.tab === "issues" ? issues : sorted;
+    const empty = state.tab === "action" ? t("noAction") : state.tab === "issues" ? t("noIssues") : t("noDays");
     const h = `<div class="drow colhead"><span>${esc(t("colDate"))}</span><span>${esc(t("colOut"))}</span><span>${esc(t("colIn"))}</span><span style="text-align:right">${esc(t("colStatus"))}</span></div>`;
-    const empty = !days.length ? t("noData") : state.tab === "action" ? t("noAction") : t("noIssues");
-    table = list.length ? h + list.map(d => dayRow(d, excBy.get(d.date), holOf(d.date), today)).join("") : `<div class="state">${esc(empty)}</div>`;
+    table = list.length ? h + list.map(d => dayRow(d, excBy.get(d.store + "|" + d.date), names)).join("") : `<div class="state">${esc(empty)}</div>`;
   }
-  return `${tiles}${people}${cal}<section><div class="sec-head" style="margin-bottom:10px">${seg}</div><div class="panel">${table}</div></section>`;
+  return `<section><div class="sec-head" style="margin-bottom:10px">${seg}</div><div class="panel">${table}</div></section>`;
 }
-
+function idNames(days) {
+  const m = new Map();
+  for (const d of days) for (const by of [d.oBy, d.iBy]) { const x = String(by).match(/^(.*) - (\d+)$/); if (x) m.set(x[2], x[1]); }
+  return m;
+}
 function sideCell(label, planned, actual, m, by) {
   if (!planned) return `<div class="side"><span class="lab">${esc(label)}</span><span class="who">—</span></div>`;
   let res;
@@ -659,34 +575,31 @@ function sideCell(label, planned, actual, m, by) {
     <span class="times"><span class="pl">${esc(t("planned"))} ${esc(planned)}</span><span class="pl">→</span><span>${esc(actual || "—")}</span>${res}</span>
     ${by ? `<span class="who"><bdi>${esc(by)}</bdi></span>` : ""}</div>`;
 }
-
-function dayRow(d, e, hol, today) {
-  const st = dayStatus(d, today);
-  const tags = [];
-  if (e && e.rank > 0) tags.push(`<span class="tag exc">${esc(t("tagExc"))} · ${esc(t("tagRank", { r: e.rank }))}</span>`);
-  if (e && e.rank > 0 && e.lateEdit) tags.push(`<span class="tag late">${esc(t("tagLate", { n: e.lag }))}</span>`);
+function dayRow(d, e, names) {
+  const st = dayStatus(d), tags = [];
+  if (e && e.rank > 0) tags.push(`<span class="tag exc">${esc(t("tagExc", { r: e.rank }))}</span>`);
+  if (e && e.lateEdit) tags.push(`<span class="tag late">${esc(t("tagLate", { n: e.lag }))}</span>`);
   if (e && e.over) tags.push(`<span class="tag over">${esc(t("tagOver"))}</span>`);
-  if (hol) tags.push(`<span class="tag hol"><bdi>${esc(hol)}</bdi></span>`);
+  if (e && e.holiday) tags.push(`<span class="tag hol"><bdi>${esc(e.holiday)}</bdi></span>`);
   let status;
   if (st === "ok") status = `<span class="pill ok">${esc(t("stOk"))}</span>`;
-  else if (st === "red") { const left = dayNum(d.deadline) - dayNum(today); status = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill bad">${esc(left <= 0 ? t("stRed0") : t("stRed", { n: left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDate(d.deadline) }))}</span>`; }
+  else if (st === "red") { const left = dayNum(d.deadline) - dayNum(state.meta.today); status = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill bad">${esc(left <= 0 ? t("stRed0") : t("stRed", { n: left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDate(d.deadline) }))}</span>`; }
   else if (st === "lateExc") status = `<span class="pill black">${esc(t("stLateExc"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
   else status = `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
   const cls = st === "red" ? "st-red" : st === "black" || st === "lateExc" ? "st-black" : "";
-  return `<div class="drow ${cls}" id="day-${d.date}">
-    <div class="date"><b>${esc(fmtDate(d.date))}</b><span class="wdn">${esc(d.weekday || WDL[wdOf(d.date)])}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
-    ${sideCell(t("colOut"), d.outPlanned, d.outActual, d.outMin, d.outBy)}
-    ${sideCell(t("colIn"), d.inPlanned, d.inActual, d.inMin, d.inBy)}
+  return `<div class="drow ${cls}">
+    <div class="date"><b>${esc(fmtDate(d.date))}</b><span class="wdn">${esc(d.weekday || WDL[ymd(dayNum(d.date)).wd])}</span><span class="ph">${esc(names.get(d.store) || d.store)}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
+    ${sideCell(t("colOut"), d.oP, d.oA, d.oM, d.oBy)}
+    ${sideCell(t("colIn"), d.iP, d.iA, d.iM, d.iBy)}
     <div class="status">${status}</div></div>`;
 }
-
-function excRow(e, d, names) {
-  const who = (names.get(e.by) ? names.get(e.by) + " - " : "") + e.by;
+function excRow(e, d, names, ids) {
+  const who = (ids.get(e.by) ? ids.get(e.by) + " - " : "") + e.by;
   const tags = [];
   if (e.holiday) tags.push(`<span class="tag hol"><bdi>${esc(e.holiday)}</bdi></span>`);
   else {
     tags.push(e.lateEdit ? `<span class="tag late">${esc(t("tagLate", { n: e.lag }))}</span>` : `<span class="tag exc">${esc(t("within"))}</span>`);
-    tags.push(e.over ? `<span class="tag over">${esc(t("tagRank", { r: e.rank }))} · ${esc(t("tagOver"))}</span>` : `<span class="tag">${esc(t("tagRank", { r: e.rank }))}</span>`);
+    tags.push(e.over ? `<span class="tag over">${esc(t("rank", { r: e.rank }))} · ${esc(t("tagOver"))}</span>` : `<span class="tag">${esc(t("rank", { r: e.rank }))}</span>`);
   }
   let pill;
   if (e.holiday) pill = `<span class="pill exc">${esc(t("pillHol"))}</span>`;
@@ -697,16 +610,52 @@ function excRow(e, d, names) {
   const after = d ? `<span class="mins">${esc(d.minutes ? t("stillLate", { m: d.minutes }) : t("noDelay"))}</span>` : "";
   const bad = !e.holiday && (e.lateEdit || e.over);
   return `<div class="drow ${bad ? "st-red" : ""}">
-    <div class="date"><b>${esc(fmtDate(e.date))}</b><span class="wdn">${esc(e.weekday || WDL[wdOf(e.date)])}</span><div class="tags">${tags.join("")}</div></div>
+    <div class="date"><b>${esc(fmtDate(e.date))}</b><span class="wdn">${esc(e.weekday || WDL[ymd(dayNum(e.date)).wd])}</span><span class="ph">${esc(names.get(e.store) || e.store)}</span><div class="tags">${tags.join("")}</div></div>
     <div class="side"><span class="lab">${esc(t("colNew"))}</span><span class="times"><span class="pl">${esc(t("colOut"))}</span><span>${esc(e.out)}</span></span><span class="times"><span class="pl">${esc(t("colIn"))}</span><span>${esc(e.in)}</span></span></div>
     <div class="side"><span class="lab">${esc(t("colEdited"))}</span><span class="times"><span>${esc(fmtDate(e.updated.slice(0, 10)) + ", " + fmt24(e.updated))}</span></span><span class="who"><bdi>${esc(who)}</bdi></span></div>
     <div class="status">${pill}${after}</div></div>`;
 }
 
+/* ---------- Year grid ---------- */
+function monthStats(code, m, exc) {
+  const md = state.months.get(m); if (!md) return null;
+  let minutes = 0, days = 0;
+  for (const r of md.days) if (r[0] === code) { days++; minutes += r[11]; }
+  let n = 0, over = false;
+  for (const e of exc.values()) if (e.store === code && e.date.slice(0, 7) === m && e.rank > 0) { n++; if (e.over) over = true; }
+  return { minutes, days, exc: n, over };
+}
+function level(s) {
+  if (!s || !s.days) return "nd";
+  const a = s.minutes / s.days;
+  return a === 0 ? "l0" : a < 1 ? "l1" : a <= 3 ? "l2" : "l3";
+}
+function yearGrid(names) {
+  const months = yearMonths(), exc = rankExceptions(collect(months, "").sched, state.meta.holidays);
+  const list = state.meta.pharmacies.filter(p => !state.store || p.code === state.store).map(p => {
+    const cells = months.map(m => monthStats(p.code, m, exc));
+    const tot = cells.reduce((a, c) => { if (c) { a.minutes += c.minutes; a.days += c.days; a.exc += c.exc; } return a; }, { minutes: 0, days: 0, exc: 0 });
+    return { p, cells, tot };
+  }).sort((a, b) => (b.tot.days ? b.tot.minutes / b.tot.days : 0) - (a.tot.days ? a.tot.minutes / a.tot.days : 0));
+  const head = `<thead><tr><th class="ph">${esc(t("cPharmacy"))}</th>${months.map(m => `<th>${esc(mShort(m))}</th>`).join("")}<th>${esc(t("total"))}</th></tr></thead>`;
+  const body = list.map(({ p, cells, tot }) => `<tr><th class="ph"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></th>
+    ${cells.map((c, i) => `<td><button type="button" class="gcell ${level(c)} ${c && c.exc > 5 ? "over" : ""}" data-cell="${esc(p.code)}|${months[i]}" title="${esc(mName(months[i]))}"><span class="m">${c && c.days ? c.minutes : "—"}</span>${c && c.exc ? `<span class="x">${c.exc}/5</span>` : ""}</button></td>`).join("")}
+    <td class="tot"><div class="gcell ${level(tot)}"><span class="m">${tot.days ? tot.minutes : "—"}</span><span class="x">${tot.days ? (tot.minutes / tot.days).toFixed(2) : ""}</span></div></td></tr>`).join("");
+  const legend = `<div class="legend">
+    <span><i class="gcell l0" style="min-height:0;padding:0"></i>${esc(t("lgNone"))}</span>
+    <span><i class="gcell l1" style="min-height:0;padding:0"></i>${esc(t("lgLow"))}</span>
+    <span><i class="gcell l2" style="min-height:0;padding:0"></i>${esc(t("lgMid"))}</span>
+    <span><i class="gcell l3" style="min-height:0;padding:0"></i>${esc(t("lgHigh"))}</span>
+    <span><i class="gcell nd" style="min-height:0;padding:0"></i>${esc(t("lgNd"))}</span>
+    <span><i class="gcell over" style="min-height:0;padding:0"></i>${esc(t("lgOver"))}</span></div>`;
+  return `<section><div class="sec-head" style="margin-bottom:10px"><h2>${esc(t("gridTitle", { y: curMonth().slice(0, 4) }))}</h2><span class="small">${esc(t("gridHint"))}</span></div>
+    <div class="panel"><div class="gridwrap"><table class="grid">${head}<tbody>${body}</tbody></table></div>${legend}</div></section>`;
+}
+
 /* ---------- Import schedules (supervisor) ---------- */
 const imp = { rows: [], ignored: [], running: false, seq: 0 };
 
-function openImport() { state.view = "import"; window.scrollTo(0, 0); renderImport(); }
+function openImport() { state.view = "import"; window.scrollTo(0, 0); $("main").innerHTML = ""; renderImport(); }
 
 function renderImport() {
   $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">
@@ -719,7 +668,7 @@ function renderImport() {
       <div class="small">${esc(t("impRule"))}</div>
     </section>
     <section id="impResult"></section></div>`;
-  $("backBtn").onclick = () => { if (!imp.running) { state.view = "list"; render(); } };
+  $("backBtn").onclick = () => { if (!imp.running) { state.view = "main"; render(); } };
   $("impAdd").onclick = () => addImpBox(true);
   $("impClear").onclick = () => { if (imp.running) return; $("impBoxes").innerHTML = ""; addImpBox(); readImport(); };
   addImpBox();
@@ -728,8 +677,7 @@ function renderImport() {
 
 function addImpBox(focus) {
   const wrap = document.createElement("div"); wrap.className = "pbox";
-  const id = "imp-" + (++imp.seq);
-  wrap.innerHTML = `<textarea id="${id}" spellcheck="false" rows="1" aria-label="${esc(t("impTitle"))}"></textarea>
+  wrap.innerHTML = `<textarea id="imp-${++imp.seq}" spellcheck="false" rows="1" aria-label="${esc(t("impTitle"))}"></textarea>
     <div class="pmeta"><span class="plabel idle"></span><button type="button" class="xbtn" aria-label="${esc(t("remove"))}">×</button></div>`;
   const ta = wrap.querySelector("textarea");
   ta.placeholder = t("impPh");
@@ -758,14 +706,14 @@ function readImport() {
     texts.push(v);
   }
   const parsed = parseSchedule(texts.join("\n"));
-  const mine = new Map(state.sum.pharmacies.map(p => [p.code, p]));
+  const mine = nameMap();
   imp.rows = []; imp.ignored = [];
   for (const [code, byDay] of parsed.byStore) {
     if (!mine.has(code)) { imp.ignored.push(code); continue; }
     const days = [...byDay.values()];
     const months = [...new Set(days.map(r => monthKey(r.day)))].sort();
     const exc = days.filter(r => r.type && !/target\s*submission/i.test(r.type) && r.updMin != null && r.updMin >= r.day * 1440).length;
-    imp.rows.push({ code, name: mine.get(code).name, byDay, months, days: days.length, exc, status: "wait", result: "" });
+    imp.rows.push({ code, name: mine.get(code), byDay, months, days: days.length, exc, status: "wait", result: "" });
   }
   imp.rows.sort((a, b) => a.name.localeCompare(b.name, "ar"));
   drawImport();
@@ -803,8 +751,7 @@ async function runImport() {
   for (const r of imp.rows) if (r.status !== "done") await importOne(r);
   imp.running = false; drawImport();
   toast(t("impDoneToast"));
-  state.cache.clear();
-  loadSummary(false);
+  state.months.clear();
 }
 
 // One pharmacy: put the pasted schedule over the saved one, recompute the delay
@@ -836,29 +783,25 @@ async function importOne(r) {
 
 /* ---------- Copy ---------- */
 function summaryText() {
-  if (state.view === "import") return "";
-  if (state.view === "detail") {
-    const D = state.cache.get(state.store + "|" + state.month); if (!D) return "";
-    const p = state.sum.pharmacies.find(x => x.code === state.store) || { name: state.store };
-    const days = D.days.slice().sort((a, b) => a.date < b.date ? -1 : 1);
-    const total = days.reduce((a, d) => a + d.minutes, 0), avg = days.length ? total / days.length : 0;
-    const counted = D.exceptions.filter(e => e.rank > 0);
-    const L = [t("cpDetail", { name: p.name, code: state.store, month: mName(state.month) }), t("cpAvg", { a: avg.toFixed(2), t: total, d: days.length }),
-      t("cpExc", { n: counted.length, o: counted.filter(e => e.over).length, l: counted.filter(e => e.lateEdit).length }), ""];
-    const late = days.filter(d => d.minutes > 0);
-    L.push(late.length ? t("cpLate") : t("cpNone"));
-    for (const d of late) for (const [side, pl, ac, m, by] of [[t("colOut"), d.outPlanned, d.outActual, d.outMin, d.outBy], [t("colIn"), d.inPlanned, d.inActual, d.inMin, d.inBy]]) {
-      if (m) L.push(t("cpDay", { date: fmtDate(d.date), side, p: pl, a: ac || "—", m, who: by ? nameOf(by) : t("unassigned") }));
-    }
-    return L.join("\n");
+  if (state.view !== "main" || !state.meta) return "";
+  const keys = state.period === "year" ? yearMonths() : [state.period];
+  const names = nameMap(), store = state.store;
+  const { days } = collect(keys, store);
+  const exc = [...rankExceptions(collect(keys, "").sched, state.meta.holidays).values()].filter(e => e.rank > 0 && names.has(e.store) && (!store || e.store === store));
+  const total = days.reduce((a, d) => a + d.minutes, 0);
+  const action = markExc(collect(recentMonths(), store).days, rankExceptions(collect(recentMonths(), "").sched, state.meta.holidays)).filter(d => dayStatus(d) === "red").length;
+  const L = [t("cpHead", { period: periodLabel(), ph: store ? " · " + names.get(store) : "" }),
+    t("cpAvg", { a: (days.length ? total / days.length : 0).toFixed(2), t: total, d: days.length }),
+    t("cpExc", { n: exc.length, o: new Set(exc.filter(e => e.over).map(e => e.store + e.date.slice(0, 7))).size, l: exc.filter(e => e.lateEdit).length }),
+    t("cpAction", { n: action })];
+  if (!store) {
+    L.push("");
+    const per = state.meta.pharmacies.map(p => {
+      const d = days.filter(x => x.store === p.code), m = d.reduce((a, x) => a + x.minutes, 0);
+      return { name: p.name, m, a: d.length ? m / d.length : 0, e: exc.filter(x => x.store === p.code).length };
+    }).sort((a, b) => b.m - a.m);
+    for (const p of per) L.push(t("cpLine", { name: p.name, t: p.m, a: p.a.toFixed(2), e: p.e }));
   }
-  const keys = periodKeys();
-  const rows = state.sum.pharmacies.map(p => Object.assign({}, p, { a: agg(p, keys) })).sort((x, y) => y.a.avg - x.a.avg);
-  const T = rows.reduce((x, p) => { for (const f of ["minutes", "days", "exc", "late", "over"]) x[f] += p.a[f]; return x; }, { minutes: 0, days: 0, exc: 0, late: 0, over: 0 });
-  const actionDays = rows.reduce((n, p) => n + p.action.length, 0);
-  const L = [t("cpHead", { period: periodLabel() }), t("cpAvg", { a: (T.days ? T.minutes / T.days : 0).toFixed(2), t: T.minutes, d: T.days }),
-    t("cpExc", { n: T.exc, o: T.over, l: T.late }), t("cpAction", { n: actionDays }), ""];
-  for (const p of rows) L.push(t("cpLine", { name: p.name, code: p.code, a: p.a.avg.toFixed(2), t: p.a.minutes, e: p.a.exc, over: p.a.over ? " (" + p.a.over + " over)" : "", n: p.action.length }));
   return L.join("\n");
 }
 function copySummary() {
@@ -869,12 +812,12 @@ function copySummary() {
 
 /* ---------- Boot ---------- */
 applyStrings();
-$("login").addEventListener("submit", e => { e.preventDefault(); const pw = $("pw").value.trim(); if (pw) { state.pw = pw; loadSummary(true); } });
-$("refresh").onclick = () => loadSummary(false);
+$("login").addEventListener("submit", e => { e.preventDefault(); const pw = $("pw").value.trim(); if (pw) { state.pw = pw; start(true); } });
+$("refresh").onclick = () => { if (state.view === "import") { state.view = "main"; } refresh(); };
 $("copyBtn").onclick = copySummary;
-$("importBtn").onclick = () => { if (state.sum) openImport(); };
+$("importBtn").onclick = () => { if (state.meta) openImport(); };
 $("modalX").onclick = () => { $("modal").hidden = true; };
-$("signout").onclick = () => { ls.clear(); state.sum = null; state.pw = ""; state.view = "list"; state.cache.clear(); showLogin(""); };
+$("signout").onclick = () => { ls.clear(); state.meta = null; state.pw = ""; state.view = "main"; state.months.clear(); showLogin(""); };
 const savedPw = ls.get();
-if (savedPw) { state.pw = savedPw; loadSummary(false); } else showLogin("");
+if (savedPw) { state.pw = savedPw; start(false); } else showLogin("");
 </script>
