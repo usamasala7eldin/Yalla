@@ -211,7 +211,25 @@ button.cday:hover{border-color:var(--muted)}
 .modal .box{background:var(--surface);border:1px solid var(--line);border-radius:14px;max-width:560px;width:100%;padding:16px}
 .modal textarea{width:100%;min-height:260px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:8px}
 
+.ipanel{padding:16px;display:flex;flex-direction:column;gap:10px}
+.ipanel h2{margin:0;font-family:var(--f-display);font-size:18px}
+.boxes{display:flex;flex-direction:column;gap:6px}
+.pbox{display:flex;align-items:center;gap:8px;border:1px dashed var(--line);border-radius:8px;background:var(--surface-2);padding:3px 4px 3px 3px}
+.pbox.filled{border-style:solid}
+.pbox textarea{flex:0 0 150px;width:150px;height:32px;resize:none;overflow:hidden;white-space:nowrap;border:0;border-radius:6px;background:var(--surface);color:var(--muted);font-family:var(--f-mono);font-size:11px;padding:7px 8px}
+.pmeta{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12.5px}
+.plabel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plabel.good{color:var(--ok)} .plabel.bad{color:var(--bad)} .plabel.idle{color:var(--muted)}
+.xbtn{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:2px 7px;border-radius:6px}
+.xbtn:hover{color:var(--bad);background:var(--bad-soft)}
+.addbtn{align-self:flex-start;border:1px dashed var(--line);background:none;border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;color:var(--accent)}
+.irow{display:grid;grid-template-columns:1.3fr 1fr .6fr .8fr 1.5fr;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.irow:first-child{border-top:0}
+.irow.colhead{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;padding-block:8px}
+.irow .res-cell{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.ifoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line);background:var(--surface-2)}
 @media (max-width:900px){ .tiles{grid-template-columns:1fr 1fr} }
+@media (max-width:760px){ .irow.colhead{display:none} .irow{grid-template-columns:1fr 1fr} .irow .nm{grid-column:1/-1} }
 @media (max-width:760px){
   .prow.colhead,.drow.colhead{display:none}
   .prow{grid-template-columns:1fr 1fr;gap:10px 14px}
@@ -243,6 +261,10 @@ button.cday:hover{border-color:var(--muted)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
           <span data-t="copy"></span>
         </button>
+        <button class="btn" id="importBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-t="import"></span>
+        </button>
         <button class="btn" id="refresh" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span data-t="refresh"></span>
@@ -256,6 +278,7 @@ button.cday:hover{border-color:var(--muted)}
 
 <div class="modal" id="modal" hidden><div class="box"><div class="sec-head" style="margin-bottom:8px"><b data-t="copy"></b><button class="btn" id="modalX" type="button" data-t="close"></button></div><textarea id="copyTa" readonly></textarea></div></div>
 
+<script src="attendance-core.js"></script>
 <script>
 /* ---------- Strings (localization-ready) ---------- */
 const STR = { en: {
@@ -288,7 +311,18 @@ const STR = { en: {
   cpHead: "Attendance overview · {period}", cpAvg: "Daily average: {a} min · Total: {t} min over {d} day(s)", cpExc: "Exceptional duties: {n} · over limit: {o} · late edits: {l}",
   cpAction: "Needs action now: {n} day(s)", cpLine: "{name} ({code}): {a} min/day · {t} min · exceptional {e}{over} · needs action {n}",
   cpDetail: "{name} ({code}) · {month}", cpLate: "Late days:", cpNone: "No late days.",
-  cpDay: "{date} · {side} · planned {p} · actual {a} · {m} min · {who}"
+  cpDay: "{date} · {side} · planned {p} · actual {a} · {m} min · {who}",
+  import: "Import schedules", impTitle: "Import schedules",
+  impHint: "Store Attendance Duty → Report. Filter on your pharmacies, show as many rows as possible, copy the whole page and paste it here. If the report has more than one page, add each page.",
+  impPh: "Click, then Ctrl+V", addPage: "Add page", remove: "Remove", clearAll: "Clear all",
+  impNone: "Nothing found in this paste", impBox: "{s} pharmacy(ies) · {n} days",
+  impEmpty: "Paste the report to see which pharmacies will be updated.",
+  impIgnored: "Not in your pharmacy list, skipped: {list}",
+  cMonths: "Months", cDays: "Days", cExcPaste: "Exceptional", cResult: "Result",
+  impGo: "Import {n} pharmacy(ies)", impRunning: "Importing…", impAllDone: "All imported", impRetry: "Retry",
+  stWait: "Waiting", stBusy: "Saving…", stDone: "Saved", stFail: "Failed",
+  resDone: "{a} new · {u} updated", resDelay: "Delay now: {m} min", resNoPunch: "No saved punches yet",
+  impDoneToast: "Import finished", impRule: "Your import always wins. A pharmacy's paste replaces a day only if its edit is newer."
 }};
 let LANG = "en";
 const t = (k, v = {}) => String((STR[LANG] && STR[LANG][k]) ?? k).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? "");
@@ -297,18 +331,15 @@ const t = (k, v = {}) => String((STR[LANG] && STR[LANG][k]) ?? k).replace(/\{(\w
 // The same Web app link used by the attendance page.
 const API_URL = "https://script.google.com/macros/s/AKfycbxai2MWsrqVcLeKrvV4wa1dQYzbBI3eNEZM11Ke3pKl6NZDH39XInlJzBqO0uNdQLxcZA/exec";
 const PW_KEY = "attendanceSupervisorPw";
-const MONS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const MONL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const WDS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const WDL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const pad = n => String(n).padStart(2, "0");
 const ls = { get() { try { return localStorage.getItem(PW_KEY) || ""; } catch (e) { return ""; } },
   set(v) { try { localStorage.setItem(PW_KEY, v); } catch (e) {} }, clear() { try { localStorage.removeItem(PW_KEY); } catch (e) {} } };
 const dayNum = s => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
 const dateOf = n => { const d = new Date(n * 864e5); return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()); };
-const fmtDay = s => { if (!s) return ""; const d = new Date(dayNum(s) * 864e5); return d.getUTCDate() + " " + MONS[d.getUTCMonth()]; };
+// Month and weekday names, pad() and the attendance rules come from attendance-core.js.
+const fmtDate = s => { if (!s) return ""; const d = new Date(dayNum(s) * 864e5); return d.getUTCDate() + " " + MONS[d.getUTCMonth()]; };
 const wdOf = s => new Date(dayNum(s) * 864e5).getUTCDay();
 const fmtTime = d => { const h = d.getHours(); return ((h % 12) || 12) + ":" + pad(d.getMinutes()) + " " + (h < 12 ? "AM" : "PM"); };
 const fmt24 = s => { const m = String(s).match(/(\d{2}):(\d{2})/); if (!m) return s; const h = +m[1]; return ((h % 12) || 12) + ":" + m[2] + " " + (h < 12 ? "AM" : "PM"); };
@@ -348,7 +379,7 @@ async function loadSummary(fromLogin) {
       return;
     }
     ls.set(state.pw); state.sum = data; state.loadedAt = new Date(); state.cache.clear();
-    if (!state.period) state.period = data.today.slice(0, 7);
+    if (!state.period || (state.period !== "year" && state.period.slice(0, 4) !== data.today.slice(0, 4))) state.period = data.today.slice(0, 7);
     $("login").hidden = true; $("app").hidden = false; render();
   } catch (e) {
     if (fromLogin || !state.sum) showLogin(t("netErr")); else toast(t("netErr"));
@@ -392,13 +423,15 @@ function render() {
   const now = state.loadedAt, td = new Date(dayNum(state.sum.today) * 864e5);
   $("sub").textContent = t("updated", { date: WDS[td.getUTCDay()] + " " + td.getUTCDate() + " " + MONS[td.getUTCMonth()], time: fmtTime(now) });
   if (state.view === "detail") return renderDetail();
+  if (state.view === "import") { if (!$("impBoxes")) renderImport(); return; }
 
   const S = state.sum, keys = periodKeys(), cur = curMonth(), prev = addMonth(cur, -1);
-  const allMonths = [...new Set(S.pharmacies.flatMap(p => Object.keys(p.months)))].filter(m => m !== cur && m !== prev && m <= cur).sort().reverse();
+  const year = cur.slice(0, 4), showPrev = prev.slice(0, 4) === year;
+  const allMonths = [...new Set(S.pharmacies.flatMap(p => Object.keys(p.months)))].filter(m => m.slice(0, 4) === year && m !== cur && m !== prev && m <= cur).sort().reverse();
   const isOther = state.period !== "year" && state.period !== cur && state.period !== prev;
   const periods = `<div class="periods">
     <button type="button" class="chip" data-p="${cur}" aria-pressed="${state.period === cur}">${esc(t("thisMonth"))}</button>
-    <button type="button" class="chip" data-p="${prev}" aria-pressed="${state.period === prev}">${esc(t("lastMonth"))}</button>
+    ${showPrev ? `<button type="button" class="chip" data-p="${prev}" aria-pressed="${state.period === prev}">${esc(t("lastMonth"))}</button>` : ""}
     <button type="button" class="chip" data-p="year" aria-pressed="${state.period === "year"}">${esc(t("year", { y: cur.slice(0, 4) }))}</button>
     ${allMonths.length ? `<select id="otherSel" class="${isOther ? "on" : ""}" aria-label="${esc(t("otherMonth"))}"><option value="">${esc(t("otherMonth"))}</option>${allMonths.map(m => `<option value="${m}" ${state.period === m ? "selected" : ""}>${esc(mName(m))}</option>`).join("")}</select>` : ""}
   </div>`;
@@ -410,7 +443,7 @@ function render() {
   const actionDays = rows.reduce((n, p) => n + p.action.length, 0);
   const firstDl = rows.flatMap(p => p.action.map(a => a.deadline)).sort()[0];
 
-  const banner = actionDays ? `<div class="banner">${icoWarn}<span>${esc(t("alert", { n: actionDays, date: fmtDay(firstDl) }))}</span></div>` : "";
+  const banner = actionDays ? `<div class="banner">${icoWarn}<span>${esc(t("alert", { n: actionDays, date: fmtDate(firstDl) }))}</span></div>` : "";
   const tiles = `<section class="tiles">
     <div class="tile ${savedToday === rows.length ? "ok" : "warn"}"><div class="k">${esc(t("tSaved"))}</div><div class="v">${savedToday}<small>/ ${rows.length}</small></div><div class="s">${esc(t("tSavedS", { n: rows.length - savedToday }))}</div></div>
     <div class="tile ${avgClass(tAvg) === "warn" ? "" : avgClass(tAvg)}"><div class="k">${esc(t("tAvg"))} · ${esc(periodLabel())}</div><div class="v">${tAvg.toFixed(2)}<small>${esc(t("perDay"))}</small></div><div class="s">${esc(t("tAvgS", { t: T.minutes, d: T.days }))}</div></div>
@@ -447,7 +480,7 @@ function monthList(rows, month) {
   const list = rows.map(p => {
     const a = p.a, lv = a.exc > 5 ? "lv-bad" : a.exc >= 4 ? "lv-warn" : "lv-ok";
     const segs = Array.from({ length: 5 }, (_, i) => `<i class="${i < a.exc ? "on" : ""}"></i>`).join("");
-    const act = p.action.length ? `<span class="pill bad">${esc(t("actionPill", { n: p.action.length, date: fmtDay(p.action[0].deadline) }))}</span>` : `<span class="pill ok">${esc(t("actionNone"))}</span>`;
+    const act = p.action.length ? `<span class="pill bad">${esc(t("actionPill", { n: p.action.length, date: fmtDate(p.action[0].deadline) }))}</span>` : `<span class="pill ok">${esc(t("actionNone"))}</span>`;
     const st = p.action.length ? "st-red" : !p.sv.today ? "st-warn" : "";
     return `<div class="prow ${st}" data-open="${esc(p.code)}" data-month="${esc(month)}" tabindex="0" role="button">
       <div class="cell name"><b><bdi class="ar">${esc(p.name)}</bdi></b><span class="code">${esc(p.code)}</span></div>
@@ -510,12 +543,12 @@ async function renderDetail() {
   const key = state.store + "|" + state.month, cur = curMonth();
   const head = `<div class="dhead">
       <button class="btn" id="backBtn" type="button">← ${esc(t("back"))}</button>
-      <div class="mnav"><button class="btn icon" id="prevM" type="button" aria-label="${esc(t("prev"))}">‹</button><span class="mlabel">${esc(mName(state.month))}</span><button class="btn icon" id="nextM" type="button" aria-label="${esc(t("next"))}" ${state.month >= cur ? "disabled" : ""}>›</button></div>
+      <div class="mnav"><button class="btn icon" id="prevM" type="button" aria-label="${esc(t("prev"))}" ${state.month.slice(5, 7) === "01" ? "disabled" : ""}>‹</button><span class="mlabel">${esc(mName(state.month))}</span><button class="btn icon" id="nextM" type="button" aria-label="${esc(t("next"))}" ${state.month >= cur ? "disabled" : ""}>›</button></div>
     </div>
     <div class="dname"><h2><bdi class="ar">${esc(p ? p.name : state.store)}</bdi></h2><span class="small mono">${esc(state.store)}</span></div>`;
   const wire = () => {
     $("backBtn").onclick = () => { state.view = "list"; render(); };
-    $("prevM").onclick = () => { state.month = addMonth(state.month, -1); render(); };
+    $("prevM").onclick = () => { if (state.month.slice(5, 7) !== "01") { state.month = addMonth(state.month, -1); render(); } };
     $("nextM").onclick = () => { if (state.month < cur) { state.month = addMonth(state.month, 1); render(); } };
   };
   if (!state.cache.has(key)) {
@@ -586,7 +619,7 @@ function detailBody(D) {
       txt = d.minutes ? d.minutes + "m" : "✓";
     }
     const tag = d ? "button" : "div";
-    cells += `<${tag} ${d ? `type="button" data-goto="${date}"` : ""} class="cday ${cls}" title="${esc(fmtDay(date))}"><span class="d">${i}</span><span class="t">${txt}</span></${tag}>`;
+    cells += `<${tag} ${d ? `type="button" data-goto="${date}"` : ""} class="cday ${cls}" title="${esc(fmtDate(date))}"><span class="d">${i}</span><span class="t">${txt}</span></${tag}>`;
   }
   const calLegend = `<div class="legend">
     <span><i class="cday ok" style="min-height:0;padding:0"></i>${esc(t("lgOk"))}</span>
@@ -636,12 +669,12 @@ function dayRow(d, e, hol, today) {
   if (hol) tags.push(`<span class="tag hol"><bdi>${esc(hol)}</bdi></span>`);
   let status;
   if (st === "ok") status = `<span class="pill ok">${esc(t("stOk"))}</span>`;
-  else if (st === "red") { const left = dayNum(d.deadline) - dayNum(today); status = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill bad">${esc(left <= 0 ? t("stRed0") : t("stRed", { n: left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDay(d.deadline) }))}</span>`; }
+  else if (st === "red") { const left = dayNum(d.deadline) - dayNum(today); status = `<span class="mins" style="color:var(--bad);font-weight:600">${d.minutes} ${esc(t("min"))}</span><span class="pill bad">${esc(left <= 0 ? t("stRed0") : t("stRed", { n: left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDate(d.deadline) }))}</span>`; }
   else if (st === "lateExc") status = `<span class="pill black">${esc(t("stLateExc"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
   else status = `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${d.minutes} ${esc(t("min"))}</span>`;
   const cls = st === "red" ? "st-red" : st === "black" || st === "lateExc" ? "st-black" : "";
   return `<div class="drow ${cls}" id="day-${d.date}">
-    <div class="date"><b>${esc(fmtDay(d.date))}</b><span class="wdn">${esc(d.weekday || WDL[wdOf(d.date)])}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
+    <div class="date"><b>${esc(fmtDate(d.date))}</b><span class="wdn">${esc(d.weekday || WDL[wdOf(d.date)])}</span>${tags.length ? `<div class="tags">${tags.join("")}</div>` : ""}</div>
     ${sideCell(t("colOut"), d.outPlanned, d.outActual, d.outMin, d.outBy)}
     ${sideCell(t("colIn"), d.inPlanned, d.inActual, d.inMin, d.inBy)}
     <div class="status">${status}</div></div>`;
@@ -664,14 +697,146 @@ function excRow(e, d, names) {
   const after = d ? `<span class="mins">${esc(d.minutes ? t("stillLate", { m: d.minutes }) : t("noDelay"))}</span>` : "";
   const bad = !e.holiday && (e.lateEdit || e.over);
   return `<div class="drow ${bad ? "st-red" : ""}">
-    <div class="date"><b>${esc(fmtDay(e.date))}</b><span class="wdn">${esc(e.weekday || WDL[wdOf(e.date)])}</span><div class="tags">${tags.join("")}</div></div>
+    <div class="date"><b>${esc(fmtDate(e.date))}</b><span class="wdn">${esc(e.weekday || WDL[wdOf(e.date)])}</span><div class="tags">${tags.join("")}</div></div>
     <div class="side"><span class="lab">${esc(t("colNew"))}</span><span class="times"><span class="pl">${esc(t("colOut"))}</span><span>${esc(e.out)}</span></span><span class="times"><span class="pl">${esc(t("colIn"))}</span><span>${esc(e.in)}</span></span></div>
-    <div class="side"><span class="lab">${esc(t("colEdited"))}</span><span class="times"><span>${esc(fmtDay(e.updated.slice(0, 10)) + ", " + fmt24(e.updated))}</span></span><span class="who"><bdi>${esc(who)}</bdi></span></div>
+    <div class="side"><span class="lab">${esc(t("colEdited"))}</span><span class="times"><span>${esc(fmtDate(e.updated.slice(0, 10)) + ", " + fmt24(e.updated))}</span></span><span class="who"><bdi>${esc(who)}</bdi></span></div>
     <div class="status">${pill}${after}</div></div>`;
+}
+
+/* ---------- Import schedules (supervisor) ---------- */
+const imp = { rows: [], ignored: [], running: false, seq: 0 };
+
+function openImport() { state.view = "import"; window.scrollTo(0, 0); renderImport(); }
+
+function renderImport() {
+  $("main").innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">
+    <div class="dhead"><button class="btn" id="backBtn" type="button">← ${esc(t("back"))}</button></div>
+    <section class="panel ipanel">
+      <div class="sec-head"><h2>${esc(t("impTitle"))}</h2><button class="linkbtn" id="impClear" type="button">${esc(t("clearAll"))}</button></div>
+      <div class="small">${esc(t("impHint"))}</div>
+      <div class="boxes" id="impBoxes"></div>
+      <button class="addbtn" id="impAdd" type="button">+ ${esc(t("addPage"))}</button>
+      <div class="small">${esc(t("impRule"))}</div>
+    </section>
+    <section id="impResult"></section></div>`;
+  $("backBtn").onclick = () => { if (!imp.running) { state.view = "list"; render(); } };
+  $("impAdd").onclick = () => addImpBox(true);
+  $("impClear").onclick = () => { if (imp.running) return; $("impBoxes").innerHTML = ""; addImpBox(); readImport(); };
+  addImpBox();
+  readImport();
+}
+
+function addImpBox(focus) {
+  const wrap = document.createElement("div"); wrap.className = "pbox";
+  const id = "imp-" + (++imp.seq);
+  wrap.innerHTML = `<textarea id="${id}" spellcheck="false" rows="1" aria-label="${esc(t("impTitle"))}"></textarea>
+    <div class="pmeta"><span class="plabel idle"></span><button type="button" class="xbtn" aria-label="${esc(t("remove"))}">×</button></div>`;
+  const ta = wrap.querySelector("textarea");
+  ta.placeholder = t("impPh");
+  ta.addEventListener("paste", e => {
+    const txt = e.clipboardData && e.clipboardData.getData("text");
+    if (!txt) return;
+    e.preventDefault(); ta.value = txt; ta.scrollTop = 0; ta.scrollLeft = 0; readImport();
+  });
+  ta.addEventListener("input", () => readImport());
+  wrap.querySelector(".xbtn").onclick = () => { if (imp.running) return; if ($("impBoxes").children.length > 1) wrap.remove(); else ta.value = ""; readImport(); };
+  $("impBoxes").appendChild(wrap);
+  if (focus) ta.focus();
+}
+
+function readImport() {
+  if (imp.running) return;
+  const texts = [];
+  for (const box of $("impBoxes").children) {
+    const v = box.querySelector("textarea").value, l = box.querySelector(".plabel");
+    box.classList.toggle("filled", !!v.trim());
+    if (!v.trim()) { l.className = "plabel idle"; l.textContent = ""; continue; }
+    const p = parseSchedule(v);
+    const n = [...p.byStore.values()].reduce((a, m) => a + m.size, 0);
+    if (!n) { l.className = "plabel bad"; l.textContent = t("impNone"); continue; }
+    l.className = "plabel good"; l.textContent = t("impBox", { s: p.stores.length, n });
+    texts.push(v);
+  }
+  const parsed = parseSchedule(texts.join("\n"));
+  const mine = new Map(state.sum.pharmacies.map(p => [p.code, p]));
+  imp.rows = []; imp.ignored = [];
+  for (const [code, byDay] of parsed.byStore) {
+    if (!mine.has(code)) { imp.ignored.push(code); continue; }
+    const days = [...byDay.values()];
+    const months = [...new Set(days.map(r => monthKey(r.day)))].sort();
+    const exc = days.filter(r => r.type && !/target\s*submission/i.test(r.type) && r.updMin != null && r.updMin >= r.day * 1440).length;
+    imp.rows.push({ code, name: mine.get(code).name, byDay, months, days: days.length, exc, status: "wait", result: "" });
+  }
+  imp.rows.sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  drawImport();
+}
+
+function drawImport() {
+  const el = $("impResult"); if (!el) return;
+  if (!imp.rows.length) {
+    el.innerHTML = `<div class="panel"><div class="state">${esc(t("impEmpty"))}</div>${imp.ignored.length ? `<div class="legend">${esc(t("impIgnored", { list: imp.ignored.join(", ") }))}</div>` : ""}</div>`;
+    return;
+  }
+  const head = `<div class="irow colhead"><span>${esc(t("cPharmacy"))}</span><span>${esc(t("cMonths"))}</span><span>${esc(t("cDays"))}</span><span>${esc(t("cExcPaste"))}</span><span>${esc(t("cResult"))}</span></div>`;
+  const rows = imp.rows.map((r, i) => {
+    let res;
+    if (r.status === "busy") res = `<span class="small"><span class="spin"></span>${esc(t("stBusy"))}</span>`;
+    else if (r.status === "done") res = `<span class="pill ok">${esc(t("stDone"))}</span><span class="small">${esc(r.result)}</span>`;
+    else if (r.status === "fail") res = `<span class="pill bad">${esc(t("stFail"))}</span><button type="button" class="linkbtn" data-retry="${i}">${esc(t("impRetry"))}</button>`;
+    else res = `<span class="pill mute">${esc(t("stWait"))}</span>`;
+    return `<div class="irow"><div class="cell name nm"><b><bdi class="ar">${esc(r.name)}</bdi></b><span class="code">${esc(r.code)}</span></div>
+      <span class="small">${esc(r.months.map(mName).join(", "))}</span><span class="num">${r.days}</span><span class="num">${r.exc}</span><div class="res-cell">${res}</div></div>`;
+  }).join("");
+  const pending = imp.rows.filter(r => r.status !== "done").length;
+  const foot = `<div class="ifoot"><span class="small">${imp.ignored.length ? esc(t("impIgnored", { list: imp.ignored.join(", ") })) : ""}</span>
+    <button class="btn primary" id="impGo" type="button" ${imp.running || !pending ? "disabled" : ""}>${esc(imp.running ? t("impRunning") : pending ? t("impGo", { n: pending }) : t("impAllDone"))}</button></div>`;
+  el.innerHTML = `<div class="panel">${head}${rows}${foot}</div>`;
+  const go = $("impGo"); if (go) go.onclick = runImport;
+  el.querySelectorAll("[data-retry]").forEach(b => b.onclick = async () => {
+    if (imp.running) return; imp.running = true; await importOne(imp.rows[+b.dataset.retry]); imp.running = false; drawImport();
+  });
+}
+
+async function runImport() {
+  if (imp.running) return;
+  imp.running = true; drawImport();
+  for (const r of imp.rows) if (r.status !== "done") await importOne(r);
+  imp.running = false; drawImport();
+  toast(t("impDoneToast"));
+  state.cache.clear();
+  loadSummary(false);
+}
+
+// One pharmacy: put the pasted schedule over the saved one, recompute the delay
+// with the punches already saved for it, then save both.
+async function importOne(r) {
+  r.status = "busy"; drawImport();
+  try {
+    const res = await (await fetch(API_URL + "?action=load&store=" + encodeURIComponent(r.code))).json();
+    if (!res.ok) throw new Error(res.error || "load failed");
+    const saved = fromSaved(res);
+    const merged = new Map(saved.byDay);
+    for (const [d, row] of r.byDay) merged.set(d, row);
+    const now = nowParts();
+    const A = analyze({ recs: saved.recs }, { byDay: merged, store: r.code, template: {}, holidays: holidaysFrom(res.holidays) }, now);
+    const days = saved.recs.length ? daysPayload(A, now.today) : [];
+    const out = await api({ action: "importSchedule", store: r.code, schedule: schedPayload(r.byDay), days });
+    if (!out.ok) {
+      if (out.auth === false) { ls.clear(); imp.running = false; showLogin(t("wrongPw")); }
+      throw new Error(out.error || "save failed");
+    }
+    const late = days.reduce((a, d) => a + d.minutes, 0);
+    r.status = "done";
+    r.result = t("resDone", { a: out.scheduleAdded || 0, u: out.scheduleUpdated || 0 }) + " · " + (saved.recs.length ? t("resDelay", { m: late }) : t("resNoPunch"));
+  } catch (e) {
+    r.status = "fail";
+  }
+  drawImport();
 }
 
 /* ---------- Copy ---------- */
 function summaryText() {
+  if (state.view === "import") return "";
   if (state.view === "detail") {
     const D = state.cache.get(state.store + "|" + state.month); if (!D) return "";
     const p = state.sum.pharmacies.find(x => x.code === state.store) || { name: state.store };
@@ -683,7 +848,7 @@ function summaryText() {
     const late = days.filter(d => d.minutes > 0);
     L.push(late.length ? t("cpLate") : t("cpNone"));
     for (const d of late) for (const [side, pl, ac, m, by] of [[t("colOut"), d.outPlanned, d.outActual, d.outMin, d.outBy], [t("colIn"), d.inPlanned, d.inActual, d.inMin, d.inBy]]) {
-      if (m) L.push(t("cpDay", { date: fmtDay(d.date), side, p: pl, a: ac || "—", m, who: by ? nameOf(by) : t("unassigned") }));
+      if (m) L.push(t("cpDay", { date: fmtDate(d.date), side, p: pl, a: ac || "—", m, who: by ? nameOf(by) : t("unassigned") }));
     }
     return L.join("\n");
   }
@@ -707,6 +872,7 @@ applyStrings();
 $("login").addEventListener("submit", e => { e.preventDefault(); const pw = $("pw").value.trim(); if (pw) { state.pw = pw; loadSummary(true); } });
 $("refresh").onclick = () => loadSummary(false);
 $("copyBtn").onclick = copySummary;
+$("importBtn").onclick = () => { if (state.sum) openImport(); };
 $("modalX").onclick = () => { $("modal").hidden = true; };
 $("signout").onclick = () => { ls.clear(); state.sum = null; state.pw = ""; state.view = "list"; state.cache.clear(); showLogin(""); };
 const savedPw = ls.get();
