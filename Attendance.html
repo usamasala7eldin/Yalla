@@ -400,13 +400,16 @@ async function api(params, body) {
   return data;
 }
 async function loadCloud(params, key) {
+  // Forget the previous store at once, so nothing is shown or saved for it while the new one is found.
+  Object.assign(cloud, { store: "", recs: [], byDay: new Map(), lastSaved: null, matched: 0, confident: false, source: "" });
+  autosave.sessionDone = false;
   cloud.tried = key; cloud.status = params.store ? "loading" : "finding"; cloud.loadingStore = params.store || "";
   renderStoreBar();
   try {
     const res = await api(Object.assign({ action: "load" }, params));
     cloud.holidays = holidaysFrom(res.holidays);
     if (!res.store) { cloud.status = "ask"; cloud.store = ""; cloud.recs = []; cloud.byDay = new Map(); }
-    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded", source: params.store ? "schedule" : "staff", matched: res.matched || 0 }); }
+    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded", source: params.store ? "schedule" : "staff", matched: res.matched || 0, confident: !!res.confident }); }
   } catch (e) { cloud.status = "error"; }
   run();
 }
@@ -452,7 +455,7 @@ async function saveCloud() {
     const res = await api(null, body);
     cloud.store = store; cloud.recs = mergeClock(cloud.recs, pc.recs).recs; cloud.byDay = mergeSched(cloud.byDay, ps.byDay);
     cloud.lastSaved = res.savedAt || new Date().toISOString(); cloud.status = "loaded"; cloud.tried = cloud.tried || "store:" + store;
-    autosave.failed = false; autosave.savedAt = new Date();
+    autosave.failed = false; autosave.savedAt = new Date(); autosave.sessionDone = true;
   } catch (e) {
     autosave.failed = true;
     autosave.retry = setTimeout(saveCloud, 15000);
@@ -589,10 +592,11 @@ function run() {
   // Save only when the store is certain: taken from the schedule page, or two pasted pharmacists already saved under it.
   const pastedIds = new Set(userClock.recs.map(r => r.id));
   const savedIds = new Set(cloud.recs.map(r => r.id));
-  const confirmed = cloud.source === "schedule" || cloud.matched >= 2 || [...pastedIds].filter(id => savedIds.has(id)).length >= 2;
+  const confirmed = cloud.source === "schedule" || cloud.confident || cloud.matched >= 2 || [...pastedIds].filter(id => savedIds.has(id)).length >= 2;
   const canSave = !!API_URL && ready && useCloud && cloud.store === state.store && /^\d{2,8}$/.test(state.store);
   autosave.blocked = canSave && !confirmed;
-  const shouldSave = canSave && confirmed && hasNewData(userClock, userSched);
+  // Saved once per visit even with nothing new, so days missing in the sheet are filled in.
+  const shouldSave = canSave && confirmed && (hasNewData(userClock, userSched) || !autosave.sessionDone);
   if (shouldSave && !autosave.busy && !autosave.failed) scheduleAutoSave();
   else if (!shouldSave) clearTimeout(autosave.timer);
   renderStoreBar();
