@@ -267,3 +267,31 @@ function daysPayload(A, today) {
 function holidaysFrom(list) {
   return (list || []).map(h => ({ from: isoDay(h.from), to: isoDay(h.to), name: h.name })).filter(h => h.from != null && h.to != null);
 }
+
+/* ---------- Exceptional duties from saved schedule rows (supervisor page) ---------- */
+// rows: [store, date, weekday, out, in, type, updatedBy, updatedAt] as saved in the sheet.
+// A change counts when it was edited on or after its day and the day is not a supervisor holiday.
+// The monthly limit of 5 is counted in the order the edits were made.
+function rankExceptions(rows, holidays) {
+  const byKey = new Map(), groups = new Map();
+  for (const r of rows) {
+    const [store, date, weekday, out, inn, type, by, updated] = r;
+    if (!type || /target\s*submission/i.test(type)) continue;
+    if (!updated || updated.slice(0, 10) < date) continue;
+    const day = isoDay(date), updDay = isoDay(updated);
+    if (day == null || updDay == null) continue;
+    const hol = (holidays || []).find(h => day >= h.from && day <= h.to);
+    const e = { store, date, weekday, out, in: inn, by, updated, lag: updDay - day, holiday: hol ? hol.name : "", rank: 0, over: false, lateEdit: false };
+    e.lateEdit = !e.holiday && e.lag > 4;
+    byKey.set(store + "|" + date, e);
+    if (e.holiday) continue;
+    const g = store + "|" + date.slice(0, 7);
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(e);
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => a.updated < b.updated ? -1 : a.updated > b.updated ? 1 : (a.date < b.date ? -1 : 1));
+    list.forEach((e, i) => { e.rank = i + 1; e.over = e.rank > 5; });
+  }
+  return byKey;
+}
