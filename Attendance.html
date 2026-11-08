@@ -324,7 +324,7 @@ const STR = { en: {
   colDate:"Date", colOut:"Clock out", colIn:"Clock in", colStatus:"Status",
   sched:"Planned", tagExc:"Exceptional", tagLate:"After 4 days · may not be accepted", tagPlanned:"Planned change",
   rOk:"On time", rMissed:"Missed · 30", rLate:"{m} min", rExcused:"Missed action", rPending:"Not yet", rNodata:"Not in report",
-  stRed:"Fix within {n} day(s)", stRedToday:"Fix today", stBlack:"Past 4 days", stBlackS:"Can still be submitted", stOk:"On time", stWait:"Waiting", stNodata:"No clock data",
+  stRed:"Fix within {n} day(s)", stRedToday:"Fix today", stBlack:"Past 4 days", stBlackS:"Fix it, but it may not be accepted", stClosed:"Month closed", stOk:"On time", stWait:"Waiting", stNodata:"No clock data",
   deadline:"Deadline {date}", noIssues:"No issues in this period.", noDays:"No past days to compare yet.",
   rulesTitle:"How it's calculated",
   rules:[
@@ -700,7 +700,13 @@ function dayRow(d, hint) {
   if (d.exc.holiday) tags.push(`<span class="tag exc"><bdi>${esc(d.exc.holiday)}</bdi></span>`);
   let pill;
   if (d.status === "red") pill = `<span class="pill red">${esc(d.left === 0 ? t("stRedToday") : t("stRed", { n: d.left }))}</span><span class="mins">${esc(t("deadline", { date: fmtDay(d.day + 4) }))}</span>`;
-  else if (d.status === "black") pill = `<span class="mins" style="font-weight:600">${d.minutes} ${esc(t("minUnit"))}</span><span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${esc(t("stBlackS"))}</span>`;
+  else if (d.status === "black") {
+    // After the 4 days a fix may still go through: always in this month, and for up to 10 days for a day from last month.
+    const today = nowParts().today, open = monthKey(d.day) === monthKey(today) || today <= d.day + 10;
+    pill = `<span class="mins" style="font-weight:600">${d.minutes} ${esc(t("minUnit"))}</span>` + (open
+      ? `<span class="pill black">${esc(t("stBlack"))}</span><span class="mins">${esc(t("stBlackS"))}</span>`
+      : `<span class="pill black">${esc(t("stClosed"))}</span>`);
+  }
   else if (d.status === "ok") pill = `<span class="pill ok">${esc(t("stOk"))}</span>`;
   else if (d.status === "nodata") pill = `<span class="pill wait">${esc(t("stNodata"))}</span>`;
   else pill = `<span class="pill wait">${esc(t("stWait"))}</span>`;
