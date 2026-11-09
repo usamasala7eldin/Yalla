@@ -344,7 +344,7 @@ const STR = { en: {
   asNeedSched:"Not saved: paste the Store Attendance Duty page too, so we can be sure which store this is.", asLeave:"Some data is not saved yet.",
   sbLoading:"Loading saved data for store {store}…", sbFinding:"Looking up the store from the pharmacists…",
   sbLoaded:"Store", sbLast:"Last saved {when}", sbNever:"Nothing saved yet for this store", sbSavedDays:"{p} saved punches · {d} saved schedule days",
-  sbAsk:"We couldn't tell which store this is. Paste the Store Attendance Duty page too.", sbFromSched:"from the schedule", sbFromStaff:"detected from pharmacists",
+  sbAsk:"We couldn't tell which store this is. Type your store number:", sbUse:"Use", sbFromSched:"from the schedule", sbFromStaff:"detected from pharmacists", sbFromManual:"entered by hand",
   schedSaved:"{months} schedule is saved. Paste it again only if you made a change.", schedMissing:"No schedule saved for {months}. Paste the Store Attendance Duty page for that month.",
   rowHint:"Already made an exceptional duty? Paste the updated Store Attendance Duty page.",
   sbErr:"Couldn't reach the saved data. Check the internet and try again.", sbRetry:"Retry",
@@ -399,9 +399,10 @@ async function api(params, body) {
   if (!data.ok) throw new Error(data.error || "Request failed");
   return data;
 }
-async function loadCloud(params, key) {
+async function loadCloud(params, key, source) {
   // Forget the previous store at once, so nothing is shown or saved for it while the new one is found.
   Object.assign(cloud, { store: "", recs: [], byDay: new Map(), lastSaved: null, matched: 0, confident: false, source: "" });
+  if (source !== "manual") cloud.manual = "";
   autosave.sessionDone = false;
   cloud.tried = key; cloud.status = params.store ? "loading" : "finding"; cloud.loadingStore = params.store || "";
   renderStoreBar();
@@ -409,7 +410,7 @@ async function loadCloud(params, key) {
     const res = await api(Object.assign({ action: "load" }, params));
     cloud.holidays = holidaysFrom(res.holidays);
     if (!res.store) { cloud.status = "ask"; cloud.store = ""; cloud.recs = []; cloud.byDay = new Map(); }
-    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded", source: params.store ? "schedule" : "staff", matched: res.matched || 0, confident: !!res.confident }); }
+    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded", source: source || (params.store ? "schedule" : "staff"), matched: res.matched || 0, confident: !!res.confident }); }
   } catch (e) { cloud.status = "error"; }
   run();
 }
@@ -421,16 +422,21 @@ function renderStoreBar() {
   if (cloud.status === "loading") bar.innerHTML = spin + esc(t("sbLoading", { store: cloud.loadingStore }));
   else if (cloud.status === "finding") bar.innerHTML = spin + esc(t("sbFinding"));
   else if (cloud.status === "error") bar.innerHTML = `<span>${esc(t("sbErr"))}</span><button type="button" class="btn" id="sbRetry">${esc(t("sbRetry"))}</button>`;
-  else if (cloud.status === "ask") bar.innerHTML = `<span>${esc(t("sbAsk"))}</span>`;
+  else if (cloud.status === "ask") bar.innerHTML = `<span>${esc(t("sbAsk"))}</span><input id="sbCode" inputmode="numeric" autocomplete="off" maxlength="8"><button type="button" class="btn" id="sbUse">${esc(t("sbUse"))}</button>`;
   else {
     const when = cloud.lastSaved ? (() => { const d = new Date(cloud.lastSaved); return d.getDate() + " " + MONS[d.getMonth()] + ", " + fmt12(d.getHours() * 60 + d.getMinutes()); })() : null;
-    const src = cloud.source === "schedule" ? t("sbFromSched") : t("sbFromStaff");
+    const src = cloud.source === "schedule" ? t("sbFromSched") : cloud.source === "manual" ? t("sbFromManual") : t("sbFromStaff");
     bar.innerHTML = `<span>${esc(t("sbLoaded"))} <span class="code">${esc(cloud.store)}</span></span><span class="muted">${esc(src)}</span><span class="muted">·</span>
       <span class="muted">${esc(when ? t("sbLast", { when }) : t("sbNever"))}</span><span class="muted">·</span>
       <span class="muted">${esc(t("sbSavedDays", { p: cloud.recs.length, d: cloud.byDay.size }))}</span>${saveStateHtml()}`;
   }
   const retry = $("sbRetry"); if (retry) retry.onclick = () => { cloud.tried = ""; run(); };
   const again = $("asRetry"); if (again) again.onclick = () => saveCloud();
+  const use = $("sbUse"), code = $("sbCode");
+  if (use) {
+    const go = () => { const v = code.value.trim(); if (!/^\d{2,8}$/.test(v)) { code.focus(); return; } cloud.manual = v; run(); };
+    use.onclick = go; code.onkeydown = e => { if (e.key === "Enter") go(); };
+  }
 }
 function saveStateHtml() {
   if (autosave.busy) return `<span class="savestate"><span class="spin" aria-hidden="true"></span>${esc(t("asSaving"))}</span>`;
@@ -568,9 +574,16 @@ function run() {
   // Work out which store this is, then load what was saved for it.
   if (API_URL) {
     const ids = [...new Set(userClock.recs.map(r => r.id))].sort();
-    const want = userSched.store || "";
-    if (want) { if (cloud.tried !== "store:" + want) { loadCloud({ store: want }, "store:" + want); } }
-    else if (ids.length >= 1) { const k = "ids:" + ids.join(","); if (cloud.tried !== k) loadCloud({ ids: ids.join(",") }, k); }
+    const want = userSched.store || cloud.manual || "";
+    if (want) { const k = "store:" + want; if (cloud.tried !== k) loadCloud({ store: want }, k, userSched.store ? "schedule" : "manual"); }
+    else if (ids.length >= 1) {
+      // The main pharmacists: the two with the most punches in the last two months of the pasted report.
+      const last = Math.max(...userClock.recs.map(r => r.day)), count = new Map();
+      for (const r of userClock.recs) if (r.day >= last - 61) count.set(r.id, (count.get(r.id) || 0) + 1);
+      const top = [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
+      const k = "ids:" + ids.join(",") + "|top:" + top.join(",");
+      if (cloud.tried !== k) loadCloud({ ids: ids.join(","), top: top.join(",") }, k, "staff");
+    }
     else if (!userSched.byDay.size && !userClock.recs.length && cloud.status !== "loaded") { cloud.status = "idle"; }
   }
   renderStoreBar();
@@ -592,7 +605,7 @@ function run() {
   const pastedIds = new Set(userClock.recs.map(r => r.id));
   const savedIds = new Set(cloud.recs.map(r => r.id));
   // Save only when the store is certain: from a pasted schedule page, or from the supervisor's imported schedules.
-  const confirmed = cloud.source === "schedule" || cloud.confident;
+  const confirmed = cloud.source === "schedule" || cloud.source === "manual" || cloud.confident;
   const canSave = !!API_URL && ready && useCloud && cloud.store === state.store && /^\d{2,8}$/.test(state.store);
   autosave.blocked = canSave && !confirmed;
   // Saved once per visit even with nothing new, so days missing in the sheet are filled in.
@@ -821,6 +834,7 @@ async function pasteFromClipboard() {
   } catch (e) { toast(t("pressCtrlV")); }
 }
 function clearAllPastes() {
+  cloud.manual = "";
   for (const k of ["clock", "sched"]) { $(HOST[k]).innerHTML = ""; addBox(k); }
   state.scope = null; run();
 }
