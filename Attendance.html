@@ -197,6 +197,25 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
 .exc-list li{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:7px}
 .exc-list li:first-child{border-top:0;padding-top:0}
 .exc-list .meta{color:var(--muted);font-size:12.5px}
+/* Store gate: asked once per device */
+.gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;z-index:70}
+.gate .gbox{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:300px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.gate h3{margin:0;font-family:var(--f-display);font-size:18px;text-align:center}
+.gate .disp{font-family:var(--f-mono);font-size:30px;font-weight:600;letter-spacing:.12em;text-align:center;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);min-height:54px;line-height:52px}
+.gate .disp:empty::before{content:"····";color:var(--line)}
+.gate .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gate .pad button{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:12px 0;font-family:var(--f-mono);font-size:20px;font-weight:600}
+.gate .pad button:hover{border-color:var(--muted)}
+.gate .pad button:active{background:var(--accent-soft)}
+.gate .gname{text-align:center;font-weight:700;font-size:15px;min-height:22px}
+.gate .gname.known{color:var(--accent)}
+.gate .gname .gsub{display:block;font-weight:500;font-size:12.5px;color:var(--muted)}
+.gate .btn.primary{justify-content:center;padding:11px;font-size:15px}
+.gate .gerr{color:var(--bad);font-size:13px;text-align:center}
+.gate .ghint{color:var(--muted);font-size:12.5px;text-align:center}
+.storehint{font-size:12.5px;color:var(--muted);margin-top:-10px}
+a.duty{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+a.duty:hover{color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:600;z-index:60}
 
 @media (max-width:860px){
@@ -230,6 +249,7 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
       </button>
     </div>
   </header>
+  <div class="storehint" id="storeHint" hidden></div>
 
   <section class="pastebar">
     <button class="btn primary big" id="pasteBtn" type="button">
@@ -286,6 +306,21 @@ textarea::placeholder{color:var(--muted);font-family:var(--f-body);font-size:13p
   </div>
 </div>
 
+<div class="gate" id="gate" hidden><div class="gbox" role="dialog" aria-modal="true" aria-labelledby="gTitle">
+  <h3 id="gTitle" data-t="gTitle"></h3>
+  <div class="disp" id="gDisp" aria-live="polite"></div>
+  <div class="gname" id="gName"></div>
+  <div class="pad" id="gPad">
+    <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button>
+    <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button>
+    <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button>
+    <button type="button" data-k="del" aria-label="Delete">⌫</button><button type="button" data-k="0">0</button><button type="button" data-k="clr" aria-label="Clear">C</button>
+  </div>
+  <button class="btn primary" type="button" id="gOk" disabled data-t="gConfirm"></button>
+  <div class="gerr" id="gErr" hidden></div>
+  <div class="ghint" id="gHint"></div>
+</div></div>
+
 <div class="modal" id="modal" hidden><div class="box" role="dialog" aria-modal="true"><button class="x" type="button" id="modalX" aria-label="Close">×</button><div id="modalBody"></div></div></div>
 
 <script src="attendance-core.js"></script>
@@ -341,10 +376,12 @@ const STR = { en: {
   excTitle:"Exceptional duties", excCounted:"Counted", excNot:"Not counted (edited before the day)", excLateEdit:"Late edit, may not be approved",
   excEdited:"Edited {date} by {who}", excNone:"No exceptional duties in this period.",
   asSaving:"Saving…", asSaved:"Saved {time}", asFail:"Not saved yet. It will retry when the connection is back.", asRetry:"Retry now",
-  asNeedSched:"Not saved: paste the Store Attendance Duty page too, so we can be sure which store this is.", asLeave:"Some data is not saved yet.",
-  sbLoading:"Loading saved data for store {store}…", sbFinding:"Looking up the store from the pharmacists…",
+  asLeave:"Some data is not saved yet.",
+  sbLoading:"Loading saved data for store {store}…",
   sbLoaded:"Store", sbLast:"Last saved {when}", sbNever:"Nothing saved yet for this store", sbSavedDays:"{p} saved punches · {d} saved schedule days",
-  sbAsk:"We couldn't tell which store this is. Type your store number:", sbUse:"Use", sbFromSched:"from the schedule", sbFromStaff:"detected from pharmacists", sbFromManual:"entered by hand",
+  gTitle:"Type your store number", gConfirm:"Confirm", gKnown:"Store {code}", gOther:"Store {code}", gOtherS:"Make sure the number is right", gLoadErr:"Couldn't reach the server. Check the internet, then try again.",
+  notYours:"Not {name}? Paste your {link}.", gOr:"Or paste your {link}.", dutyLink:"Store Attendance Duty",
+  storeChanged:"Store changed to {store} from the pasted Store Attendance Duty.", needStore:"Type your store number first, or paste your Store Attendance Duty.",
   schedSaved:"{months} schedule is saved. Paste it again only if you made a change.", schedMissing:"No schedule saved for {months}. Paste the Store Attendance Duty page for that month.",
   rowHint:"Already made an exceptional duty? Paste the updated Store Attendance Duty page.",
   sbErr:"Couldn't reach the saved data. Check the internet and try again.", sbRetry:"Retry",
@@ -378,12 +415,113 @@ function summarize(A, scope) {
 /* ---------- UI ---------- */
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
-const state = { scope: null, filter: "issues", A: null, S: null, store: "" };
+const state = { scope: null, filter: "issues", A: null, S: null, store: "", myStore: "", myName: "" };
 
 /* ---------- Saving (Google Apps Script web app) ---------- */
 // Paste the Web app link that ends with /exec between the quotes.
 const API_URL = "https://script.google.com/macros/s/AKfycbxai2MWsrqVcLeKrvV4wa1dQYzbBI3eNEZM11Ke3pKl6NZDH39XInlJzBqO0uNdQLxcZA/exec";
-const cloud = { store: "", recs: [], byDay: new Map(), lastSaved: null, status: "idle", tried: "", source: "", holidays: [], matched: 0 };
+const cloud = { store: "", recs: [], byDay: new Map(), lastSaved: null, status: "idle", tried: "", holidays: [] };
+const SAVE_VERSION = 2;
+const DUTY_URL = "https://locapps.nahdi.sa/buss/r/store_apps/storeattendanceduty/home";
+const dutyLink = () => `<a class="duty" href="${DUTY_URL}" target="_blank" rel="noopener">${esc(t("dutyLink"))}</a>`;
+// What this device saved during this visit, so it can be taken back if the store turns out to be wrong.
+const sent = { store: "", punches: new Map(), days: new Set() };
+let pendingUndo = null;
+
+/* ---------- This device's store: typed once, then remembered by the browser ---------- */
+// A link with ?store=1234 sets it without asking (useful when the browser clears its data every day).
+const STORE_KEY = "attendanceStore";
+function savedStore() {
+  const fromLink = (new URLSearchParams(location.search).get("store") || "").trim();
+  if (/^\d{2,8}$/.test(fromLink)) return fromLink;
+  try { const v = localStorage.getItem(STORE_KEY) || ""; return /^\d{2,8}$/.test(v) ? v : ""; } catch (e) { return ""; }
+}
+const gate = { code: "", list: null };
+async function pharmacies() {
+  if (gate.list) return gate.list;
+  const res = await api({ action: "pharmacies" });
+  gate.list = new Map((res.pharmacies || []).map(p => [String(p.code), String(p.name || "")]));
+  return gate.list;
+}
+function renderGate() {
+  const code = gate.code, name = gate.list && gate.list.get(code);
+  $("gDisp").textContent = code;
+  const n = $("gName");
+  n.classList.toggle("known", !!name);
+  if (name) n.innerHTML = esc(name) + `<span class="gsub">${esc(t("gKnown", { code }))}</span>`;
+  else if (code.length >= 4) n.innerHTML = esc(t("gOther", { code })) + `<span class="gsub">${esc(t("gOtherS"))}</span>`;
+  else n.innerHTML = "";
+  $("gOk").disabled = !(name || code.length >= 4);
+  $("gHint").innerHTML = t("gOr", { link: dutyLink() });
+}
+function gateKey(k) {
+  if (k === "del") gate.code = gate.code.slice(0, -1);
+  else if (k === "clr") gate.code = "";
+  else if (/^\d$/.test(k) && gate.code.length < 8) gate.code += k;
+  renderGate();
+}
+function gateConfirm() {
+  if ($("gOk").disabled) return;
+  rememberStore(gate.code);
+  setMyStore(gate.code);
+  $("gate").hidden = true;
+  document.removeEventListener("keydown", gateKeydown);
+  run();
+}
+function gateKeydown(e) {
+  if ($("gate").hidden) return;
+  if (/^\d$/.test(e.key)) gateKey(e.key);
+  else if (e.key === "Backspace") gateKey("del");
+  else if (e.key === "Escape" || e.key === "Delete") gateKey("clr");
+  else if (e.key === "Enter") gateConfirm();
+  else return;
+  e.preventDefault();
+}
+async function openGate() {
+  $("gate").hidden = false;
+  $("gPad").onclick = e => { const b = e.target.closest("[data-k]"); if (b) gateKey(b.dataset.k); };
+  $("gOk").onclick = gateConfirm;
+  document.addEventListener("keydown", gateKeydown);
+  renderGate();
+  const err = $("gErr");
+  try { await pharmacies(); err.hidden = true; }
+  catch (e) { err.hidden = false; err.innerHTML = esc(t("gLoadErr")) + ` <button type="button" class="linkbtn" id="gRetry">${esc(t("sbRetry"))}</button>`; $("gRetry").onclick = openGate; }
+  renderGate();
+}
+function setMyStore(code) {
+  state.myStore = code;
+  state.myName = (gate.list && gate.list.get(code)) || "";
+  showStore();
+  if (!state.myName) pharmacies().then(l => { if (l.get(code) && state.myStore === code) { state.myName = l.get(code); showStore(); } }).catch(() => {});
+}
+function showStore() {
+  const code = state.myStore, label = state.myName || "Store " + code;
+  const st = $("store"); st.hidden = false; st.textContent = state.myName ? state.myName + " · " + code : label;
+  const h = $("storeHint"); h.hidden = false;
+  h.innerHTML = t("notYours", { name: esc(label), link: dutyLink() });
+}
+function rememberStore(code) { try { localStorage.setItem(STORE_KEY, code); } catch (e) {} }
+// A pasted Store Attendance Duty carries the store number, so it always decides the store.
+function switchStore(code) {
+  const old = state.myStore;
+  rememberStore(code);
+  if (old && old !== code && sent.store === old && (sent.punches.size || sent.days.size)) {
+    pendingUndo = { store: old, punches: [...sent.punches.values()], days: [...sent.days] };
+  }
+  if (sent.store !== code) { sent.store = ""; sent.punches.clear(); sent.days.clear(); }
+  for (const ta of $(HOST.sched).querySelectorAll("textarea")) ta.value = "";
+  if (!$("gate").hidden) { $("gate").hidden = true; document.removeEventListener("keydown", gateKeydown); }
+  setMyStore(code);
+  cloud.tried = ""; autosave.sessionDone = false; autosave.savedAt = null;
+  if (old && old !== code) toast(t("storeChanged", { store: code }));
+  if (pendingUndo) undoSent();
+}
+async function undoSent() {
+  if (!pendingUndo) return;
+  const u = pendingUndo;
+  try { await api(null, { action: "unsave", v: SAVE_VERSION, store: u.store, punches: u.punches, days: u.days }); if (pendingUndo === u) pendingUndo = null; }
+  catch (e) { setTimeout(undoSent, 15000); }
+}
 
 function hasNewData(pc, ps) {
   if (!API_URL || !cloud.store) return false;
@@ -399,18 +537,16 @@ async function api(params, body) {
   if (!data.ok) throw new Error(data.error || "Request failed");
   return data;
 }
-async function loadCloud(params, key, source) {
-  // Forget the previous store at once, so nothing is shown or saved for it while the new one is found.
-  Object.assign(cloud, { store: "", recs: [], byDay: new Map(), lastSaved: null, matched: 0, confident: false, source: "" });
-  if (source !== "manual") cloud.manual = "";
+async function loadCloud(store) {
+  Object.assign(cloud, { store: "", recs: [], byDay: new Map(), lastSaved: null });
   autosave.sessionDone = false;
-  cloud.tried = key; cloud.status = params.store ? "loading" : "finding"; cloud.loadingStore = params.store || "";
+  cloud.tried = store; cloud.status = "loading";
   renderStoreBar();
   try {
-    const res = await api(Object.assign({ action: "load" }, params));
+    const res = await api({ action: "load", store });
     cloud.holidays = holidaysFrom(res.holidays);
-    if (!res.store) { cloud.status = "ask"; cloud.store = ""; cloud.recs = []; cloud.byDay = new Map(); }
-    else { const d = fromSaved(res); Object.assign(cloud, { store: res.store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded", source: source || (params.store ? "schedule" : "staff"), matched: res.matched || 0, confident: !!res.confident }); }
+    const d = fromSaved(res);
+    Object.assign(cloud, { store, recs: d.recs, byDay: d.byDay, lastSaved: res.lastSaved, status: "loaded" });
   } catch (e) { cloud.status = "error"; }
   run();
 }
@@ -419,34 +555,24 @@ function renderStoreBar() {
   if (!API_URL || cloud.status === "idle") { bar.hidden = true; return; }
   bar.hidden = false; bar.classList.toggle("err", cloud.status === "error");
   const spin = '<span class="spin" aria-hidden="true"></span>';
-  if (cloud.status === "loading") bar.innerHTML = spin + esc(t("sbLoading", { store: cloud.loadingStore }));
-  else if (cloud.status === "finding") bar.innerHTML = spin + esc(t("sbFinding"));
+  if (cloud.status === "loading") bar.innerHTML = spin + esc(t("sbLoading", { store: state.myStore }));
   else if (cloud.status === "error") bar.innerHTML = `<span>${esc(t("sbErr"))}</span><button type="button" class="btn" id="sbRetry">${esc(t("sbRetry"))}</button>`;
-  else if (cloud.status === "ask") bar.innerHTML = `<span>${esc(t("sbAsk"))}</span><input id="sbCode" inputmode="numeric" autocomplete="off" maxlength="8"><button type="button" class="btn" id="sbUse">${esc(t("sbUse"))}</button>`;
   else {
     const when = cloud.lastSaved ? (() => { const d = new Date(cloud.lastSaved); return d.getDate() + " " + MONS[d.getMonth()] + ", " + fmt12(d.getHours() * 60 + d.getMinutes()); })() : null;
-    const src = cloud.source === "schedule" ? t("sbFromSched") : cloud.source === "manual" ? t("sbFromManual") : t("sbFromStaff");
-    bar.innerHTML = `<span>${esc(t("sbLoaded"))} <span class="code">${esc(cloud.store)}</span></span><span class="muted">${esc(src)}</span><span class="muted">·</span>
-      <span class="muted">${esc(when ? t("sbLast", { when }) : t("sbNever"))}</span><span class="muted">·</span>
+    bar.innerHTML = `<span class="muted">${esc(when ? t("sbLast", { when }) : t("sbNever"))}</span><span class="muted">·</span>
       <span class="muted">${esc(t("sbSavedDays", { p: cloud.recs.length, d: cloud.byDay.size }))}</span>${saveStateHtml()}`;
   }
   const retry = $("sbRetry"); if (retry) retry.onclick = () => { cloud.tried = ""; run(); };
   const again = $("asRetry"); if (again) again.onclick = () => saveCloud();
-  const use = $("sbUse"), code = $("sbCode");
-  if (use) {
-    const go = () => { const v = code.value.trim(); if (!/^\d{2,8}$/.test(v)) { code.focus(); return; } cloud.manual = v; run(); };
-    use.onclick = go; code.onkeydown = e => { if (e.key === "Enter") go(); };
-  }
 }
 function saveStateHtml() {
   if (autosave.busy) return `<span class="savestate"><span class="spin" aria-hidden="true"></span>${esc(t("asSaving"))}</span>`;
   if (autosave.failed) return `<span class="savestate bad">${esc(t("asFail"))} <button type="button" class="linkbtn" id="asRetry">${esc(t("asRetry"))}</button></span>`;
-  if (autosave.blocked) return `<span class="savestate warn">${esc(t("asNeedSched"))}</span>`;
   if (autosave.savedAt) return `<span class="savestate ok">${esc(t("asSaved", { time: fmt12(autosave.savedAt.getHours() * 60 + autosave.savedAt.getMinutes()) }))}</span>`;
   return "";
 }
 // Saving is automatic: two seconds after the last paste, new data is merged into the saved data.
-const autosave = { timer: null, retry: null, busy: false, failed: false, blocked: false, savedAt: null };
+const autosave = { timer: null, retry: null, busy: false, failed: false, savedAt: null };
 function scheduleAutoSave() {
   clearTimeout(autosave.timer);
   autosave.timer = setTimeout(saveCloud, 2000);
@@ -455,12 +581,16 @@ async function saveCloud() {
   clearTimeout(autosave.timer); clearTimeout(autosave.retry);
   if (autosave.busy || !state.A || !state.pasted) return;
   autosave.busy = true; renderStoreBar();
-  const pc = state.pasted.clock, ps = state.pasted.sched, store = state.store;
-  const body = { action: "save", store, punches: punchesPayload(pc.recs), schedule: schedPayload(ps.byDay), days: daysPayload(state.A, nowParts().today) };
+  const pc = state.pasted.clock, ps = state.pasted.sched, store = state.myStore;
+  if (!store || cloud.store !== store) { autosave.busy = false; return; }
+  const body = { action: "save", v: SAVE_VERSION, store, punches: punchesPayload(pc.recs), schedule: schedPayload(ps.byDay), days: daysPayload(state.A, nowParts().today) };
   try {
     const res = await api(null, body);
+    if (sent.store !== store) { sent.store = store; sent.punches.clear(); sent.days.clear(); }
+    for (const x of body.punches) sent.punches.set([x.date, x.id, x.side, x.time].join("|"), x);
+    for (const d of body.days) sent.days.add(d.date);
     cloud.store = store; cloud.recs = mergeClock(cloud.recs, pc.recs).recs; cloud.byDay = mergeSched(cloud.byDay, ps.byDay);
-    cloud.lastSaved = res.savedAt || new Date().toISOString(); cloud.status = "loaded"; cloud.tried = cloud.tried || "store:" + store;
+    cloud.lastSaved = res.savedAt || new Date().toISOString(); cloud.status = "loaded";
     autosave.failed = false; autosave.savedAt = new Date(); autosave.sessionDone = true;
   } catch (e) {
     autosave.failed = true;
@@ -571,25 +701,14 @@ function run() {
   }
 
   state.pasted = { clock: userClock, sched: userSched };
-  // Work out which store this is, then load what was saved for it.
-  if (API_URL) {
-    const ids = [...new Set(userClock.recs.map(r => r.id))].sort();
-    const want = userSched.store || cloud.manual || "";
-    if (want) { const k = "store:" + want; if (cloud.tried !== k) loadCloud({ store: want }, k, userSched.store ? "schedule" : "manual"); }
-    else if (ids.length >= 1) {
-      // The main pharmacists: the two with the most punches in the last two months of the pasted report.
-      const last = Math.max(...userClock.recs.map(r => r.day)), count = new Map();
-      for (const r of userClock.recs) if (r.day >= last - 61) count.set(r.id, (count.get(r.id) || 0) + 1);
-      const top = [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
-      const k = "ids:" + ids.join(",") + "|top:" + top.join(",");
-      if (cloud.tried !== k) loadCloud({ ids: ids.join(","), top: top.join(",") }, k, "staff");
-    }
-    else if (!userSched.byDay.size && !userClock.recs.length && cloud.status !== "loaded") { cloud.status = "idle"; }
-  }
+  // The store is the one typed on this device, nothing else.
+  const mine = state.myStore;
+  if (!mine) return;
+  if (API_URL && cloud.tried !== mine) loadCloud(mine);
   renderStoreBar();
-  const useCloud = API_URL && cloud.status === "loaded" && cloud.store && (!userSched.store || userSched.store === cloud.store);
+  const useCloud = API_URL && cloud.status === "loaded" && cloud.store === mine;
   const clock = useCloud ? mergeClock(cloud.recs, userClock.recs) : userClock;
-  const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: userSched.store || (useCloud ? cloud.store : ""), template: userSched.template, holidays: API_URL ? cloud.holidays : [] };
+  const sched = { byDay: useCloud ? mergeSched(cloud.byDay, userSched.byDay) : userSched.byDay, store: mine, template: userSched.template, holidays: API_URL ? cloud.holidays : [] };
   const hasC = clock.recs.length > 0, hasS = sched.byDay.size > 0;
   const savedMonths = useCloud ? [...new Set([...cloud.byDay.keys()].map(monthKey))].sort() : [];
   const note = $("schedSaved");
@@ -597,19 +716,13 @@ function run() {
   note.textContent = savedMonths.length ? t("schedSaved", { months: savedMonths.map(monthName).join(", ") }) : "";
   const schedMonths = new Set([...sched.byDay.keys()].map(monthKey));
   state.missingMonths = [...new Set(clock.recs.map(r => monthKey(r.day)))].filter(m => !schedMonths.has(m)).sort();
-  state.store = sched.store || "";
-  const st = $("store"); st.hidden = !state.store; st.textContent = state.store ? "Store " + state.store : "";
+  state.store = mine;
   const ready = hasC && hasS;
   $("results").hidden = !ready;
   $("copyBtn").hidden = !ready;
-  const pastedIds = new Set(userClock.recs.map(r => r.id));
-  const savedIds = new Set(cloud.recs.map(r => r.id));
-  // Save only when the store is certain: from a pasted schedule page, or from the supervisor's imported schedules.
-  const confirmed = cloud.source === "schedule" || cloud.source === "manual" || cloud.confident;
-  const canSave = !!API_URL && ready && useCloud && cloud.store === state.store && /^\d{2,8}$/.test(state.store);
-  autosave.blocked = canSave && !confirmed;
+  const canSave = !!API_URL && ready && useCloud;
   // Saved once per visit even with nothing new, so days missing in the sheet are filled in.
-  const shouldSave = canSave && confirmed && (hasNewData(userClock, userSched) || !autosave.sessionDone);
+  const shouldSave = canSave && (hasNewData(userClock, userSched) || !autosave.sessionDone);
   if (shouldSave && !autosave.busy && !autosave.failed) scheduleAutoSave();
   else if (!shouldSave) clearTimeout(autosave.timer);
   renderStoreBar();
@@ -816,8 +929,10 @@ function addPasted(text) {
   else {
     const p = parseSchedule(text);
     if (p.multi) { toast(t("boxMulti")); return true; }
+    if (p.byDay.size && p.store && p.store !== state.myStore) switchStore(p.store);
     if (p.byDay.size) kind = "sched";
   }
+  if (kind && !state.myStore) { toast(t("needStore")); return true; }
   if (!kind) { toast(t("pasteNone")); return true; }
   const host = $(HOST[kind]), areas = [...host.querySelectorAll("textarea")];
   if (areas.some(x => x.value === text)) { toast(t("pasteDup")); return true; }
@@ -834,7 +949,6 @@ async function pasteFromClipboard() {
   } catch (e) { toast(t("pressCtrlV")); }
 }
 function clearAllPastes() {
-  cloud.manual = "";
   for (const k of ["clock", "sched"]) { $(HOST[k]).innerHTML = ""; addBox(k); }
   state.scope = null; run();
 }
@@ -863,7 +977,9 @@ function boot() {
   $("modalX").onclick = closeModal;
   $("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
-  run();
+  const code = savedStore();
+  if (code) { setMyStore(code); run(); }
+  else openGate();
 }
 if (typeof document !== "undefined" && document.getElementById("clockBoxes")) boot();
 </script>
