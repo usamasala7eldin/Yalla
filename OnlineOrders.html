@@ -27,6 +27,7 @@
   .icon-btn { border: 1px solid var(--line); background: var(--card); border-radius: 8px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0; color: var(--muted); }
   .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
   .icon-btn svg { width: 16px; height: 16px; }
+  .dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--orange); }
   .unsaved { color: var(--orange); font-size: 11px; font-weight: 700; margin-left: 4px; }
 
   .empty { text-align: center; color: var(--muted); padding: 40px 10px; background: var(--card); border: 1px dashed var(--line); border-radius: 10px; }
@@ -34,8 +35,8 @@
   .row-flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
   /* Order cards */
-  .cards { display: flex; flex-direction: column; gap: 10px; }
-  .ocard { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+  .cards { display: flex; flex-direction: column; gap: 16px; }
+  .ocard { background: var(--card); border: 2px solid #b8c0cf; border-radius: 12px; padding: 10px 12px; box-shadow: 0 2px 8px rgba(20,25,35,.12); }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
   .chip { border: 1.5px solid; background: #fff; border-radius: 16px; padding: 3px 12px; font-size: 12px; font-weight: 600; }
   .ocard-body { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -93,10 +94,9 @@
   <header>
     <h1 data-i18n="appTitle"></h1>
     <button class="btn" id="btnClear" data-i18n="clearCards"></button>
-    <button class="btn" id="btnExport"><span data-i18n="exportSettings"></span><span class="unsaved" id="unsavedMark" hidden></span></button>
-    <button class="btn" id="btnImport" data-i18n="importSettings"></button>
     <input type="file" id="fileImport" accept=".json,application/json" hidden>
-    <button class="icon-btn" id="btnSettings" data-i18n-title="settings">
+    <button class="icon-btn" id="btnSettings" data-i18n-title="settings" style="position:relative">
+      <span class="dot" id="settingsDot" hidden></span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
   </header>
@@ -135,10 +135,14 @@
 <dialog id="dlgSettings">
   <div class="dlg-head"><h2 data-i18n="settings"></h2><button class="icon-btn" data-close>✕</button></div>
   <div class="dlg-body">
+    <div class="row-flex" style="margin-bottom:6px">
+      <button class="btn" id="btnPhoneEdit" data-i18n="phoneEdit"></button>
+      <button class="btn" id="btnImport" data-i18n="importSettings"></button>
+      <button class="btn" id="btnExport"><span data-i18n="exportSettings"></span><span class="unsaved" id="unsavedMark" hidden></span></button>
+    </div>
     <div class="sf" id="settingsForm"></div>
     <div class="row-flex" style="margin-top:10px">
       <button class="btn primary" id="btnSaveSettings" data-i18n="save"></button>
-      <button class="btn" id="btnPhoneEdit" data-i18n="phoneEdit"></button>
       <span class="msg" id="settingsMsg"></span>
     </div>
   </div>
@@ -167,7 +171,6 @@
 const SETTINGS_KEY = 'onlineOrders.settings.v1';
 const CARDS_KEY = 'onlineOrders.cards.v1'; // sessionStorage: survives a refresh, gone when the tab closes
 const EXPORT_NAME = 'online offers settings';
-const MAX_TYPES = 5;
 const SHORT_MIN_CHARS = 10; // short item name: first words until at least this many characters
 const VARS = { name: '{name}', order: '{order}', item: '{item}' };
 
@@ -183,8 +186,8 @@ const DEFAULT_SETTINGS = {
       ar: 'أ/ {name}\nنعتذر من حضرتك، الصنف {item} في طلبك الأونلاين رقم {order} غير متوفر حاليًا بالفرع.',
       en: 'Mr./Ms. {name}\nWe are sorry, {item} in your online order {order} is currently not available at our branch.' },
     { id: 't3', title: 'طلب متوفر جزئيًا', color: '#2563eb',
-      ar: 'أ/ {name}\nطلبك الأونلاين رقم {order} متوفر جزئيًا بالفرع، والصنف {item} غير متوفر حاليًا.\nهل تود استلام المتوفر؟',
-      en: 'Mr./Ms. {name}\nYour online order {order} is partly available at our branch; {item} is currently not available.\nWould you like to pick up the available items?' }
+      ar: 'أ/ {name}\nطلبك الأونلاين رقم {order} متوفر جزئيًا بالفرع، والصنف {item} غير متوفر حاليًا.\nهل تود استلام الأصناف المتوفرة فقط؟',
+      en: 'Mr./Ms. {name}\nYour online order {order} is partly available at our branch; {item} is currently not available.\nWould you like to pick up the available items only?' }
   ]
 };
 
@@ -201,7 +204,7 @@ const I18N = {
     chooseType: 'Choose a message type first.', noPhone: 'No mobile number found. Open the order, press Ctrl+A then Ctrl+C, and paste again.',
     noItems: 'No items',
     welcomeSection: 'Welcome message', arabic: 'Arabic', english: 'English',
-    typesSection: 'Message types (up to {n})', typeTitlePh: 'Title (shown on the cards)',
+    typesSection: 'Message types', typeTitlePh: 'Title (shown on the cards)',
     addType: '+ Add message type', deleteType: 'Delete',
     insert: 'Insert:', varName: 'Name', varOrder: 'Order no.', varItem: 'Item',
     varsHelp: 'Click inside a message, then a button to insert it there.',
@@ -275,6 +278,8 @@ function renderUnsaved() {
   $('unsavedMark').hidden = !dirty;
   $('unsavedMark').textContent = '● ' + t('unsavedShort');
   $('btnExport').title = dirty ? t('unsavedHint') : '';
+  $('settingsDot').hidden = !(dirty && settings);
+  $('btnSettings').title = dirty && settings ? t('unsavedHint') : t('settings');
 }
 const typeById = id => settings && settings.types.find(x => x.id === id);
 
@@ -288,9 +293,10 @@ function parseOrder(text) {
     for (let j = i + 1; j < lines.length; j++) if (lines[j]) return lines[j];
     return '';
   };
-  const star = /\*(WEBSTORE-[\w-]+)\*/.exec(text);
-  const all = text.match(/WEBSTORE-\d+-\d+/g);
-  const order = star ? star[1] : (all ? all[all.length - 1] : '');
+  // The details window shows the order as *WEBSTORE-10259151680-01*; only the middle number is kept
+  const star = /\*WEBSTORE-(\d+)-\d+\*/.exec(text);
+  const all = [...text.matchAll(/WEBSTORE-(\d+)-\d+/g)];
+  const order = star ? star[1] : (all.length ? all[all.length - 1][1] : '');
   const items = [];
   lines.forEach((l, i) => {
     if (!l.startsWith('Item Description')) return;
@@ -334,17 +340,17 @@ function updateItemText(c) {
 function cardHTML(c) {
   const type = typeById(c.typeId);
   const style = type ? `style="border-color:${esc(type.color)};background:${esc(type.color)}22"` : '';
+  const has = !!c.raw;
   const chips = settings.types.map(x => {
     const on = x.id === c.typeId;
     return `<button class="chip" data-act="type" data-val="${esc(x.id)}" dir="auto" style="border-color:${esc(x.color)};${on ? `background:${esc(x.color)};color:#fff` : `color:${esc(x.color)}`}">${esc(x.title)}</button>`;
   }).join('');
-  const has = !!c.raw;
   const itemOpts = c.items.map((it, i) => {
     const label = c.lang === 'en' ? it.en : it.ar;
     return `<option value="${i}" ${i === c.itemIdx ? 'selected' : ''}>${esc(label.length > 40 ? label.slice(0, 40) + '…' : label)}</option>`;
   }).join('');
   return `<div class="ocard" data-card="${esc(c.id)}" ${style}>
-    <div class="chips">${chips}</div>
+    ${has ? `<div class="chips">${chips}</div>` : ''}
     <div class="ocard-body">
       <textarea class="paste" data-act="paste" placeholder="${esc(t('pastePh'))}">${esc(c.raw)}</textarea>
       ${has && !c.error ? `
@@ -458,9 +464,9 @@ function renderSettingsForm(box, s) {
       <div><label>${esc(t('arabic'))}</label><textarea data-k="welcomeAr" rows="4" dir="rtl">${esc(s.welcomeAr)}</textarea></div>
       <div><label>${esc(t('english'))}</label><textarea data-k="welcomeEn" rows="4" dir="ltr">${esc(s.welcomeEn)}</textarea></div>
     </div>
-    <h3>${esc(t('typesSection', { n: MAX_TYPES }))}</h3>
+    <h3>${esc(t('typesSection'))}</h3>
     <div class="types-list">${s.types.map(typeEditHTML).join('')}</div>
-    <button class="btn" data-sf="add" ${s.types.length >= MAX_TYPES ? 'disabled' : ''}>${esc(t('addType'))}</button>`;
+    <button class="btn" data-sf="add">${esc(t('addType'))}</button>`;
   if (box._bound) return;
   box._bound = true;
   box.addEventListener('focusin', e => { if (e.target.matches('textarea')) box._last = e.target; });
@@ -479,7 +485,7 @@ function renderSettingsForm(box, s) {
       return;
     }
     const s2 = readSettingsForm(box);
-    if (b.dataset.sf === 'add' && s2.types.length < MAX_TYPES) s2.types.push({ id: newId(), title: '', color: '#6b7385', ar: '', en: '' });
+    if (b.dataset.sf === 'add') s2.types.push({ id: newId(), title: '', color: '#6b7385', ar: '', en: '' });
     if (b.dataset.sf === 'delete') s2.types = s2.types.filter(x => x.id !== b.closest('.type-edit').dataset.id);
     renderSettingsForm(box, s2);
   });
@@ -512,7 +518,7 @@ function applySettings(s) {
 }
 function renderAll() {
   $('setup').hidden = !!settings;
-  ['btnClear', 'btnExport'].forEach(id => $(id).hidden = !settings);
+  $('btnClear').hidden = !settings;
   renderCards();
   renderUnsaved();
 }
@@ -537,6 +543,7 @@ function importSettings(file) {
       settings = s;
       saveSettings(false);
       renderAll();
+      if ($('dlgSettings').open) { renderSettingsForm($('settingsForm'), settings); $('settingsMsg').textContent = ''; }
       toast(t('importDone'));
     } catch (e) { toast(t('importFail')); }
   };
