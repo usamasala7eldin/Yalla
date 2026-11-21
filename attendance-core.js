@@ -126,8 +126,9 @@ function analyze(clock, sched, now) {
   const { today, nowMin } = now;
   // last punch per business day and side
   const last = new Map(), names = new Map();
-  let minDay = Infinity, maxDay = -Infinity;
+  let minDay = Infinity, maxDay = -Infinity, minTs = Infinity, maxTs = -Infinity;
   for (const r of clock.recs) {
+    if (r.tsMin < minTs) minTs = r.tsMin; if (r.tsMin > maxTs) maxTs = r.tsMin;
     names.set(r.id, r.name);
     const k = r.day + "|" + r.side, p = last.get(k);
     if (!p || r.tsMin >= p.tsMin) last.set(k, r);
@@ -155,12 +156,16 @@ function analyze(clock, sched, now) {
     return tp && typeof tp[side] === "number" ? tp[side] : null;
   };
   // Compare one punch with one planned time.
-  const judge = (side, S, rec, day, missState) => {
+  // A punch counts as missing only when the pasted data covers its whole window:
+  // some punch before the window closes and some punch after it.
+  const judge = (side, S, rec, day) => {
+    const [lo, hi] = WIN[side], end = day * 1440 + S + hi;
     if (rec) {
-      const diff = rec.tsMin - (day * 1440 + S), [lo, hi] = WIN[side];
+      const diff = rec.tsMin - (day * 1440 + S);
       return diff >= lo && diff <= hi ? { state: "ok", minutes: 0, diff } : { state: "late", minutes: Math.min(CAP, Math.abs(diff)), diff };
     }
-    return missState === "missed" ? { state: "missed", minutes: CAP } : { state: missState, minutes: 0 };
+    if (minTs <= end && maxTs >= end) return { state: "missed", minutes: CAP };
+    return { state: day === today ? "pending" : "nodata", minutes: 0 };
   };
 
   for (const s of [...sched.byDay.values()].sort((a, b) => b.day - a.day)) {
@@ -175,8 +180,6 @@ function analyze(clock, sched, now) {
     if (counted) { const mk = monthKey(s.day); if (!excByMonth.has(mk)) excByMonth.set(mk, []); excByMonth.get(mk).push(exc); }
     if (s.day > today) continue;
 
-    const inRange = clock.recs.length && s.day >= minDay && s.day <= maxDay;
-    const missState = !inRange ? "nodata" : s.day === today ? "pending" : s.day === minDay ? "nodata" : "missed"; // oldest day may be cut at a page boundary
     const sides = {};
     for (const side of ["out", "in"]) {
       const S = s[side];
@@ -186,7 +189,7 @@ function analyze(clock, sched, now) {
       const rec = last.get(s.day + "|" + side) || null;
       cell.rec = rec;
       if (S === "MA") { cell.state = "excused"; continue; }
-      Object.assign(cell, judge(side, S, rec, s.day, missState));
+      Object.assign(cell, judge(side, S, rec, s.day));
     }
     const list = [sides.out, sides.in].filter(c => c.state !== "none");
     const minutes = list.reduce((a, c) => a + c.minutes, 0);
@@ -205,7 +208,7 @@ function analyze(clock, sched, now) {
       for (const side of ["out", "in"]) {
         const c = sides[side], U = usualFor(s.day, side);
         if (c.state === "none" || U == null || U === c.S) { alt[side] = null; altTotal += c.minutes; continue; }
-        alt[side] = Object.assign({ usual: U }, judge(side, U, c.rec, s.day, missState));
+        alt[side] = Object.assign({ usual: U }, judge(side, U, c.rec, s.day));
         altTotal += alt[side].minutes;
       }
       exc.alt = alt; exc.added = Math.max(0, altTotal - minutes); exc.dayRef = dayObj;
