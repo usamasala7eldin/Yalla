@@ -1745,4 +1745,63 @@ function bind() {
     const res = mergeParsed(parsed);
     saveStore();
     msg.className = incomplete ? 'msg err' : 'msg ok';
-    msg.textContent = t('pasteResult', res) + 
+    msg.textContent = t('pasteResult', res) + (incomplete ? ' ' + t('transRefIncomplete', { n: parsed.rows, last: fmtDate(parsed.lastDate) }) : '');
+    $('pasteBox').value = '';
+    render();
+  };
+
+  $('btnUndo').onclick = () => {
+    if (undoAction) undoAction();
+    undoAction = null; $('undoBar').hidden = true;
+  };
+  $('filter').onchange = e => { ui.filter = e.target.value || 'active'; ui.shown = SHOW_STEP; render(); };
+  $('stats').onclick = e => {
+    const s = e.target.closest('[data-filter]');
+    if (!s) return;
+    ui.filter = s.dataset.filter;
+    ui.shown = SHOW_STEP;
+    render();
+  };
+  $('list').onclick = e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) {
+      const row = e.target.closest('[data-row]');
+      if (row) openDetails(row.dataset.row); // clicking anywhere else on the card opens the details
+      return;
+    }
+    const inv = b.dataset.inv;
+    switch (b.dataset.act) {
+      case 'copy': copyText(shortInv(inv)); break;
+      case 'receipt': openReceipt(inv, b.dataset.date); break;
+      case 'period': setPeriod(inv, b.dataset.val); break;
+      case 'details': openDetails(inv); break;
+      case 'qr': openQr(inv, b.dataset.type); break;
+      case 'more': ui.shown += SHOW_STEP; render(); break;
+      case 'done': toggleDone(inv); break;
+      case 'history': openHistory(inv); break;
+      case 'import': $('fileImport').click(); break;
+      case 'paste': $('btnPaste').click(); break;
+    }
+  };
+  // The browser wipes its data daily: warn before leaving with changes that were not exported
+  window.addEventListener('beforeunload', e => {
+    if (store.dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+}
+
+applyI18n();
+setupFilter();
+bind();
+migrateContacts(store.contacts, [store.invoices]);
+for (const f of Object.values(store.follow)) if (f.done) f.done = { at: f.done.at }; // older versions stored a computed date
+pruneOld();
+saveStore('keep');
+render();
+// Diagnosis names arrive with icd10.js (deferred): redraw when ready, warn if missing
+window.addEventListener('DOMContentLoaded', () => {
+  $('icdBanner').hidden = !!window.ICD10;
+  if (window.ICD10) render();
+});
+</script>
+</body>
+</html>
