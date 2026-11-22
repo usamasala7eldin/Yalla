@@ -1492,10 +1492,12 @@ function makeBatch(items) {
   saveStore();
   const m = messages();
   return {
-    v: 1, b: id, at,
+    v: 2, b: id, at,
     m: { wa: m.welcomeAr, we: m.welcomeEn, ra: m.refillAr, re: m.refillEn },
-    // [invoice no., phone, contact name, send day (from the list day), welcome already sent, period]
-    it: items.map(x => [x.r.inv, x.phone, x.r.contact.name || '', x.send - base, x.r.follow.sentW ? 1 : 0, x.r.period])
+    // [invoice no., phone, contact name, send day, welcome already sent, period,
+    //  credit amount, invoice day, milk (1/0), item names (VC), note] — days are counted from the list day
+    it: items.map(x => [x.r.inv, x.phone, x.r.contact.name || '', x.send - base, x.r.follow.sentW ? 1 : 0, x.r.period,
+      x.r.credit, dayNum(x.r.date) - base, x.r.milk ? 1 : 0, [...new Set(x.r.items.map(i => i.desc).filter(Boolean))], x.r.follow.note || ''])
   };
 }
 
