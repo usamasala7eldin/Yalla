@@ -163,6 +163,19 @@
   .lang-switch button { border: 0; background: var(--card); padding: 5px 14px; }
   .lang-switch button.on { background: var(--accent); color: #fff; }
 
+  /* Phone list */
+  .tabs { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+  .tabs button { flex: 1; border: 0; background: var(--card); padding: 8px 10px; color: var(--muted); }
+  .tabs button.on { background: var(--accent); color: #fff; }
+  .list-sum { font-size: 15px; font-weight: 700; margin: 2px 0 6px; }
+  .list-note { font-size: 12px; margin: 2px 0; }
+  .list-note.new { color: var(--accent); font-weight: 600; }
+  .list-note.warn { color: var(--orange); }
+  #listQr { display: flex; justify-content: center; margin: 12px 0 6px; }
+  #listQr img { width: 260px; height: 260px; image-rendering: pixelated; }
+  .status-input { width: 100%; border: 2px dashed var(--accent); border-radius: 10px; padding: 14px; font-size: 16px; text-align: center; font-family: ui-monospace, Consolas, monospace; background: var(--accent-soft); }
+  .status-input:focus { outline: none; border-style: solid; background: #fff; }
+
   @media (max-width: 640px) {
     .grid2 { grid-template-columns: 1fr; }
   }
@@ -177,6 +190,9 @@
     <button class="btn" id="btnImport" data-i18n="importBackup"></button>
     <button class="btn" id="btnReport" data-i18n="report"></button>
     <input type="file" id="fileImport" accept=".json,application/json" hidden>
+    <button class="icon-btn" id="btnPhoneList" data-i18n-title="phoneList">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>
+    </button>
     <button class="icon-btn" id="btnSettings" data-i18n-title="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
@@ -265,6 +281,32 @@
   </div>
 </dialog>
 
+<!-- Phone list: send the messages list to the phone, read back what was sent -->
+<dialog id="dlgList" class="narrow">
+  <div class="dlg-head"><h2 data-i18n="phoneList"></h2><button class="icon-btn" data-close>✕</button></div>
+  <div class="dlg-body" style="text-align:center">
+    <div class="tabs" id="listTabs">
+      <button data-tab="send" data-i18n="tabSend"></button>
+      <button data-tab="read" data-i18n="tabRead"></button>
+    </div>
+    <div id="tabSend">
+      <p class="list-sum" id="listSum"></p>
+      <p class="list-note new" id="listNew" hidden></p>
+      <p class="list-note warn" id="listNoPhone" hidden></p>
+      <div id="listQr"></div>
+      <p class="msg" id="listMsg"></p>
+      <p class="help" id="listTimerLine" hidden><span data-i18n="phoneExpires"></span> <b id="listTimer">5:00</b></p>
+      <button class="btn primary" id="btnListCreate" data-i18n="listCreate"></button>
+      <p class="help" data-i18n="listPrivacy"></p>
+    </div>
+    <div id="tabRead" hidden>
+      <p class="help" data-i18n="readHelp"></p>
+      <input type="text" class="status-input" id="statusInput" inputmode="numeric" autocomplete="off" data-i18n-placeholder="readPlaceholder">
+      <p class="msg" id="readMsg"></p>
+    </div>
+  </div>
+</dialog>
+
 <!-- Settings dialog -->
 <dialog id="dlgSettings">
   <div class="dlg-head"><h2 data-i18n="settings"></h2><button class="icon-btn" data-close>✕</button></div>
@@ -332,6 +374,13 @@ const DEFAULT_ACUTE = ['J00-J06', 'J09-J11', 'J12-J18', 'J20-J22', 'A00-A09', 'B
   'L23-L25', 'L50', 'M62.6', 'N30', 'N34', 'N39.0', 'N76.0', 'R05', 'R10', 'R11', 'R19.7', 'R21', 'R50', 'R51',
   'R52', 'S00-T14', 'T78.4'];
 const REFILL_WINDOW_AFTER_DONE = 14; // Report: a refill counts if it comes within 14 days after Done
+// Phone list: the messages are sent this many days before the refill date (1M → day 26, 2M → day 52, 3M → day 78)
+const SEND_BEFORE = { '1M': 2, '2M': 4, '3M': 6 };
+const LIST_AHEAD_DAYS = 14;      // messages due in the next 14 days go to the phone
+const LIST_OVERDUE_DAYS = 7;     // and those up to 7 days late that were not sent
+const BATCH_KEEP_DAYS = 60;      // a sent list is remembered this long, to read the phone's status back
+const PHONE_LIST_PAGE = 'RefillPhone.html';
+const OFFLINE_QR_MAX = 2800;     // longest link that still fits in one QR code
 
 // Default WhatsApp messages. {name} = contact name. Editable in Settings.
 const DEFAULT_MESSAGES = {
@@ -421,6 +470,22 @@ const I18N = {
     clearAll: 'Delete all saved data', clearConfirm: 'Delete all data from this browser? Export first if you need it.',
     storageFull: 'Browser storage is full. Export, then delete old data.',
     icdMissing: 'Diagnosis names file (icd10.js) did not load. Make sure it is next to this page, then reload with Ctrl+F5.',
+    phoneList: 'Phone list', tabSend: 'Send to phone', tabRead: 'Read from phone',
+    listSummary: '{p} patients · {m} messages · until {d}',
+    listNone: 'No messages in the next 2 weeks. A card needs a phone number and 1M, 2M or 3M.',
+    listNew: '{n} new since the last list',
+    listNoPhone: '{n} invoices in this period have no phone number',
+    listCreate: 'Create QR', listScan: 'Scan this code with the phone camera.',
+    listReceived: 'Received on the phone ✓',
+    listOffline: 'No internet: the data is inside this QR code itself.',
+    listTooBig: 'Too many messages for one QR code without internet. Connect to the internet and try again.',
+    listPrivacy: 'The list is encrypted and deleted as soon as the phone receives it. The key is only inside this QR code.',
+    readHelp: 'On the phone press "Send status to PC". Click the box below, then scan the phone screen with the barcode scanner.',
+    readPlaceholder: 'Click here, then scan…',
+    readDone: 'Updated: {w} welcome sent, {d} refills sent and marked Done.',
+    readNothing: 'The code was read. Nothing new to update.',
+    readBad: 'The code was not read completely. Scan it again.',
+    readUnknown: '{n} list(s) are not in this browser. Import your last backup, then scan again.',
     emptyNoData: 'No data in this browser. Import your last backup, or paste the On Account by User report.',
     emptyFilter: 'No invoices in this filter.'
   }
@@ -442,7 +507,8 @@ function applyI18n() {
 
 /* ===================== Storage ===================== */
 // invoices / items / follow are keyed by invoice no.; contacts by card no.; messages = WhatsApp templates
-function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, messagesAt: '', periods: {}, acute: [], acuteAt: '', lastBackup: null, dirty: false }; }
+// batches = lists sent to the phone: { id: { at, invs: [invoice no. in list order] } }
+function emptyStore() { return { v: 3, invoices: {}, items: {}, follow: {}, contacts: {}, messages: {}, messagesAt: '', periods: {}, acute: [], acuteAt: '', batches: {}, lastListInvs: [], lastBackup: null, dirty: false }; }
 // Templates saved by earlier versions: drop the old defaults so the current defaults are used
 const OLD_DEFAULT_WELCOME = [
   'السلام عليكم ورحمة الله وبركاته\nمعكم صيدلية النهدي.\n(أضف هنا اسم الفرع ورابط الموقع)',
@@ -581,6 +647,7 @@ function pruneOld() {
     if (m && dayNum(`${m[1]}-${m[2]}-${m[3]}`) < limit) { delete store.items[k]; delete store.follow[k]; }
   }
   // contacts are kept: they belong to the card number, not to an invoice
+  for (const [id, b] of Object.entries(store.batches || {})) if (dayNum(b.at) < dayNum(todayISO()) - BATCH_KEEP_DAYS) delete store.batches[id];
 }
 
 /* ===================== Patient key ===================== */
@@ -1055,7 +1122,7 @@ function touchFollow(inv) {
   const f = store.follow[inv];
   if (!f) return;
   f.updatedAt = new Date().toISOString();
-  if (!f.period && !f.note && !f.qrW && !f.qrR && !f.done && !f.viewed) delete store.follow[inv];
+  if (!f.period && !f.note && !f.qrW && !f.qrR && !f.done && !f.viewed && !f.sentW && !f.sentR) delete store.follow[inv];
 }
 const dayNumToISO = n => { const d = new Date(n * 86400000); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
 const DONE_HIDE_DAYS = 20; // Done hides the invoice until 20 days after its current refill date
@@ -1246,6 +1313,9 @@ function importBackup(file) {
       if (Array.isArray(data.acute) && (data.acuteAt || '') > (store.acuteAt || '')) { store.acute = data.acute; store.acuteAt = data.acuteAt; }
       for (const [k, v] of Object.entries(data.periods || {})) rememberPeriod({ type: k, from: v.from, to: v.to });
       if (wasEmpty && data.transRefIncomplete) store.transRefIncomplete = data.transRefIncomplete;
+      // Lists sent to the phone: needed to read the phone's status back
+      for (const [k, v] of Object.entries(data.batches || {})) if (!store.batches[k]) store.batches[k] = v;
+      if (Array.isArray(data.lastListInvs) && (wasEmpty || !store.lastListInvs.length)) store.lastListInvs = data.lastListInvs;
       if (data.lastViewed && (wasEmpty || !store.lastViewed)) store.lastViewed = data.lastViewed;
       if (data.lastBackup && (!store.lastBackup || data.lastBackup > store.lastBackup)) store.lastBackup = data.lastBackup;
       pruneOld(); saveStore(wasEmpty && !store.dirty ? 'clean' : undefined); render();
@@ -1389,6 +1459,222 @@ function usePhoneMessages() {
   toast(t('phoneSaved'));
 }
 
+/* ===================== Phone list ===================== */
+// The list of messages goes to RefillPhone.html through a temporary, end-to-end encrypted document
+// (same Firebase project and encryption as "Edit messages on phone"). The phone deletes it once received.
+// Without internet the data is put inside the QR code itself.
+// The phone sends back what was sent as a numbers-only code, read with the barcode scanner:
+//   "1" + for each list: list id (6 digits) + count (3 digits) + 2 digits per patient + mod-97 check (2 digits)
+//   per patient: 00 = nothing, 01-49 = welcome sent (day = value - 1), 50-99 = both sent (day = value - 50),
+//   days counted from the day the list was made.
+
+function listItems() {
+  const today = dayNum(todayISO());
+  const items = [], noPhone = [];
+  for (const r of rowsCache) {
+    if (!PERIODS[r.period] || r.hidden || r.follow.sentR || r.refill) continue;
+    const send = dayNum(r.date) + PERIODS[r.period] - SEND_BEFORE[r.period];
+    if (send < today - LIST_OVERDUE_DAYS || send > today + LIST_AHEAD_DAYS) continue;
+    const phone = normalisePhone(r.contact.phone);
+    if (!phone) { noPhone.push(r); continue; }
+    items.push({ r, send, phone });
+  }
+  items.sort((a, b) => a.send - b.send || b.r.credit - a.r.credit);
+  return { items, noPhone };
+}
+
+function makeBatch(items) {
+  let id;
+  do id = String(100000 + Math.floor(Math.random() * 900000)); while (store.batches[id]);
+  const at = todayISO(), base = dayNum(at);
+  store.batches[id] = { at, invs: items.map(x => x.r.inv) };
+  store.lastListInvs = items.map(x => x.r.inv);
+  saveStore();
+  const m = messages();
+  return {
+    v: 1, b: id, at,
+    m: { wa: m.welcomeAr, we: m.welcomeEn, ra: m.refillAr, re: m.refillEn },
+    // [invoice no., phone, contact name, send day (from the list day), welcome already sent, period]
+    it: items.map(x => [x.r.inv, x.phone, x.r.contact.name || '', x.send - base, x.r.follow.sentW ? 1 : 0, x.r.period])
+  };
+}
+
+const listSend = { ref: null, unsub: null, timer: null, expiresAt: 0, delivered: false };
+function listMsg(text, cls) { $('listMsg').className = 'msg ' + (cls || ''); $('listMsg').textContent = text || ''; }
+
+function listTab(name) {
+  document.querySelectorAll('#listTabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  $('tabSend').hidden = name !== 'send';
+  $('tabRead').hidden = name !== 'read';
+  if (name === 'read') { $('readMsg').textContent = ''; $('statusInput').value = ''; setTimeout(() => $('statusInput').focus(), 50); }
+}
+
+function openPhoneList() {
+  endListSession();
+  renderListInfo();
+  listTab('send');
+  $('dlgList').showModal();
+}
+
+function renderListInfo() {
+  const { items, noPhone } = listItems();
+  const last = new Set(store.lastListInvs || []);
+  const fresh = items.filter(x => !last.has(x.r.inv)).length;
+  const messagesCount = items.reduce((a, x) => a + (x.r.follow.sentW ? 1 : 2), 0);
+  const until = fmtDate(dayNumToISO(dayNum(todayISO()) + LIST_AHEAD_DAYS));
+  $('listSum').textContent = items.length ? t('listSummary', { p: items.length, m: messagesCount, d: until }) : t('listNone');
+  $('listNew').hidden = !(items.length && last.size && fresh);
+  $('listNew').textContent = t('listNew', { n: fresh });
+  $('listNoPhone').hidden = !noPhone.length;
+  $('listNoPhone').textContent = t('listNoPhone', { n: noPhone.length });
+  $('btnListCreate').disabled = !items.length;
+  $('btnListCreate').hidden = false;
+  $('listQr').innerHTML = '';
+  $('listTimerLine').hidden = true;
+  listMsg('');
+}
+
+function showListQr(text, level) {
+  if (typeof qrcode !== 'function') { listMsg(t('qrNoLib'), 'err'); return false; }
+  const qr = qrcode(0, level);
+  qr.addData(text, 'Byte');
+  qr.make();
+  $('listQr').innerHTML = qr.createImgTag(4, 8);
+  return true;
+}
+
+async function createListQr() {
+  endListSession();
+  const { items } = listItems();
+  if (!items.length) return;
+  const batch = makeBatch(items);
+  $('btnListCreate').disabled = true;
+  $('listQr').innerHTML = '';
+  listMsg(t('phoneConnecting'));
+  try {
+    const { fs, db } = await loadFirebase();
+    const secret = crypto.getRandomValues(new Uint8Array(32));
+    const s = await deriveSession(secret);
+    const ref = fs.doc(db, 'pages', s.id);
+    Object.assign(listSend, { ref, expiresAt: Date.now() + SESSION_TTL, delivered: false });
+    await fs.setDoc(ref, {
+      text: await encJSON({ from: 'pos', kind: 'list', list: batch }, s.key),
+      createdAt: fs.serverTimestamp(), expiresAt: fs.Timestamp.fromMillis(listSend.expiresAt)
+    });
+    if (!showListQr(new URL(PHONE_LIST_PAGE, location.href).href + '#s=' + toB64u(secret), 'M')) return;
+    listMsg(t('listScan'));
+    $('btnListCreate').hidden = true;
+    $('listTimer').textContent = '5:00';
+    $('listTimerLine').hidden = false;
+    listSend.timer = setInterval(listTick, 1000);
+    let seen = false;
+    listSend.unsub = fs.onSnapshot(ref, snap => {
+      if (listSend.ref !== ref) return;
+      if (snap.exists()) { seen = true; return; }
+      if (!seen) return;
+      // The phone deleted the document: it has the list
+      listSend.delivered = true;
+      endListSession();
+      $('listQr').innerHTML = '';
+      $('listTimerLine').hidden = true;
+      listMsg(t('listReceived'), 'ok');
+    }, () => {});
+  } catch (e) {
+    endListSession();
+    await offlineListQr(batch);
+  } finally {
+    $('btnListCreate').disabled = false;
+  }
+}
+
+// No internet: the list itself goes inside the QR code, compressed
+async function offlineListQr(batch) {
+  const json = JSON.stringify(batch);
+  let data;
+  try {
+    const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    data = 'z' + toB64u(new Uint8Array(await new Response(stream).arrayBuffer()));
+  } catch (e) {
+    data = 'j' + toB64u(te.encode(json)); // older browsers: not compressed
+  }
+  const link = new URL(PHONE_LIST_PAGE, location.href).href + '#d=' + data;
+  if (link.length > OFFLINE_QR_MAX) { listMsg(t('listTooBig'), 'err'); return; }
+  if (showListQr(link, 'L')) listMsg(t('listOffline'));
+}
+
+function listTick() {
+  const left = listSend.expiresAt - Date.now();
+  if (left <= 0) {
+    endListSession();
+    $('listQr').innerHTML = '';
+    $('listTimerLine').hidden = true;
+    $('btnListCreate').hidden = false;
+    listMsg(t('phoneExpired'), 'err');
+    return;
+  }
+  const s = Math.ceil(left / 1000);
+  $('listTimer').textContent = `${Math.floor(s / 60)}:${pad(s % 60)}`;
+}
+
+function endListSession() {
+  if (listSend.unsub) listSend.unsub();
+  clearInterval(listSend.timer);
+  if (listSend.ref && !listSend.delivered && fb) fb.fs.deleteDoc(listSend.ref).catch(() => {});
+  Object.assign(listSend, { ref: null, unsub: null, timer: null });
+}
+
+// mod 97 of the number, as two digits: catches a wrong or swapped digit
+function statusChecksum(digits) {
+  let s = 0;
+  for (const ch of digits) s = (s * 10 + Number(ch)) % 97;
+  return pad(s);
+}
+
+function applyPhoneStatus(raw) {
+  const code = String(raw).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g, '');
+  const msg = $('readMsg');
+  const show = (text, cls) => { msg.className = 'msg ' + cls; msg.textContent = text; };
+  const body = code.slice(0, -2);
+  if (code.length < 12 || code[0] !== '1' || statusChecksum(body) !== code.slice(-2)) return show(t('readBad'), 'err');
+  // Read everything first; update only if the whole code is valid
+  const lists = [];
+  let p = 1;
+  while (p < body.length) {
+    const id = body.substr(p, 6), n = Number(body.substr(p + 6, 3));
+    const vals = body.substr(p + 9, n * 2);
+    if (id.length < 6 || vals.length !== n * 2) return show(t('readBad'), 'err');
+    lists.push({ id, n, vals });
+    p += 9 + n * 2;
+  }
+  let w = 0, d = 0, unknown = 0;
+  for (const { id, n, vals } of lists) {
+    const batch = store.batches[id];
+    if (!batch || batch.invs.length !== n) { unknown++; continue; }
+    const base = dayNum(batch.at);
+    for (let i = 0; i < n; i++) {
+      const v = Number(vals.substr(i * 2, 2));
+      if (!v) continue;
+      const inv = batch.invs[i];
+      const f = follow(inv);
+      const at = dayNumToISO(base + (v < 50 ? v - 1 : v - 50));
+      if (!f.sentW) { f.sentW = at; f.qrW = true; if (v < 50) w++; }
+      if (v >= 50 && !f.sentR) {
+        f.sentR = at; f.qrR = true;
+        const r = rowsCache.find(x => x.inv === inv);
+        if (!f.done && r && PERIODS[r.period]) f.done = { at }; // Done on the day the refill message was sent
+        d++;
+      }
+      touchFollow(inv);
+    }
+  }
+  if (w || d) { saveStore(); render(); }
+  const parts = [];
+  if (w || d) parts.push(t('readDone', { w, d }));
+  if (unknown) parts.push(t('readUnknown', { n: unknown }));
+  if (!parts.length) parts.push(t('readNothing'));
+  show(parts.join(' '), unknown ? 'err' : 'ok');
+}
+
 /* ===================== Events ===================== */
 function bind() {
   $('btnPaste').onclick = () => { $('pasteMsg').textContent = ''; $('dlgPaste').showModal(); $('pasteBox').focus(); };
@@ -1414,6 +1700,23 @@ function bind() {
     if (b.dataset.act === 'copy') copyText(shortInv(b.dataset.inv));
     if (b.dataset.act === 'receipt') openReceipt(b.dataset.inv, b.dataset.date);
   });
+  // Phone list
+  $('btnPhoneList').onclick = openPhoneList;
+  $('btnListCreate').onclick = createListQr;
+  $('listTabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) listTab(b.dataset.tab); };
+  $('dlgList').addEventListener('close', endListSession);
+  // The barcode scanner types the code like a keyboard, usually followed by Enter
+  let statusTimer = null;
+  const readStatus = () => {
+    clearTimeout(statusTimer);
+    const v = $('statusInput').value.trim();
+    if (!v) return;
+    applyPhoneStatus(v);
+    $('statusInput').value = '';
+    $('statusInput').focus();
+  };
+  $('statusInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); readStatus(); } });
+  $('statusInput').addEventListener('input', () => { clearTimeout(statusTimer); statusTimer = setTimeout(readStatus, 600); });
   $('btnPhoneEdit').onclick = startPhoneSession;
   $('btnPhoneUse').onclick = usePhoneMessages;
   $('dlgPhone').addEventListener('close', () => { phone.received = null; endPhoneSession(); });
@@ -1442,63 +1745,4 @@ function bind() {
     const res = mergeParsed(parsed);
     saveStore();
     msg.className = incomplete ? 'msg err' : 'msg ok';
-    msg.textContent = t('pasteResult', res) + (incomplete ? ' ' + t('transRefIncomplete', { n: parsed.rows, last: fmtDate(parsed.lastDate) }) : '');
-    $('pasteBox').value = '';
-    render();
-  };
-
-  $('btnUndo').onclick = () => {
-    if (undoAction) undoAction();
-    undoAction = null; $('undoBar').hidden = true;
-  };
-  $('filter').onchange = e => { ui.filter = e.target.value || 'active'; ui.shown = SHOW_STEP; render(); };
-  $('stats').onclick = e => {
-    const s = e.target.closest('[data-filter]');
-    if (!s) return;
-    ui.filter = s.dataset.filter;
-    ui.shown = SHOW_STEP;
-    render();
-  };
-  $('list').onclick = e => {
-    const b = e.target.closest('[data-act]');
-    if (!b) {
-      const row = e.target.closest('[data-row]');
-      if (row) openDetails(row.dataset.row); // clicking anywhere else on the card opens the details
-      return;
-    }
-    const inv = b.dataset.inv;
-    switch (b.dataset.act) {
-      case 'copy': copyText(shortInv(inv)); break;
-      case 'receipt': openReceipt(inv, b.dataset.date); break;
-      case 'period': setPeriod(inv, b.dataset.val); break;
-      case 'details': openDetails(inv); break;
-      case 'qr': openQr(inv, b.dataset.type); break;
-      case 'more': ui.shown += SHOW_STEP; render(); break;
-      case 'done': toggleDone(inv); break;
-      case 'history': openHistory(inv); break;
-      case 'import': $('fileImport').click(); break;
-      case 'paste': $('btnPaste').click(); break;
-    }
-  };
-  // The browser wipes its data daily: warn before leaving with changes that were not exported
-  window.addEventListener('beforeunload', e => {
-    if (store.dirty) { e.preventDefault(); e.returnValue = ''; }
-  });
-}
-
-applyI18n();
-setupFilter();
-bind();
-migrateContacts(store.contacts, [store.invoices]);
-for (const f of Object.values(store.follow)) if (f.done) f.done = { at: f.done.at }; // older versions stored a computed date
-pruneOld();
-saveStore('keep');
-render();
-// Diagnosis names arrive with icd10.js (deferred): redraw when ready, warn if missing
-window.addEventListener('DOMContentLoaded', () => {
-  $('icdBanner').hidden = !!window.ICD10;
-  if (window.ICD10) render();
-});
-</script>
-</body>
-</html>
+    msg.textContent = t('pasteResult', res) + 
