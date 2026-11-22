@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b5c4f">
+<meta name="referrer" content="no-referrer">
+<title>Refill messages</title>
+<script src="qrcode.js?v=3"></script>
+<style>
+  :root {
+    --bg: #f2f4f5; --card: #fff; --text: #17202a; --muted: #6b7684; --line: #e3e7ea;
+    --brand: #0b5c4f; --wa: #1fa855; --wa-dark: #178a45;
+    --red: #c0262d; --red-bg: #fde8e8; --amber: #8a6100; --amber-bg: #fff4cc;
+    --green: #1a7f37; --green-bg: #dcf5e3;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Tahoma, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  button { font: inherit; cursor: pointer; }
+
+  .top { position: sticky; top: 0; z-index: 5; background: var(--brand); color: #fff; padding: calc(10px + env(safe-area-inset-top)) 14px 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  .top-row { display: flex; align-items: center; gap: 10px; }
+  .top h1 { font-size: 18px; margin: 0; flex: 1; font-weight: 700; }
+  .lang { display: inline-flex; background: rgba(255,255,255,.15); border-radius: 999px; padding: 2px; }
+  .lang button { border: 0; background: none; color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .lang button.on { background: #fff; color: var(--brand); }
+  .icon { border: 0; background: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; line-height: 1; }
+  .icon:active { background: rgba(255,255,255,.15); }
+  .chips { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
+  .chip { flex: 0 0 auto; background: rgba(255,255,255,.14); border-radius: 12px; padding: 6px 12px; font-size: 12px; }
+  .chip b { display: block; font-size: 20px; line-height: 1.2; }
+  .chip.late b { color: #ffb4b4; }
+
+  main { padding: 12px; max-width: 640px; margin: 0 auto; }
+  .tip { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .tip button { border: 0; background: var(--bg); color: var(--brand); font-weight: 700; border-radius: 8px; padding: 6px 12px; white-space: nowrap; }
+
+  .sec { margin: 16px 0 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .sec .n { background: var(--line); color: var(--text); border-radius: 999px; padding: 0 8px; font-size: 12px; line-height: 20px; }
+  .sec.late { color: var(--red); } .sec.late .n { background: var(--red-bg); color: var(--red); }
+  .sec.toggle { width: 100%; border: 0; background: none; padding: 0; text-align: start; }
+  .sec.toggle .arrow { margin-inline-start: auto; transition: transform .2s; }
+  .sec.toggle.open .arrow { transform: rotate(180deg); }
+  .day { font-size: 13px; font-weight: 700; color: var(--text); margin: 12px 2px 6px; }
+
+  .card { background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.06); border: 1px solid var(--line); }
+  .card.late { border-inline-start: 5px solid var(--red); }
+  .card.sent { opacity: .7; }
+  .c-top { display: flex; align-items: center; gap: 8px; }
+  .inv { font-family: ui-monospace, Consolas, monospace; font-size: 20px; font-weight: 800; letter-spacing: .02em; }
+  .badge { font-size: 12px; font-weight: 700; background: var(--bg); border-radius: 6px; padding: 1px 7px; color: var(--muted); }
+  .when { margin-inline-start: auto; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .when.late { color: var(--red); }
+  .c-name { font-size: 15px; margin-top: 2px; }
+  .c-phone { font-size: 13px; color: var(--muted); direction: ltr; text-align: start; }
+  .c-act { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .wa-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--wa); color: #fff; text-decoration: none; font-weight: 700; font-size: 16px; border-radius: 12px; padding: 12px; min-height: 48px; }
+  .wa-btn:active { background: var(--wa-dark); }
+  .wa-btn svg { width: 20px; height: 20px; fill: currentColor; }
+  .steps { display: flex; gap: 4px; }
+  .steps i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  .steps i.on { background: var(--wa); }
+  .sent-label { flex: 1; color: var(--green); font-weight: 700; }
+  .back { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+
+  .empty { text-align: center; background: var(--card); border-radius: 14px; padding: 28px 18px; border: 1px dashed var(--line); color: var(--muted); }
+  .empty h2 { font-size: 17px; color: var(--text); margin: 0 0 6px; }
+  .empty p { margin: 0; font-size: 14px; line-height: 1.5; }
+  .done-today { text-align: center; background: var(--green-bg); color: var(--green); border-radius: 14px; padding: 16px; font-weight: 700; }
+  .done-today small { display: block; font-weight: 500; margin-top: 2px; }
+
+  .bottom { position: fixed; inset-inline: 0; bottom: 0; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--bg) 30%); }
+  .bottom button { width: 100%; max-width: 612px; display: block; margin: 0 auto; border: 0; background: var(--brand); color: #fff; font-weight: 700; font-size: 16px; border-radius: 14px; padding: 14px; box-shadow: 0 4px 14px rgba(11,92,79,.3); }
+
+  dialog { border: 0; border-radius: 18px; padding: 0; width: min(420px, calc(100vw - 24px)); box-shadow: 0 10px 40px rgba(0,0,0,.3); color: var(--text); }
+  dialog::backdrop { background: rgba(10,20,25,.5); }
+  .dlg-head { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .dlg-head h2 { font-size: 16px; margin: 0; flex: 1; }
+  .dlg-head button { border: 0; background: none; font-size: 18px; color: var(--muted); width: 36px; height: 36px; }
+  .dlg-body { padding: 14px 16px 18px; text-align: center; }
+  .dlg-body p { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0 0 10px; }
+  #statusQr { display: flex; justify-content: center; margin: 6px 0 10px; }
+  #statusQr img { width: min(280px, 75vw); height: auto; image-rendering: pixelated; }
+  .code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; color: var(--muted); background: var(--bg); border-radius: 8px; padding: 8px; margin-bottom: 10px; direction: ltr; }
+  .btn { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+  .btn.danger { color: var(--red); width: 100%; }
+  .menu-item { display: block; width: 100%; text-align: start; border: 0; background: none; padding: 14px 4px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .menu-item:last-child { border-bottom: 0; }
+  .menu-item.danger { color: var(--red); }
+
+  .loading { position: fixed; inset: 0; background: rgba(242,244,245,.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 50; font-weight: 600; }
+  .spinner { width: 36px; height: 36px; border: 4px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .snack { position: fixed; inset-inline: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); max-width: 616px; margin: 0 auto; background: #1d2730; color: #fff; border-radius: 12px; padding: 10px 10px 10px 16px; display: flex; align-items: center; gap: 12px; z-index: 40; box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 14px; }
+  .snack span { flex: 1; }
+  .snack button { border: 0; background: none; color: #7fe3a8; font-weight: 800; padding: 6px 10px; }
+  .snack.err { background: var(--red); }
+  .snack.err button { color: #fff; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <h1 data-i18n="appTitle"></h1>
+    <div class="lang" id="lang" data-i18n-title="msgLang">
+      <button data-lang="ar">ع</button>
+      <button data-lang="en">EN</button>
+    </div>
+    <button class="icon" id="btnMenu" data-i18n-title="menu">⋮</button>
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+
+<main id="main"></main>
+
+<div class="bottom" id="bottom" hidden><button id="btnStatus" data-i18n="sendStatus"></button></div>
+
+<div class="snack" id="snack" hidden><span id="snackText"></span><button id="snackBtn"></button></div>
+<div class="loading" id="loading" hidden><div class="spinner"></div><div data-i18n="receiving"></div></div>
+
+<dialog id="dlgStatus">
+  <div class="dlg-head"><h2 data-i18n="sendStatus"></h2><button data-close>✕</button></div>
+  <div class="dlg-body">
+    <p data-i18n="statusHelp"></p>
+    <div id="statusQr"></div>
+    <div class="code" id="statusCode"></div>
+    <button class="btn" id="btnCopyCode" data-i18n="copyCode"></button>
+  </div>
+</dialog>
+
+<dialog id="dlgMenu">
+  <div class="dlg-head"><h2 data-i18n="menu"></h2><button data-close>✕</button></div>
+  <div class="dlg-body" style="text-align:start;padding-top:4px">
+    <button class="menu-item" id="mStatus" data-i18n="sendStatus"></button>
+    <button class="menu-item" id="mHelp" data-i18n="howTo"></button>
+    <button class="menu-item danger" id="mClear" data-i18n="clearAll"></button>
+  </div>
+</dialog>
+
+<script>
+/* ===================== Configuration ===================== */
+const STORAGE_KEY = 'refillPhone.v1';
+const SENT_KEEP_DAYS = 14;     // sent patients stay under "Sent" (and in the status code) this long
+const PENDING_KEEP_DAYS = 30;  // unsent messages older than this are removed
+const UNDO_SECONDS = 6;
+// Same Firebase project and encryption as InsuranceRefill.html / sync.html
+const FIREBASE_URL = 'https://www.gstatic.com/firebasejs/10.12.2/';
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyD-QSolp7uoEr0z_0NkOBIeEFAgllmi0ro',
+  authDomain: 'sync-df6ca.firebaseapp.com',
+  projectId: 'sync-df6ca',
+  storageBucket: 'sync-df6ca.firebasestorage.app',
+  messagingSenderId: '1091721719210',
+  appId: '1:1091721719210:web:567cd4ce4056bfce45cfd3'
+};
+
+/* ===================== Localisation ===================== */
+const I18N = {
+  en: {
+    appTitle: 'Refill messages', msgLang: 'Message language', menu: 'Menu',
+    chipToday: 'Left today', chipLate: 'Late', chipWeek: 'Next 7 days',
+    late: 'Late', today: 'Today', upcoming: 'Upcoming', sent: 'Sent',
+    step1: '1 · Welcome', step2: '2 · Refill', sentLabel: '✓ Sent', stepBack: 'Undo',
+    daysLate: '{n} days late', dayLate: '1 day late', todayLabel: 'Today',
+    allDone: 'All done for today', nextOn: 'Next messages: {d}',
+    emptyTitle: 'No messages yet',
+    emptyHelp: 'On the PC, open Insurance Refill, press the phone icon, then scan the QR code with this phone.',
+    sendStatus: 'Send status to PC',
+    statusHelp: 'On the PC: phone icon → Read from phone. Click the box, then scan this code with the barcode scanner.',
+    statusNone: 'Nothing has been sent yet.',
+    copyCode: 'Copy code', copied: 'Copied',
+    receiving: 'Receiving the list…', received: 'List received: {n} patients',
+    expired: 'This code has expired or was already used. Create a new one on the PC.',
+    recvError: 'Could not receive the list. Check the internet, then scan again.',
+    badData: 'This link is damaged. Create a new code on the PC.',
+    undo: 'Undo', markedW: 'Welcome marked as sent', markedR: 'Refill marked as sent', stepUndone: 'Back one step',
+    howTo: 'How it works',
+    howToText: '1. On the PC, press the phone icon in Insurance Refill and scan the QR code.\n2. Every day, open this page and press the green button: it opens WhatsApp with the message ready.\n3. Send, come back, and press the button again for the second message.\n4. Before making a new list on the PC, press "Send status to PC" and scan it with the barcode scanner.',
+    clearAll: 'Delete all data on this phone', clearConfirm: 'Delete all messages and progress from this phone?',
+    homeTip: 'Tip: Chrome menu ⋮ → Add to Home screen, to open this like an app.', ok: 'OK'
+  }
+};
+let LANG = 'en';
+function t(key, vars) {
+  let s = I18N[LANG][key];
+  if (s === undefined) return key;
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
+  return s;
+}
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-title]').forEach(el => el.title = t(el.dataset.i18nTitle));
+  document.title = t('appTitle');
+}
+
+/* ===================== Storage ===================== */
+// items keyed by invoice no.: { inv, ph, nm, d (send day number), p (period), b (list id), i (position in list),
+//   st (0 = nothing, 1 = welcome sent, 3 = both sent), wAt, rAt }
+// batches: { id: { at, n } } — needed to build the status code for the PC
+// msgs: { wa, we, ra, re } message texts; lang: message language
+function emptyState() { return { items: {}, batches: {}, msgs: {}, lang: 'ar', tipDone: false }; }
+let S = load();
+function load() {
+  try { return Object.assign(emptyState(), JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')); }
+  catch (e) { return emptyState(); }
+}
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ===================== Helpers ===================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const pad = n => String(n).padStart(2, '0');
+function todayISO() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function dayNum(iso) { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; }
+const fmtDay = n => new Date(n * 86400000).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' });
+const shortInv = inv => String(inv).replace(/20\d{6}$/, ''); // invoice numbers end with the date
+const fmtPhone = ph => /^9665\d{8}$/.test(ph) ? `0${ph.slice(3, 5)} ${ph.slice(5, 8)} ${ph.slice(8)}` : '+' + ph;
+
+const te = new TextEncoder(), td = new TextDecoder();
+const toB64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+const fromB64u = s => fromB64(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+
+/* ===================== Receiving the list ===================== */
+async function deriveSession(secretBytes) {
+  const base = await crypto.subtle.importKey('raw', secretBytes, 'HKDF', false, ['deriveBits', 'deriveKey']);
+  const salt = te.encode('insurance-wa-v1');
+  const idBits = await crypto.subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('page-id') }, base, 128);
+  const key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt, info: te.encode('content-key') },
+    base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const id = toB64(new Uint8Array(idBits)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return { id, key };
+}
+async function decJSON(str, key) {
+  const [iv, ct] = str.split('.');
+  return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(iv) }, key, fromB64(ct))));
+}
+
+// Online: read the encrypted list, then delete it (the PC sees the delete as "received")
+async function receiveOnline(secret) {
+  const app = await import(FIREBASE_URL + 'firebase-app.js');
+  const fs = await import(FIREBASE_URL + 'firebase-firestore.js');
+  const db = fs.getFirestore(app.initializeApp(FIREBASE_CONFIG, 'refill-phone'));
+  const s = await deriveSession(fromB64u(secret));
+  const ref = fs.doc(db, 'pages', s.id);
+  const snap = await fs.getDoc(ref);
+  if (!snap.exists()) throw new Error('expired');
+  const data = await decJSON(snap.data().text || '', s.key);
+  if (data.kind !== 'list' || !data.list) throw new Error('bad');
+  await fs.deleteDoc(ref).catch(() => {});
+  return data.list;
+}
+
+// Offline: the list is inside the link itself ("z" = compressed, "j" = plain)
+async function receiveOffline(data) {
+  const bytes = fromB64u(data.slice(1));
+  if (data[0] === 'j') return JSON.parse(td.decode(bytes));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return JSON.parse(await new Response(stream).text());
+}
+
+// A new list replaces what is still unsent; what was already sent is kept, so nothing is sent twice
+function mergeList(list) {
+  if (!list || !Array.isArray(list.it)) throw new Error('bad');
+  const base = dayNum(list.at);
+  const incoming = new Set();
+  list.it.forEach(([inv, ph, nm, off, wSent, p], i) => {
+    incoming.add(inv);
+    const old = S.items[inv];
+    const st = Math.max(old ? old.st : 0, wSent ? 1 : 0);
+    S.items[inv] = {
+      inv, ph, nm, p, d: base + off, b: list.b, i, st,
+      wAt: (old && old.wAt) || (st ? list.at : ''), rAt: (old && old.rAt) || ''
+    };
+  });
+  // Unsent messages that are no longer in the list (Done on the PC, period changed…) are removed
+  for (const [inv, it] of Object.entries(S.items)) if (!incoming.has(inv) && it.st < 3) delete S.items[inv];
+  S.batches[list.b] = { at: list.at, n: list.it.length };
+  if (list.m) S.msgs = list.m;
+  prune();
+  save();
+  return list.it.length;
+}
+
+function prune() {
+  const today = dayNum(todayISO());
+  for (const [inv, it] of Object.entries(S.items)) {
+    if (it.st === 3 && it.rAt && dayNum(it.rAt) < today - SENT_KEEP_DAYS) delete S.items[inv];
+    else if (it.st < 3 && it.d < today - PENDING_KEEP_DAYS) delete S.items[inv];
+  }
+  const used = new Set(Object.values(S.items).map(it => it.b));
+  for (const id of Object.keys(S.batches)) if (!used.has(id)) delete S.batches[id];
+}
+
+async function handleLink() {
+  const hash = location.hash.slice(1);
+  if (!hash) return;
+  // Remove the data from the address at once, so it is not kept in the browser history
+  history.replaceState(null, '', location.pathname + location.search);
+  $('loading').hidden = false;
+  try {
+    let list;
+    if (hash.startsWith('s=')) list = await receiveOnline(hash.slice(2));
+    else if (hash.startsWith('d=')) list = await receiveOffline(hash.slice(2));
+    else return;
+    const n = mergeList(list);
+    render();
+    snack(t('received', { n }));
+  } catch (e) {
+    const key = e.message === 'expired' ? 'expired' : e.message === 'bad' || e instanceof SyntaxError ? 'badData' : 'recvError';
+    snack(t(key), null, true);
+  } finally {
+    $('loading').hidden = true;
+  }
+}
+
+/* ===================== Sending ===================== */
+function messageText(it, type) {
+  const m = S.msgs || {}, ar = S.lang !== 'en';
+  if (type === 'w') return (ar ? m.wa : m.we) || '';
+  return ((ar ? m.ra : m.re) || '').replace(/\{name\}/g, it.nm || '');
+}
+const waLink = (it, type) => `https://wa.me/${it.ph}?text=${encodeURIComponent(messageText(it, type))}`;
+
+// Pressing the green button opens WhatsApp and moves the patient one step forward (with Undo)
+function stepForward(inv) {
+  const it = S.items[inv];
+  if (!it || it.st === 3) return;
+  const before = { st: it.st, wAt: it.wAt, rAt: it.rAt };
+  if (it.st === 0) { it.st = 1; it.wAt = todayISO(); }
+  else { it.st = 3; it.rAt = todayISO(); }
+  save();
+  // Redraw after WhatsApp has opened, so the link is not removed while it is being followed
+  setTimeout(render, 300);
+  snack(t(it.st === 3 ? 'markedR' : 'markedW'), () => { Object.assign(it, before); save(); render(); });
+}
+function stepBack(inv) {
+  const it = S.items[inv];
+  if (!it || !it.st) return;
+  if (it.st === 3) { it.st = 1; it.rAt = ''; } else { it.st = 0; it.wAt = ''; }
+  save(); render();
+  snack(t('stepUndone'));
+}
+
+/* ===================== Status code for the PC ===================== */
+// "1" + for each list: id (6) + count (3) + 2 digits per patient + mod-97 check (2). Numbers only,
+// because a barcode scanner can type letters wrongly when the PC keyboard is set to Arabic.
+// Per patient: 00 = nothing, 01-49 = welcome sent (day = value - 1), 50-99 = both sent (day = value - 50).
+function statusChecksum(digits) {
+  let s = 0;
+  for (const ch of digits) s = (s * 10 + Number(ch)) % 97;
+  return pad(s);
+}
+function statusCode() {
+  const byList = {};
+  for (const it of Object.values(S.items)) if (it.st && S.batches[it.b]) (byList[it.b] = byList[it.b] || []).push(it);
+  let body = '1';
+  for (const [id, list] of Object.entries(byList)) {
+    const meta = S.batches[id];
+    const vals = Array(meta.n).fill('00');
+    const off = iso => Math.max(0, Math.min(48, dayNum(iso || todayISO()) - dayNum(meta.at)));
+    for (const it of list) if (it.i < meta.n) vals[it.i] = pad(it.st === 3 ? 50 + off(it.rAt) : 1 + off(it.wAt));
+    body += id + String(meta.n).padStart(3, '0') + vals.join('');
+  }
+  return body.length > 1 ? body + statusChecksum(body) : '';
+}
+function openStatus() {
+  const code = statusCode();
+  $('statusCode').textContent = code || t('statusNone');
+  $('btnCopyCode').hidden = !code;
+  $('statusQr').innerHTML = '';
+  if (code && typeof qrcode === 'function') {
+    const qr = qrcode(0, 'M');
+    qr.addData(code, 'Numeric');
+    qr.make();
+    $('statusQr').innerHTML = qr.createImgTag(6, 8);
+  }
+  $('dlgStatus').showModal();
+}
+
+/* ===================== Rendering ===================== */
+const WA_ICON = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>';
+const ui = { upcomingOpen: false, sentOpen: false };
+
+function cardHTML(it, today) {
+  const late = it.st < 3 && it.d < today;
+  const lateDays = today - it.d;
+  const when = it.st === 3 ? '' : late ? t(lateDays === 1 ? 'dayLate' : 'daysLate', { n: lateDays }) : it.d === today ? t('todayLabel') : fmtDay(it.d);
+  let act;
+  if (it.st === 3) {
+    act = `<span class="sent-label">${esc(t('sentLabel'))}</span><button class="back" data-act="back" data-inv="${esc(it.inv)}">${esc(t('stepBack'))}</button>`;
+  } else {
+    const type = it.st === 0 ? 'w' : 'r';
+    act = `<a class="wa-btn" href="${esc(waLink(it, type))}" data-act="send" data-inv="${esc(it.inv)}">${WA_ICON}${esc(t(type === 'w' ? 'step1' : 'step2'))}</a>
+      <span class="steps"><i class="${it.st >= 1 ? 'on' : ''}"></i><i></i></span>
+      ${it.st === 1 ? `<button class="back" data-act="back" data-inv="${esc(it.inv)}" aria-label="${esc(t('stepBack'))}">↺</button>` : ''}`;
+  }
+  return `<div class="card ${late ? 'late' : ''} ${it.st === 3 ? 'sent' : ''}">
+    <div class="c-top"><span class="inv">${esc(shortInv(it.inv))}</span><span class="badge">${esc(it.p)}</span><span class="when ${late ? 'late' : ''}">${esc(when)}</span></div>
+    ${it.nm ? `<div class="c-name" dir="auto">${esc(it.nm)}</div>` : ''}
+    <div class="c-phone">${esc(fmtPhone(it.ph))}</div>
+    <div class="c-act">${act}</div>
+  </div>`;
+}
+
+function render() {
+  const today = dayNum(todayISO());
+  const all = Object.values(S.items);
+  const byDay = (a, b) => a.d - b.d || shortInv(a.inv).localeCompare(shortInv(b.inv));
+  const pending = all.filter(it => it.st < 3);
+  const late = pending.filter(it => it.d < today).sort(byDay);
+  const todays = pending.filter(it => it.d === today).sort(byDay);
+  const upcoming = pending.filter(it => it.d > today).sort(byDay);
+  const sent = all.filter(it => it.st === 3).sort((a, b) => b.rAt.localeCompare(a.rAt));
+  const week = upcoming.filter(it => it.d <= today + 7).length;
+
+  document.querySelectorAll('#lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === (S.lang || 'ar')));
+  $('chips').innerHTML = all.length ? `
+    <div class="chip"><b>${todays.length}</b>${esc(t('chipToday'))}</div>
+    <div class="chip ${late.length ? 'late' : ''}"><b>${late.length}</b>${esc(t('chipLate'))}</div>
+    <div class="chip"><b>${week}</b>${esc(t('chipWeek'))}</div>` : '';
+  $('bottom').hidden = !all.some(it => it.st);
+
+  if (!all.length) {
+    $('main').innerHTML = `<div class="empty"><h2>${esc(t('emptyTitle'))}</h2><p>${esc(t('emptyHelp'))}</p></div>`;
+    return;
+  }
+  let html = '';
+  if (!S.tipDone) html += `<div class="tip"><span>${esc(t('homeTip'))}</span><button data-act="tip">${esc(t('ok'))}</button></div>`;
+  if (late.length) html += `<div class="sec late">${esc(t('late'))}<span class="n">${late.length}</span></div>` + late.map(it => cardHTML(it, today)).join('');
+  html += `<div class="sec">${esc(t('today'))}<span class="n">${todays.length}</span></div>`;
+  if (todays.length) html += todays.map(it => cardHTML(it, today)).join('');
+  else {
+    const next = upcoming[0];
+    html += `<div class="done-today">${esc(t('allDone'))}${next ? `<small>${esc(t('nextOn', { d: fmtDay(next.d) }))}</small>` : ''}</div>`;
+  }
+  if (upcoming.length) {
+    html += `<button class="sec toggle ${ui.upcomingOpen ? 'open' : ''}" data-act="toggle" data-sec="upcomingOpen">${esc(t('upcoming'))}<span class="n">${upcoming.length}</span><span class="arrow">▾</span></button>`;
+    if (ui.upcomingOpen) {
+      let lastDay = null;
+      for (const it of upcoming) {
+        if (it.d !== lastDay) { lastDay = it.d; html += `<div class="day">${esc(fmtDay(it.d))}</div>`; }
+        html += cardHTML(it, today);
+      }
+    }
+  }
+  if (sent.length) {
+    html += `<button class="sec toggle ${ui.sentOpen ? 'open' : ''}" data-act="toggle" data-sec="sentOpen">${esc(t('sent'))}<span class="n">${sent.length}</span><span class="arrow">▾</span></button>`;
+    if (ui.sentOpen) html += sent.map(it => cardHTML(it, today)).join('');
+  }
+  $('main').innerHTML = html;
+}
+
+/* ===================== Snackbar ===================== */
+let snackAction = null;
+function snack(text, action, isErr) {
+  snackAction = action || null;
+  $('snackText').textContent = text;
+  $('snackBtn').textContent = action ? t('undo') : '✕';
+  $('snack').classList.toggle('err', !!isErr);
+  $('snack').hidden = false;
+  clearTimeout(snack._t);
+  snack._t = setTimeout(() => { $('snack').hidden = true; snackAction = null; }, (isErr ? 2 : 1) * UNDO_SECONDS * 1000);
+}
+
+/* ===================== Events ===================== */
+function bind() {
+  $('main').addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if (!el) return;
+    const inv = el.dataset.inv;
+    switch (el.dataset.act) {
+      case 'send': stepForward(inv); break; // the link itself opens WhatsApp
+      case 'back': stepBack(inv); break;
+      case 'toggle': ui[el.dataset.sec] = !ui[el.dataset.sec]; render(); break;
+      case 'tip': S.tipDone = true; save(); render(); break;
+    }
+  });
+  $('lang').onclick = e => { const b = e.target.closest('[data-lang]'); if (b) { S.lang = b.dataset.lang; save(); render(); } };
+  $('btnStatus').onclick = openStatus;
+  $('btnMenu').onclick = () => $('dlgMenu').showModal();
+  $('mStatus').onclick = () => { $('dlgMenu').close(); openStatus(); };
+  $('mHelp').onclick = () => { $('dlgMenu').close(); alert(t('howToText')); };
+  $('mClear').onclick = () => {
+    if (!confirm(t('clearConfirm'))) return;
+    S = Object.assign(emptyState(), { lang: S.lang, tipDone: S.tipDone });
+    save(); $('dlgMenu').close(); render();
+  };
+  $('btnCopyCode').onclick = () => {
+    const code = $('statusCode').textContent;
+    navigator.clipboard.writeText(code).then(() => snack(t('copied')), () => {});
+  };
+  $('snackBtn').onclick = () => { if (snackAction) snackAction(); snackAction = null; $('snack').hidden = true; };
+  document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+  document.querySelectorAll('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+  // Back from WhatsApp, or a new day: redraw
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { prune(); render(); } });
+  window.addEventListener('hashchange', handleLink);
+}
+
+applyI18n();
+bind();
+prune();
+save();
+render();
+handleLink();
+</script>
+</body>
+</html>
