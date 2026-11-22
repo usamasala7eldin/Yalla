@@ -49,12 +49,14 @@
   .card.late { border-inline-start: 5px solid var(--red); }
   .card.sent { opacity: .7; }
   .c-top { display: flex; align-items: center; gap: 8px; }
-  .inv { font-family: ui-monospace, Consolas, monospace; font-size: 20px; font-weight: 800; letter-spacing: .02em; }
-  .badge { font-size: 12px; font-weight: 700; background: var(--bg); border-radius: 6px; padding: 1px 7px; color: var(--muted); }
-  .when { margin-inline-start: auto; font-size: 12px; font-weight: 700; color: var(--muted); }
-  .when.late { color: var(--red); }
-  .c-name { font-size: 15px; margin-top: 2px; }
-  .c-phone { font-size: 13px; color: var(--muted); direction: ltr; text-align: start; }
+  .amount { font-size: 21px; font-weight: 800; letter-spacing: .01em; }
+  .badge { margin-inline-start: auto; font-size: 13px; font-weight: 700; background: var(--bg); border-radius: 8px; padding: 3px 9px; color: var(--text); white-space: nowrap; }
+  .badge.late { background: var(--red-bg); color: var(--red); }
+  .c-what { font-size: 14px; font-weight: 600; margin-top: 4px; line-height: 1.35; }
+  .c-what .more { color: var(--muted); font-weight: 700; }
+  .c-note { font-size: 13px; font-style: italic; color: var(--amber); background: var(--amber-bg); border-radius: 8px; padding: 4px 8px; margin-top: 6px; }
+  .c-who { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; font-size: 14px; margin-top: 6px; color: #3b4552; }
+  .c-phone { font-size: 13px; color: var(--muted); direction: ltr; }
   .c-act { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .wa-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--wa); color: #fff; text-decoration: none; font-weight: 700; font-size: 16px; border-radius: 12px; padding: 12px; min-height: 48px; }
   .wa-btn:active { background: var(--wa-dark); }
@@ -164,7 +166,7 @@ const I18N = {
     chipToday: 'Left today', chipLate: 'Late', chipWeek: 'Next 7 days',
     late: 'Late', today: 'Today', upcoming: 'Upcoming', sent: 'Sent',
     step1: '1 · Welcome', step2: '2 · Refill', sentLabel: '✓ Sent', stepBack: 'Undo',
-    daysLate: '{n} days late', dayLate: '1 day late', todayLabel: 'Today',
+    dayN: 'Day {n}', sar: 'SAR {v}', milk: 'Milk', moreItems: '+{n}',
     allDone: 'All done for today', nextOn: 'Next messages: {d}',
     emptyTitle: 'No messages yet',
     emptyHelp: 'On the PC, open Insurance Refill, press the phone icon, then scan the QR code with this phone.',
@@ -216,7 +218,7 @@ const pad = n => String(n).padStart(2, '0');
 function todayISO() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 function dayNum(iso) { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; }
 const fmtDay = n => new Date(n * 86400000).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' });
-const shortInv = inv => String(inv).replace(/20\d{6}$/, ''); // invoice numbers end with the date
+const money = n => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPhone = ph => /^9665\d{8}$/.test(ph) ? `0${ph.slice(3, 5)} ${ph.slice(5, 8)} ${ph.slice(8)}` : '+' + ph;
 
 const te = new TextEncoder(), td = new TextDecoder();
@@ -267,12 +269,14 @@ function mergeList(list) {
   if (!list || !Array.isArray(list.it)) throw new Error('bad');
   const base = dayNum(list.at);
   const incoming = new Set();
-  list.it.forEach(([inv, ph, nm, off, wSent, p], i) => {
+  list.it.forEach(([inv, ph, nm, off, wSent, p, credit, invOff, milk, its, note], i) => {
     incoming.add(inv);
     const old = S.items[inv];
     const st = Math.max(old ? old.st : 0, wSent ? 1 : 0);
     S.items[inv] = {
       inv, ph, nm, p, d: base + off, b: list.b, i, st,
+      c: Number(credit) || 0, id: invOff === undefined ? null : base + invOff,
+      mk: !!milk, its: Array.isArray(its) ? its : [], nt: note || '',
       wAt: (old && old.wAt) || (st ? list.at : ''), rAt: (old && old.rAt) || ''
     };
   });
@@ -385,10 +389,23 @@ function openStatus() {
 const WA_ICON = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>';
 const ui = { upcomingOpen: false, sentOpen: false };
 
+// What the prescription is: VC item names, Milk, then the invoice note
+function whatHTML(it) {
+  let html = '';
+  if (it.its && it.its.length) {
+    const shown = it.its.slice(0, 2).map(esc).join(' · ');
+    html += `<div class="c-what" dir="auto">${shown}${it.its.length > 2 ? ` <span class="more">${esc(t('moreItems', { n: it.its.length - 2 }))}</span>` : ''}</div>`;
+  } else if (it.mk) {
+    html += `<div class="c-what">🍼 ${esc(t('milk'))}</div>`;
+  }
+  if (it.nt) html += `<div class="c-note" dir="auto">${esc(it.nt)}</div>`;
+  return html;
+}
+
 function cardHTML(it, today) {
   const late = it.st < 3 && it.d < today;
-  const lateDays = today - it.d;
-  const when = it.st === 3 ? '' : late ? t(lateDays === 1 ? 'dayLate' : 'daysLate', { n: lateDays }) : it.d === today ? t('todayLabel') : fmtDay(it.d);
+  // "3M · Day 87": the period and how many days since the invoice date
+  const age = it.id !== null && it.id !== undefined ? ' · ' + t('dayN', { n: today - it.id }) : '';
   let act;
   if (it.st === 3) {
     act = `<span class="sent-label">${esc(t('sentLabel'))}</span><button class="back" data-act="back" data-inv="${esc(it.inv)}">${esc(t('stepBack'))}</button>`;
@@ -399,9 +416,9 @@ function cardHTML(it, today) {
       ${it.st === 1 ? `<button class="back" data-act="back" data-inv="${esc(it.inv)}" aria-label="${esc(t('stepBack'))}">↺</button>` : ''}`;
   }
   return `<div class="card ${late ? 'late' : ''} ${it.st === 3 ? 'sent' : ''}">
-    <div class="c-top"><span class="inv">${esc(shortInv(it.inv))}</span><span class="badge">${esc(it.p)}</span><span class="when ${late ? 'late' : ''}">${esc(when)}</span></div>
-    ${it.nm ? `<div class="c-name" dir="auto">${esc(it.nm)}</div>` : ''}
-    <div class="c-phone">${esc(fmtPhone(it.ph))}</div>
+    <div class="c-top"><span class="amount">${esc(t('sar', { v: money(it.c || 0) }))}</span><span class="badge ${late ? 'late' : ''}">${esc(it.p + age)}</span></div>
+    ${whatHTML(it)}
+    <div class="c-who">${it.nm ? `<span dir="auto">${esc(it.nm)}</span>` : ''}<span class="c-phone">${esc(fmtPhone(it.ph))}</span></div>
     <div class="c-act">${act}</div>
   </div>`;
 }
@@ -409,7 +426,7 @@ function cardHTML(it, today) {
 function render() {
   const today = dayNum(todayISO());
   const all = Object.values(S.items);
-  const byDay = (a, b) => a.d - b.d || shortInv(a.inv).localeCompare(shortInv(b.inv));
+  const byDay = (a, b) => a.d - b.d || (b.c || 0) - (a.c || 0); // each day: highest amount first
   const pending = all.filter(it => it.st < 3);
   const late = pending.filter(it => it.d < today).sort(byDay);
   const todays = pending.filter(it => it.d === today).sort(byDay);
