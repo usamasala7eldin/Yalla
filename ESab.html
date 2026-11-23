@@ -22,6 +22,8 @@
   .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 12px; }
   .btn:hover { border-color: var(--accent); }
   a.btn { text-decoration: none; }
+  .btn.adherence { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; font-size: 15px; padding: 8px 18px; }
+  .btn.adherence:hover { background: #0b5f58; }
   .last-buy { font-size: 12px; color: var(--muted); margin-top: 3px; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .btn.big { font-size: 16px; padding: 12px 22px; }
@@ -95,7 +97,7 @@
 <div class="wrap" id="main">
   <header>
     <h1 data-i18n="appTitle"></h1>
-    <a class="btn" href="https://rtlapps.nahdi.sa/Adherence/Home" target="_blank" rel="noopener" data-i18n="openAdherence"></a>
+    <a class="btn adherence" href="https://rtlapps.nahdi.sa/Adherence/Home" target="_blank" rel="noopener" data-i18n="openAdherence"></a>
     <button class="btn" id="btnClear" data-i18n="clearCards"></button>
     <input type="file" id="fileImport" accept=".json,application/json" hidden>
     <button class="icon-btn" id="btnSettings" data-i18n-title="settings" style="position:relative">
@@ -211,7 +213,7 @@ const I18N = {
     short: 'Short', long: 'Long', langAr: 'عربي', langEn: 'English',
     qrWelcome: 'Welcome QR', qrMessage: 'Message QR', removeCard: 'Remove this card',
     chooseType: 'Choose a message type first.', noPhone: 'No phone number found. Open the guest details, press Ctrl+A then Ctrl+C, and paste again.',
-    noItems: 'No items', openAdherence: 'Adherence ↗', insuranceOption: 'Insurance',
+    noItems: 'No items', openAdherence: 'Open Adherence ↗', insuranceOption: 'Insurance',
     lastBuy: 'Last purchase {d} · {n} days ago', lastBuyToday: 'Last purchase {d} · today', lastBuy1: 'Last purchase {d} · 1 day ago',
     welcomeSection: 'Welcome message', esabSection: 'E-Sab message', arabic: 'Arabic', english: 'English',
     typesSection: 'Message types', typeTitlePh: 'Title (shown on the cards)',
@@ -310,21 +312,30 @@ function parseOrder(text) {
     for (let j = i + 1; j < lines.length; j++) if (lines[j]) return lines[j];
     return '';
   };
-  // Medication History rows start with the item ID, then a tab and the item name (newest first)
+  // Medication History: only the medicine with the newest Last Purchase is used.
+  // Each row: "ItemID<tab>Item name", then "Generic<tab>Date" (or the date alone), then
+  // "Invoice<tab>Insurance<tab>Boxes…" (the invoice or the insurance can be missing; no insurance = cash).
+  // Item IDs are short (about 9 digits); invoice numbers are much longer, so they are not taken as rows.
   const from = lines.findIndex(l => l.startsWith('Medication History'));
   let to = lines.findIndex((l, i) => i > from && l.startsWith('Insurance Invoices'));
   if (to < 0) to = lines.length;
-  const items = [], seen = new Set();
+  const isRow = l => { const m = /^\d{6,12}\t+([^\t]+)/.exec(l); return m && /[A-Za-z\u0600-\u06FF]/.test(m[1]) ? m[1].trim() : ''; };
+  let latest = null;
   if (from >= 0) for (let i = from + 1; i < to; i++) {
-    const m = /^\d{6,}\t+(.+)$/.exec(lines[i]);
-    const name = m && m[1].split('\t')[0].trim();
-    // The invoice line under each row also starts with digits: an item name must contain letters
-    if (name && /[A-Za-z\u0600-\u06FF]/.test(name) && !seen.has(name)) {
-      seen.add(name);
-      const d = /(\d{4}-\d{2}-\d{2})/.exec(lines[i + 1] || ''); // generic name, then Last Purchase
-      items.push({ ar: name, en: name, date: d ? d[1] : '' });
+    const name = isRow(lines[i]);
+    if (!name) continue;
+    let date = '', ins = '', k = i + 1;
+    for (; k < to && k <= i + 2; k++) { const d = /(\d{4}-\d{2}-\d{2})/.exec(lines[k]); if (d) { date = d[1]; break; } }
+    for (k = k + 1; k < to; k++) {
+      if (!lines[k]) continue;
+      if (isRow(lines[k])) break;
+      const cols = lines[k].split('\t').map(x => x.trim());
+      ins = /^\d{13,}$/.test(cols[0]) ? (cols[1] || '') : (/^\d+$/.test(cols[0]) ? '' : cols[0]);
+      break;
     }
+    if (!latest || date > latest.date) latest = { ar: name, en: name, date, ins };
   }
+  const items = latest ? [latest] : [];
   return { order: '', name: after('Guest Name'), phone: normalisePhone(after('Phone Number')), items };
 }
 // First words until the name has at least SHORT_MIN_CHARS characters
@@ -338,9 +349,9 @@ function shortName(s) {
 }
 
 /* ===================== Cards ===================== */
-// card = { id, raw, order, name, phone, items, itemIdx, lang, mode, itemText, typeId, qrW, qrM, error }
+// card = { id, raw, order, name, phone, items (the latest medicine only), lang, mode ('ins' | 'short' | 'long'), itemText, qrW, qrM, error }
 let cards = loadCards();
-function emptyCard() { return { id: newId(), raw: '', order: '', name: '', phone: '', items: [], itemIdx: -1, lang: 'ar', mode: 'short', itemText: '', typeId: '', qrW: false, qrM: false, error: '' }; }
+function emptyCard() { return { id: newId(), raw: '', order: '', name: '', phone: '', items: [], lang: 'ar', mode: 'short', itemText: '', typeId: '', qrW: false, qrM: false, error: '' }; }
 function loadCards() {
   try { const c = JSON.parse(sessionStorage.getItem(CARDS_KEY)); if (Array.isArray(c) && c.length) return c; } catch (e) {}
   return [emptyCard()];
@@ -349,16 +360,17 @@ function saveCards() { try { sessionStorage.setItem(CARDS_KEY, JSON.stringify(ca
 const cardById = id => cards.find(c => c.id === id);
 
 function updateItemText(c) {
-  const it = c.items[c.itemIdx];
-  if (!it) { c.itemText = INSURANCE_WORD[c.lang]; return; }
+  const it = c.items[0];
+  if (!it) { c.itemText = ''; return; }
+  if (c.mode === 'ins') { c.itemText = INSURANCE_WORD[c.lang]; return; }
   const full = c.lang === 'en' ? it.en : it.ar;
   c.itemText = c.mode === 'long' ? full : shortName(full);
 }
 
 function cardHTML(c) {
   const has = !!c.raw;
-  // Last purchase of the chosen medicine (with Insurance: the newest one) and the days since it
-  const it = c.items[c.itemIdx] || c.items[0];
+  // Last purchase of the latest medicine and the days since it
+  const it = c.items[0];
   let lastBuy = '';
   if (it && it.date) {
     const [y, m, d] = it.date.split('-').map(Number);
@@ -366,10 +378,6 @@ function cardHTML(c) {
     const shown = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
     lastBuy = t(n === 0 ? 'lastBuyToday' : n === 1 ? 'lastBuy1' : 'lastBuy', { d: shown, n });
   }
-  const itemOpts = `<option value="-1" ${c.itemIdx < 0 ? 'selected' : ''}>${esc(t('insuranceOption'))}</option>` + c.items.map((it, i) => {
-    const label = c.lang === 'en' ? it.en : it.ar;
-    return `<option value="${i}" ${i === c.itemIdx ? 'selected' : ''}>${esc(label.length > 40 ? label.slice(0, 40) + '…' : label)}</option>`;
-  }).join('');
   return `<div class="ocard" data-card="${esc(c.id)}">
     <div class="ocard-body">
       <textarea class="paste" data-act="paste" placeholder="${esc(t('pastePh'))}">${esc(c.raw)}</textarea>
@@ -382,11 +390,11 @@ function cardHTML(c) {
           <button class="${c.lang === 'ar' ? 'on' : ''}" data-act="lang" data-val="ar">${esc(t('langAr'))}</button>
           <button class="${c.lang === 'en' ? 'on' : ''}" data-act="lang" data-val="en">${esc(t('langEn'))}</button>
         </div>
-        <select class="field" data-act="item" dir="auto">${itemOpts}</select>
-        ${c.itemIdx >= 0 ? `<div class="seg">
+        ${it ? `<div class="seg">
+          ${it.ins ? `<button class="${c.mode === 'ins' ? 'on' : ''}" data-act="mode" data-val="ins">${esc(t('insuranceOption'))}</button>` : ''}
           <button class="${c.mode === 'short' ? 'on' : ''}" data-act="mode" data-val="short">${esc(t('short'))}</button>
           <button class="${c.mode === 'long' ? 'on' : ''}" data-act="mode" data-val="long">${esc(t('long'))}</button>
-        </div>` : ''}
+        </div>` : `<span class="help">${esc(t('noItems'))}</span>`}
         <input class="field item" data-field="itemText" value="${esc(c.itemText)}" placeholder="${esc(t('itemPh'))}" dir="auto">
         <div class="spacer"></div>
         <button class="qr-btn" data-act="qr" data-val="welcome">${c.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
@@ -412,7 +420,7 @@ function onPaste(c, text) {
   c.qrW = c.qrM = false;
   if (!text.trim()) { Object.assign(c, emptyCard(), { id: c.id, typeId: c.typeId }); rerenderCard(c); return; }
   const o = parseOrder(text);
-  Object.assign(c, { order: o.order, name: o.name, phone: o.phone, items: o.items, itemIdx: -1, mode: 'short' });
+  Object.assign(c, { order: o.order, name: o.name, phone: o.phone, items: o.items, mode: o.items[0] && o.items[0].ins ? 'ins' : 'short' });
   c.error = o.phone ? '' : t('noPhone');
   updateItemText(c);
   rerenderCard(c);
@@ -740,12 +748,6 @@ function bind() {
     if (!c) return;
     if (el.dataset.act === 'paste') onPaste(c, el.value);
     else if (el.dataset.field) { c[el.dataset.field] = el.value; saveCards(); }
-  });
-  box.addEventListener('change', e => {
-    const el = e.target;
-    if (el.dataset.act !== 'item') return;
-    const c = cardById(el.closest('[data-card]').dataset.card);
-    c.itemIdx = Number(el.value); updateItemText(c); rerenderCard(c);
   });
   box.addEventListener('click', e => {
     const b = e.target.closest('button[data-act]');
