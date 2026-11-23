@@ -147,6 +147,7 @@
     <div class="row-flex" style="margin-bottom:6px">
       <button class="btn" id="btnPhoneEdit" data-i18n="phoneEdit"></button>
       <button class="btn" id="btnImport" data-i18n="importSettings"></button>
+      <button class="btn" id="btnResetDefault" data-i18n="resetDefault"></button>
       <button class="btn" id="btnExport"><span data-i18n="exportSettings"></span><span class="unsaved" id="unsavedMark" hidden></span></button>
     </div>
     <div class="sf" id="settingsForm"></div>
@@ -196,13 +197,13 @@ const DEFAULT_SETTINGS = {
   types: [
     { id: 't1', title: 'آخر موعد للاستلام اليوم', color: '#d97706',
       ar: 'أ/ {name}\nيوجد لحضرتك داخل الفرع☝️ طلب أونلاين بـ {item}\nوآخر موعد لاستلامه اليوم.',
-      en: 'Mr./Ms. {name}\nYou have an online order ({item}) at our branch☝️\nToday is the last day to pick it up.' },
-    { id: 't2', title: 'صنف غير متوفر', color: '#dc2626',
-      ar: 'أ/ {name}\nنعتذر من حضرتك، الصنف {item} في طلبك الأونلاين رقم {order} غير متوفر حاليًا بالفرع.',
-      en: 'Mr./Ms. {name}\nWe are sorry, {item} in your online order {order} is currently not available at our branch.' },
+      en: 'Mr./Ms. {name}\nYou have an online order ({item}) waiting at our branch☝️\nToday is the last day to pick it up.' },
+    { id: 't2', title: 'طلب غير متوفر', color: '#dc2626',
+      ar: 'أ/ {name}\nنعتذر من حضرتك، الطلب رقم {order} غير متوفر حاليًا بالفرع.',
+      en: 'Mr./Ms. {name}\nWe are sorry, order no. {order} is currently not available at our branch.' },
     { id: 't3', title: 'طلب متوفر جزئيًا', color: '#2563eb',
-      ar: 'أ/ {name}\nطلبك الأونلاين رقم {order} متوفر جزئيًا بالفرع، والصنف {item} غير متوفر حاليًا.\nهل تود استلام الأصناف المتوفرة فقط؟',
-      en: 'Mr./Ms. {name}\nYour online order {order} is partly available at our branch; {item} is currently not available.\nWould you like to pick up the available items only?' }
+      ar: 'أ/ {name}\nطلبك الأونلاين رقم {order} متوفر جزئيًا بالفرع، والصنف {item} غير متوفر حاليًا.\nهل تود استلام المتوفر فقط؟',
+      en: 'Mr./Ms. {name}\nYour online order no. {order} is partially available at our branch, and {item} is currently not available.\nWould you like to pick up the available items only?' }
   ]
 };
 
@@ -229,6 +230,8 @@ const I18N = {
     importDone: 'Settings imported.', importFail: 'This file is not a valid settings file.',
     unsavedShort: 'unsaved', unsavedHint: 'Settings changed since the last export. Export before closing this page.',
     clearConfirm: 'Clear all cards?',
+    resetDefault: 'Reset to default', resetConfirm: 'Replace all messages in this window with the default messages?',
+    resetDone: 'Default messages loaded. Press Save to keep them.',
     phoneEdit: 'Edit on phone',
     phoneHelp: 'Scan this code with your phone, edit the settings, then press "Send to computer" on the phone.',
     phoneExpires: 'This link expires in',
@@ -811,6 +814,12 @@ function bind() {
     toast(t('saved'));
   };
   $('btnPhoneEdit').onclick = startPhoneSession;
+  // Fills the form only; nothing changes until Save is pressed
+  $('btnResetDefault').onclick = () => {
+    if (!confirm(t('resetConfirm'))) return;
+    renderSettingsForm($('settingsForm'), JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+    $('settingsMsg').className = 'msg ok'; $('settingsMsg').textContent = t('resetDone');
+  };
   $('btnPhoneUse').onclick = usePhoneSettings;
   $('dlgPhone').addEventListener('close', () => { phone.received = null; endPhoneSession(); });
   document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
