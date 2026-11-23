@@ -21,6 +21,8 @@
   header h1 { font-size: 18px; margin: 0; flex: 1 1 auto; }
   .btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 6px 12px; }
   .btn:hover { border-color: var(--accent); }
+  a.btn { text-decoration: none; }
+  .last-buy { font-size: 12px; color: var(--muted); margin-top: 3px; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .btn.big { font-size: 16px; padding: 12px 22px; }
   .btn:disabled { opacity: .4; cursor: not-allowed; }
@@ -93,6 +95,7 @@
 <div class="wrap" id="main">
   <header>
     <h1 data-i18n="appTitle"></h1>
+    <a class="btn" href="https://rtlapps.nahdi.sa/Adherence/Home" target="_blank" rel="noopener" data-i18n="openAdherence"></a>
     <button class="btn" id="btnClear" data-i18n="clearCards"></button>
     <input type="file" id="fileImport" accept=".json,application/json" hidden>
     <button class="icon-btn" id="btnSettings" data-i18n-title="settings" style="position:relative">
@@ -174,6 +177,8 @@ const OLD_SETTINGS_KEY = 'onlineOrders.settings.v1'; // saved by the first versi
 const CARDS_KEY = 'esab.cards.v1'; // sessionStorage: survives a refresh, gone when the tab closes
 const EXPORT_NAME = 'pharmacy messages';
 const SHORT_MIN_CHARS = 10; // short item name: first words until at least this many characters
+// Default {item}: the word "insurance"; a medicine can be chosen from the list instead
+const INSURANCE_WORD = { ar: 'التأمين', en: 'insurance' };
 const VARS = { name: '{name}', order: '{order}', item: '{item}' };
 
 // Starting texts for a new pharmacy. Everything is editable in Settings.
@@ -206,7 +211,8 @@ const I18N = {
     short: 'Short', long: 'Long', langAr: 'عربي', langEn: 'English',
     qrWelcome: 'Welcome QR', qrMessage: 'Message QR', removeCard: 'Remove this card',
     chooseType: 'Choose a message type first.', noPhone: 'No phone number found. Open the guest details, press Ctrl+A then Ctrl+C, and paste again.',
-    noItems: 'No items',
+    noItems: 'No items', openAdherence: 'Adherence ↗', insuranceOption: 'Insurance',
+    lastBuy: 'Last purchase {d} · {n} days ago', lastBuyToday: 'Last purchase {d} · today', lastBuy1: 'Last purchase {d} · 1 day ago',
     welcomeSection: 'Welcome message', esabSection: 'E-Sab message', arabic: 'Arabic', english: 'English',
     typesSection: 'Message types', typeTitlePh: 'Title (shown on the cards)',
     addType: '+ Add message type', deleteType: 'Delete',
@@ -313,7 +319,11 @@ function parseOrder(text) {
     const m = /^\d{6,}\t+(.+)$/.exec(lines[i]);
     const name = m && m[1].split('\t')[0].trim();
     // The invoice line under each row also starts with digits: an item name must contain letters
-    if (name && /[A-Za-z\u0600-\u06FF]/.test(name) && !seen.has(name)) { seen.add(name); items.push({ ar: name, en: name }); }
+    if (name && /[A-Za-z\u0600-\u06FF]/.test(name) && !seen.has(name)) {
+      seen.add(name);
+      const d = /(\d{4}-\d{2}-\d{2})/.exec(lines[i + 1] || ''); // generic name, then Last Purchase
+      items.push({ ar: name, en: name, date: d ? d[1] : '' });
+    }
   }
   return { order: '', name: after('Guest Name'), phone: normalisePhone(after('Phone Number')), items };
 }
@@ -330,7 +340,7 @@ function shortName(s) {
 /* ===================== Cards ===================== */
 // card = { id, raw, order, name, phone, items, itemIdx, lang, mode, itemText, typeId, qrW, qrM, error }
 let cards = loadCards();
-function emptyCard() { return { id: newId(), raw: '', order: '', name: '', phone: '', items: [], itemIdx: 0, lang: 'ar', mode: 'short', itemText: '', typeId: '', qrW: false, qrM: false, error: '' }; }
+function emptyCard() { return { id: newId(), raw: '', order: '', name: '', phone: '', items: [], itemIdx: -1, lang: 'ar', mode: 'short', itemText: '', typeId: '', qrW: false, qrM: false, error: '' }; }
 function loadCards() {
   try { const c = JSON.parse(sessionStorage.getItem(CARDS_KEY)); if (Array.isArray(c) && c.length) return c; } catch (e) {}
   return [emptyCard()];
@@ -340,14 +350,23 @@ const cardById = id => cards.find(c => c.id === id);
 
 function updateItemText(c) {
   const it = c.items[c.itemIdx];
-  if (!it) { c.itemText = ''; return; }
+  if (!it) { c.itemText = INSURANCE_WORD[c.lang]; return; }
   const full = c.lang === 'en' ? it.en : it.ar;
   c.itemText = c.mode === 'long' ? full : shortName(full);
 }
 
 function cardHTML(c) {
   const has = !!c.raw;
-  const itemOpts = c.items.map((it, i) => {
+  // Last purchase of the chosen medicine (with Insurance: the newest one) and the days since it
+  const it = c.items[c.itemIdx] || c.items[0];
+  let lastBuy = '';
+  if (it && it.date) {
+    const [y, m, d] = it.date.split('-').map(Number);
+    const n = Math.round((Date.UTC(...todayISO().split('-').map((x, k) => k === 1 ? x - 1 : +x)) - Date.UTC(y, m - 1, d)) / 86400000);
+    const shown = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    lastBuy = t(n === 0 ? 'lastBuyToday' : n === 1 ? 'lastBuy1' : 'lastBuy', { d: shown, n });
+  }
+  const itemOpts = `<option value="-1" ${c.itemIdx < 0 ? 'selected' : ''}>${esc(t('insuranceOption'))}</option>` + c.items.map((it, i) => {
     const label = c.lang === 'en' ? it.en : it.ar;
     return `<option value="${i}" ${i === c.itemIdx ? 'selected' : ''}>${esc(label.length > 40 ? label.slice(0, 40) + '…' : label)}</option>`;
   }).join('');
@@ -357,19 +376,18 @@ function cardHTML(c) {
       ${has && !c.error ? `
         <div>
           <input class="field name" data-field="name" value="${esc(c.name)}" placeholder="${esc(t('namePh'))}" dir="auto">
+          ${lastBuy ? `<div class="last-buy">${esc(lastBuy)}</div>` : ''}
         </div>
         <div class="seg">
           <button class="${c.lang === 'ar' ? 'on' : ''}" data-act="lang" data-val="ar">${esc(t('langAr'))}</button>
           <button class="${c.lang === 'en' ? 'on' : ''}" data-act="lang" data-val="en">${esc(t('langEn'))}</button>
         </div>
-        ${c.items.length ? `
-          <select class="field" data-act="item" dir="auto">${itemOpts}</select>
-          <div class="seg">
-            <button class="${c.mode === 'short' ? 'on' : ''}" data-act="mode" data-val="short">${esc(t('short'))}</button>
-            <button class="${c.mode === 'long' ? 'on' : ''}" data-act="mode" data-val="long">${esc(t('long'))}</button>
-          </div>
-          <input class="field item" data-field="itemText" value="${esc(c.itemText)}" placeholder="${esc(t('itemPh'))}" dir="auto">`
-        : `<span class="help">${esc(t('noItems'))}</span>`}
+        <select class="field" data-act="item" dir="auto">${itemOpts}</select>
+        ${c.itemIdx >= 0 ? `<div class="seg">
+          <button class="${c.mode === 'short' ? 'on' : ''}" data-act="mode" data-val="short">${esc(t('short'))}</button>
+          <button class="${c.mode === 'long' ? 'on' : ''}" data-act="mode" data-val="long">${esc(t('long'))}</button>
+        </div>` : ''}
+        <input class="field item" data-field="itemText" value="${esc(c.itemText)}" placeholder="${esc(t('itemPh'))}" dir="auto">
         <div class="spacer"></div>
         <button class="qr-btn" data-act="qr" data-val="welcome">${c.qrW ? '✓ ' : ''}${esc(t('qrWelcome'))}</button>
         <button class="qr-btn second" data-act="qr" data-val="message">${c.qrM ? '✓ ' : ''}${esc(t('qrMessage'))}</button>`
@@ -394,7 +412,7 @@ function onPaste(c, text) {
   c.qrW = c.qrM = false;
   if (!text.trim()) { Object.assign(c, emptyCard(), { id: c.id, typeId: c.typeId }); rerenderCard(c); return; }
   const o = parseOrder(text);
-  Object.assign(c, { order: o.order, name: o.name, phone: o.phone, items: o.items, itemIdx: 0, mode: 'short' });
+  Object.assign(c, { order: o.order, name: o.name, phone: o.phone, items: o.items, itemIdx: -1, mode: 'short' });
   c.error = o.phone ? '' : t('noPhone');
   updateItemText(c);
   rerenderCard(c);
