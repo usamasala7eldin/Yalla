@@ -168,9 +168,11 @@
 
 <script>
 /* ===================== Configuration ===================== */
-const SETTINGS_KEY = 'onlineOrders.settings.v1';
+// Shared by all pharmacy message pages on this site (Online Orders, E-Sab): editing on one page updates the other
+const SETTINGS_KEY = 'pharmacyMessages.settings.v1';
+const OLD_SETTINGS_KEY = 'onlineOrders.settings.v1'; // saved by the first version of this page
 const CARDS_KEY = 'onlineOrders.cards.v1'; // sessionStorage: survives a refresh, gone when the tab closes
-const EXPORT_NAME = 'online offers settings';
+const EXPORT_NAME = 'pharmacy messages';
 const SHORT_MIN_CHARS = 10; // short item name: first words until at least this many characters
 const VARS = { name: '{name}', order: '{order}', item: '{item}' };
 
@@ -178,6 +180,8 @@ const VARS = { name: '{name}', order: '{order}', item: '{item}' };
 const DEFAULT_SETTINGS = {
   welcomeAr: 'السلام عليكم\nمع حضرتك صيدلية النهدي (عنوان الصيدلية)\n(رابط موقع الصيدلية على Google Maps)',
   welcomeEn: 'Hello,\nThis is Nahdi Pharmacy (pharmacy address)\n(pharmacy Google Maps link)',
+  esabAr: 'أ/ {name}\nكيف حال حضرتك\nموعد تكرار دواء {item}\nهذا الاسبوع\nوهو متوفر لدينا بالفرع👆',
+  esabEn: 'Mr./Ms. {name}\nHow are you?\nYour {item} medication refill is due\nthis week\nand it is available at our branch👆',
   types: [
     { id: 't1', title: 'آخر موعد للاستلام اليوم', color: '#d97706',
       ar: 'أ/ {name}\nيوجد لحضرتك داخل الفرع☝️ طلب أونلاين بـ {item}\nوآخر موعد لاستلامه اليوم.',
@@ -203,7 +207,7 @@ const I18N = {
     qrWelcome: 'Welcome QR', qrMessage: 'Message QR', removeCard: 'Remove this card',
     chooseType: 'Choose a message type first.', noPhone: 'No mobile number found. Open the order, press Ctrl+A then Ctrl+C, and paste again.',
     noItems: 'No items',
-    welcomeSection: 'Welcome message', arabic: 'Arabic', english: 'English',
+    welcomeSection: 'Welcome message', esabSection: 'E-Sab message', arabic: 'Arabic', english: 'English',
     typesSection: 'Message types', typeTitlePh: 'Title (shown on the cards)',
     addType: '+ Add message type', deleteType: 'Delete',
     insert: 'Insert:', varName: 'Name', varOrder: 'Order no.', varItem: 'Item',
@@ -262,10 +266,17 @@ function normalisePhone(p) {
 let settings = loadSettings();
 let dirty = localStorage.getItem(SETTINGS_KEY + '.dirty') === '1';
 function loadSettings() {
-  try { const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)); return validSettings(s) ? s : null; }
-  catch (e) { return null; }
+  for (const key of [SETTINGS_KEY, OLD_SETTINGS_KEY]) {
+    try { const s = normaliseSettings(JSON.parse(localStorage.getItem(key))); if (s) return s; } catch (e) {}
+  }
+  return null;
 }
 function validSettings(s) { return !!(s && Array.isArray(s.types) && typeof s.welcomeAr === 'string'); }
+// Older files have no E-Sab message: the default one is added
+function normaliseSettings(s) {
+  if (!validSettings(s)) return null;
+  return Object.assign({ welcomeEn: '', esabAr: DEFAULT_SETTINGS.esabAr, esabEn: DEFAULT_SETTINGS.esabEn }, s);
+}
 function saveSettings(isDirty) {
   dirty = isDirty;
   try {
@@ -464,6 +475,11 @@ function renderSettingsForm(box, s) {
       <div><label>${esc(t('arabic'))}</label><textarea data-k="welcomeAr" rows="4" dir="rtl">${esc(s.welcomeAr)}</textarea></div>
       <div><label>${esc(t('english'))}</label><textarea data-k="welcomeEn" rows="4" dir="ltr">${esc(s.welcomeEn)}</textarea></div>
     </div>
+    <h3>${esc(t('esabSection'))}</h3>
+    <div class="grid2">
+      <div><label>${esc(t('arabic'))}</label><textarea data-k="esabAr" rows="5" dir="rtl">${esc(s.esabAr)}</textarea></div>
+      <div><label>${esc(t('english'))}</label><textarea data-k="esabEn" rows="5" dir="ltr">${esc(s.esabEn)}</textarea></div>
+    </div>
     <h3>${esc(t('typesSection'))}</h3>
     <div class="types-list">${s.types.map(typeEditHTML).join('')}</div>
     <button class="btn" data-sf="add">${esc(t('addType'))}</button>`;
@@ -494,6 +510,7 @@ function readSettingsForm(box) {
   const val = (root, k) => root.querySelector(`[data-k="${k}"]`).value;
   return {
     welcomeAr: val(box, 'welcomeAr'), welcomeEn: val(box, 'welcomeEn'),
+    esabAr: val(box, 'esabAr'), esabEn: val(box, 'esabEn'),
     types: [...box.querySelectorAll('.type-edit')].map(el => ({
       id: el.dataset.id, title: val(el, 'title').trim(), color: val(el, 'color'), ar: val(el, 'ar'), en: val(el, 'en')
     }))
@@ -525,7 +542,7 @@ function renderAll() {
 
 /* ===================== Export / import ===================== */
 function exportSettings() {
-  const blob = new Blob([JSON.stringify({ kind: 'onlineOrdersSettings', settings })], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ kind: 'pharmacyMessages', settings })], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `${EXPORT_NAME} ${todayISO()}.json`;
@@ -538,8 +555,8 @@ function importSettings(file) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      const s = data && data.settings;
-      if (!validSettings(s)) throw new Error('bad');
+      const s = normaliseSettings(data && data.settings);
+      if (!s) throw new Error('bad');
       settings = s;
       saveSettings(false);
       renderAll();
@@ -620,9 +637,10 @@ async function startPhoneSession() {
       if (phone.id !== myId || !snap.exists() || snap.metadata.hasPendingWrites) return;
       try {
         const data = await decJSON(snap.data().text || '', phone.key);
-        if (data.from !== 'phone' || !validSettings(data.settings)) return;
-        phone.received = data.settings;
-        $('phonePreview').textContent = [data.settings.welcomeAr, ...data.settings.types.map(x => `— ${x.title} —\n${x.ar}`)].join('\n\n');
+        const got = data.from === 'phone' && normaliseSettings(data.settings);
+        if (!got) return;
+        phone.received = got;
+        $('phonePreview').textContent = [got.welcomeAr, `— ${t('esabSection')} —\n${got.esabAr}`, ...got.types.map(x => `— ${x.title} —\n${x.ar}`)].join('\n\n');
         $('phoneWait').hidden = true;
         $('phonePreview').hidden = false; $('btnPhoneUse').disabled = false;
         phoneStatus(t('phoneReceived'), 'ok');
@@ -668,8 +686,9 @@ async function startPhoneMode(secretText) {
     const snap = await fs.getDoc(ref);
     if (!snap.exists()) { status(t('phoneBadLink'), 'err'); return; }
     const data = await decJSON(snap.data().text || '', s.key);
-    if (!validSettings(data.settings)) { status(t('phoneBadLink'), 'err'); return; }
-    renderSettingsForm($('pmForm'), data.settings);
+    const got = normaliseSettings(data.settings);
+    if (!got) { status(t('phoneBadLink'), 'err'); return; }
+    renderSettingsForm($('pmForm'), got);
     status('');
     $('pmSend').hidden = false;
     $('pmSend').onclick = async () => {
