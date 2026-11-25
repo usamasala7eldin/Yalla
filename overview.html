@@ -267,6 +267,14 @@ button.cday:hover{border-color:var(--muted)}
 .phchip[aria-pressed="true"] .mins{color:inherit}
 .date .ph{display:block;font-family:var(--f-ar);font-weight:700;font-size:12.5px;color:var(--accent);margin-top:2px}
 .ipanel h2{margin:0;font-family:var(--f-display);font-size:18px}
+
+/* One-page report preview */
+.modal .box.rep{max-width:760px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 32px)}
+.rep .prev{flex:1;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:10px;display:flex;justify-content:center}
+.rep .prev img{width:100%;max-width:620px;height:auto;display:block;box-shadow:0 2px 12px rgba(0,0,0,.12);border-radius:4px;background:#fff}
+.rep .prev .state{align-self:center}
+.rep .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:560px){ .rep .acts .btn{flex:1} }
 </style>
 
 <div class="wrap">
@@ -286,6 +294,10 @@ button.cday:hover{border-color:var(--muted)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
           <span data-t="copy"></span>
         </button>
+        <button class="btn" id="reportBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M10 13h6M10 17h6" stroke-linecap="round"/></svg>
+          <span data-t="report"></span>
+        </button>
         <button class="btn" id="importBtn" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 14v5h14v-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span data-t="import"></span>
@@ -302,6 +314,16 @@ button.cday:hover{border-color:var(--muted)}
 </div>
 
 <div class="modal" id="modal" hidden><div class="box"><div class="sec-head" style="margin-bottom:8px"><b data-t="copy"></b><button class="btn" id="modalX" type="button" data-t="close"></button></div><textarea id="copyTa" readonly></textarea></div></div>
+
+<div class="modal" id="repModal" hidden><div class="box rep" role="dialog" aria-modal="true" aria-labelledby="repTitle">
+  <div class="sec-head"><b id="repTitle" data-t="report"></b><button class="btn" id="repX" type="button" data-t="close"></button></div>
+  <div class="prev" id="repPrev"></div>
+  <div class="acts">
+    <button class="btn" id="repShare" type="button" hidden data-t="repShare"></button>
+    <button class="btn" id="repPdf" type="button" data-t="repPdf"></button>
+    <button class="btn primary" id="repPng" type="button" data-t="repPng"></button>
+  </div>
+</div></div>
 
 <script src="attendance-core.js"></script>
 <script>
@@ -338,6 +360,13 @@ const STR = { en: {
   impGo: "Import {n} pharmacy(ies)", impRunning: "Importing…", impAllDone: "All imported", impRetry: "Retry",
   stWait: "Waiting", stBusy: "Saving…", stDone: "Saved", stFail: "Failed",
   resDone: "{a} new · {u} updated", resDelay: "Delay now: {m} min", resNoPunch: "No saved punches yet",
+  report: "Report", repShare: "Share", repPdf: "Download PDF", repPng: "Download image", repMaking: "Preparing the report…", repErr: "Couldn't make the report. Try again.", repPdfErr: "Couldn't make the PDF. Check the internet and try again.",
+  rTitle: "Attendance Report", rSub: "{month} · {n} pharmacies", rGen: "Generated", rFile: "attendance-report-{m}",
+  rTDelay: "Total delay", rTDelayS: "{n} late day(s)", rTExc: "Exceptional duties", rTExcS: "{n} may not be accepted", rTMiss: "Missing yesterday", rTMissS: "of {n} pharmacies",
+  rMissHead: "Missing yesterday's Employee InOut · {n}", rAllSent: "All pharmacies sent yesterday's Employee InOut.",
+  rLast: "last data {d}", rBehind: "{n} day(s) behind", rNone: "no recent data",
+  rcRank: "#", rcPh: "Pharmacy", rcDelay: "Delay (min)", rcLate: "Late days", rcExc: "Exceptional", rcRisk1: "May not be", rcRisk2: "accepted", rcLast: "Last data",
+  rTotal: "Total", rNote1: "May not be accepted: edited after 4 days, or over 5 in the month.", rNote2: "Data not up to date: the real delay may be higher.",
   impDoneToast: "Import finished", impRule: "Your import always wins. A pharmacy's paste replaces a day only if its edit is newer."
 }};
 let LANG = "en";
@@ -845,6 +874,180 @@ function copySummary() {
   try { navigator.clipboard.writeText(txt).then(() => toast(t("copied")), fallback); } catch (e) { fallback(); }
 }
 
+/* ---------- One-page report (image or PDF) ---------- */
+// Always one month: the chosen month, or this month when the year is open.
+function reportData() {
+  const m = state.period === "year" ? curMonth() : state.period;
+  const y = yesterday();
+  const { days, sched } = collect([m], "");
+  const exc = [...rankExceptions(sched, state.meta.holidays).values()].filter(e => e.rank > 0 && e.date.slice(0, 7) === m);
+  const rows = state.meta.pharmacies.map(p => {
+    const d = days.filter(x => x.store === p.code), e = exc.filter(x => x.store === p.code);
+    const last = lastDay(p.code);
+    return { code: p.code, name: p.name, delay: d.reduce((a, x) => a + x.minutes, 0), late: d.filter(x => x.minutes > 0).length,
+      exc: e.length, risk: e.filter(x => x.lateEdit || x.over).length, last, missing: !last || last < y,
+      behind: last ? dayNum(y) - dayNum(last) : null };
+  }).sort((a, b) => b.delay - a.delay || b.late - a.late || a.name.localeCompare(b.name, "ar"));
+  const sum = k => rows.reduce((a, r) => a + r[k], 0);
+  return { month: m, rows, missing: rows.filter(r => r.missing).sort((a, b) => (b.behind ?? 999) - (a.behind ?? 999)),
+    total: { delay: sum("delay"), late: sum("late"), exc: sum("exc"), risk: sum("risk") } };
+}
+
+// Drawn straight on a canvas (A4 proportions), so Arabic names keep their joined letters in the image.
+async function drawReport() {
+  const R = reportData();
+  const F = { d: '"Schibsted Grotesk",system-ui,sans-serif', a: '"Noto Sans Arabic",Tahoma,sans-serif', m: '"IBM Plex Mono",ui-monospace,monospace' };
+  try { await Promise.all([`800 24px ${F.d}`, `600 13px ${F.d}`, `700 14px ${F.a}`, `600 14px ${F.m}`].map(f => document.fonts.load(f, "Aب1"))); } catch (e) {}
+  const C = { ink: "#17201c", mut: "#5b6762", line: "#dde3e0", soft: "#f6f8f7", bad: "#c32a2a", badS: "#fcebea", warn: "#9a6200", warnS: "#fbf0d9", ok: "#1d7a4c", okS: "#e5f3eb", acc: "#0c6a57", dot: "#d8dedb" };
+  const W = 794, X = 40, CW = W - 2 * X, RH = 40;
+  const missCols = 2, missLines = Math.ceil(R.missing.length / missCols);
+  const boxH = R.missing.length ? 44 + missLines * 24 : 40;
+  const H = Math.max(1123, 40 + 64 + 92 + boxH + 22 + 40 + R.rows.length * RH + 44 + 70);
+  const cv = document.createElement("canvas"), S = 2;
+  cv.width = W * S; cv.height = H * S;
+  const g = cv.getContext("2d");
+  g.scale(S, S);
+  g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+  const font = (w, sz, f) => g.font = `${w} ${sz}px ${f}`;
+  const text = (s, x, y, o = {}) => {
+    font(o.w || 400, o.sz || 13, o.f || F.d); g.fillStyle = o.c || C.ink; g.textAlign = o.al || "left"; g.textBaseline = o.bl || "alphabetic";
+    g.fillText(String(s), x, y); return g.measureText(String(s)).width;
+  };
+  const box = (x, y, w, h, r, fill, stroke) => { g.beginPath(); g.roundRect(x, y, w, h, r); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = 1; g.stroke(); } };
+  const warnIcon = (x, y, c) => { g.beginPath(); g.moveTo(x + 6, y); g.lineTo(x + 12, y + 11); g.lineTo(x, y + 11); g.closePath(); g.fillStyle = c; g.fill();
+    g.fillStyle = "#fff"; g.fillRect(x + 5.3, y + 3.6, 1.4, 4); g.fillRect(x + 5.3, y + 8.6, 1.4, 1.4); };
+  const fmtN = n => n.toLocaleString("en-US");
+
+  // Header
+  let y = 40;
+  text(t("rTitle"), X, y + 22, { w: 800, sz: 24 });
+  text(t("rSub", { month: mName(R.month), n: R.rows.length }), X, y + 44, { sz: 13, c: C.mut });
+  const now = new Date();
+  text(t("rGen"), W - X, y + 14, { sz: 11, c: C.mut, al: "right" });
+  text(now.getDate() + " " + MONS[now.getMonth()] + " " + now.getFullYear() + ", " + fmtTime(now), W - X, y + 32, { w: 600, sz: 13, al: "right" });
+  y += 64;
+
+  // Three numbers
+  const tw = (CW - 24) / 3;
+  [[t("rTDelay"), fmtN(R.total.delay), "min", t("rTDelayS", { n: R.total.late }), R.total.delay ? C.bad : C.ok],
+   [t("rTExc"), String(R.total.exc), "", t("rTExcS", { n: R.total.risk }), R.total.risk ? C.warn : C.ink],
+   [t("rTMiss"), String(R.missing.length), "", t("rTMissS", { n: R.rows.length }), R.missing.length ? C.bad : C.ok]].forEach(([k, v, u, sub, col], i) => {
+    const bx = X + i * (tw + 12);
+    box(bx, y, tw, 78, 10, C.soft, C.line);
+    text(k.toUpperCase(), bx + 14, y + 22, { w: 600, sz: 10.5, c: C.mut });
+    const vw = text(v, bx + 14, y + 52, { w: 800, sz: 26, c: col });
+    if (u) text(u, bx + 18 + vw, y + 52, { w: 600, sz: 12, c: C.mut });
+    text(sub, bx + 14, y + 68, { sz: 11.5, c: C.mut });
+  });
+  y += 92;
+
+  // Missing yesterday
+  if (R.missing.length) {
+    box(X, y, CW, boxH, 10, C.badS);
+    warnIcon(X + 14, y + 13, C.bad);
+    text(t("rMissHead", { n: R.missing.length }), X + 34, y + 23, { w: 700, sz: 13, c: C.bad });
+    const colW = CW / missCols;
+    R.missing.forEach((r, i) => {
+      const cx = X + 14 + Math.floor(i / missLines) * colW, cy = y + 50 + (i % missLines) * 24;
+      let w = text(r.name, cx, cy, { w: 700, sz: 13, f: F.a });
+      w += 6 + text(r.code, cx + w + 6, cy, { sz: 11, f: F.m, c: C.mut });
+      const info = r.last ? t("rLast", { d: fmtDate(r.last) }) + " · " + t("rBehind", { n: r.behind }) : t("rNone");
+      text(info, cx + w + 10, cy, { sz: 11.5, c: C.bad });
+    });
+  } else {
+    box(X, y, CW, boxH, 10, C.okS);
+    text(t("rAllSent"), X + 14, y + 25, { w: 600, sz: 13, c: C.ok });
+  }
+  y += boxH + 22;
+
+  // Table
+  const col = { rank: X + 10, ph: X + 40, delay: X + 280, bar: X + 292, late: X + 415, exc: X + 460, risk: X + 600, last: W - X - 10 };
+  box(X, y, CW, 40 + R.rows.length * RH + 44, 10, null, C.line);
+  g.save(); g.beginPath(); g.roundRect(X, y, CW, 40, [10, 10, 0, 0]); g.fillStyle = C.soft; g.fill(); g.restore();
+  const hd = (s, x, al, yy = y + 25) => text(s.toUpperCase(), x, yy, { w: 600, sz: 10, c: C.mut, al });
+  hd(t("rcRank"), col.rank, "left"); hd(t("rcPh"), col.ph, "left"); hd(t("rcDelay"), col.delay, "right");
+  hd(t("rcLate"), col.late, "center"); hd(t("rcExc"), col.exc, "left");
+  hd(t("rcRisk1"), col.risk, "center", y + 18); hd(t("rcRisk2"), col.risk, "center", y + 31); hd(t("rcLast"), col.last, "right");
+  y += 40;
+  const maxD = Math.max(1, ...R.rows.map(r => r.delay));
+  R.rows.forEach((r, i) => {
+    const ry = y + i * RH, mid = ry + RH / 2;
+    if (r.missing) { g.fillStyle = C.warnS; g.fillRect(X + 1, ry, CW - 2, RH); }
+    g.fillStyle = C.line; g.fillRect(X, ry, CW, 1);
+    text(i + 1, col.rank, mid + 4, { w: 600, sz: 12, f: F.m, c: C.mut });
+    let w = text(r.name, col.ph, mid + 5, { w: 700, sz: 14, f: F.a });
+    w += 7 + text(r.code, col.ph + w + 7, mid + 4, { sz: 11, f: F.m, c: C.mut });
+    if (r.missing) warnIcon(col.ph + w + 8, mid - 7, C.warn);
+    text(fmtN(r.delay), col.delay, mid + 5, { w: 600, sz: 14, f: F.m, c: r.delay ? C.bad : C.ok, al: "right" });
+    box(col.bar, mid - 4, 90, 8, 4, C.soft);
+    if (r.delay) box(col.bar, mid - 4, Math.max(6, 90 * r.delay / maxD), 8, 4, C.bad);
+    text(r.late, col.late, mid + 5, { w: 600, sz: 13, f: F.m, c: r.late ? C.ink : C.mut, al: "center" });
+    const over = r.exc > 5;
+    const ew = text(r.exc + "/5", col.exc, mid + 5, { w: 600, sz: 13, f: F.m, c: over ? C.bad : r.exc ? C.ink : C.mut });
+    for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(col.exc + ew + 12 + k * 12, mid, 4, 0, Math.PI * 2); g.fillStyle = k < r.exc ? (over ? C.bad : r.exc === 5 ? C.warn : C.acc) : C.dot; g.fill(); }
+    text(r.risk, col.risk, mid + 5, { w: r.risk ? 700 : 400, sz: 13, f: F.m, c: r.risk ? C.bad : C.mut, al: "center" });
+    text(r.last ? fmtDate(r.last) : "—", col.last, mid + 5, { w: r.missing ? 700 : 400, sz: 12.5, c: r.missing ? C.warn : C.ink, al: "right" });
+  });
+  y += R.rows.length * RH;
+  g.fillStyle = C.line; g.fillRect(X, y, CW, 1.5);
+  const tm = y + 26;
+  text(t("rTotal"), col.ph, tm, { w: 700, sz: 13 });
+  text(fmtN(R.total.delay), col.delay, tm, { w: 700, sz: 14, f: F.m, c: R.total.delay ? C.bad : C.ok, al: "right" });
+  text(R.total.late, col.late, tm, { w: 700, sz: 13, f: F.m, al: "center" });
+  text(R.total.exc, col.exc, tm, { w: 700, sz: 13, f: F.m });
+  text(R.total.risk, col.risk, tm, { w: 700, sz: 13, f: F.m, c: R.total.risk ? C.bad : C.ink, al: "center" });
+  y += 44 + 24;
+
+  // Notes
+  text(t("rNote1"), X, y, { sz: 11, c: C.mut });
+  warnIcon(X, y + 9, C.warn);
+  text(t("rNote2"), X + 18, y + 19, { sz: 11, c: C.mut });
+  return { canvas: cv, month: R.month };
+}
+
+const rep = { canvas: null, month: "", blob: null };
+const repName = ext => t("rFile", { m: rep.month }) + "." + ext;
+function saveFile(blob, name) {
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function loadScript(src) {
+  return new Promise((ok, fail) => { const el = document.createElement("script"); el.src = src; el.onload = ok; el.onerror = fail; document.head.appendChild(el); });
+}
+async function openReport() {
+  if (!state.meta || state.view !== "main") return;
+  $("repModal").hidden = false;
+  $("repPrev").innerHTML = `<div class="state"><span class="spin"></span>${esc(t("repMaking"))}</div>`;
+  ["repPng", "repPdf", "repShare"].forEach(id => $(id).disabled = true);
+  try {
+    const r = await drawReport();
+    rep.canvas = r.canvas; rep.month = r.month;
+    rep.blob = await new Promise(ok => r.canvas.toBlob(ok, "image/png"));
+    const img = new Image(); img.alt = t("rTitle"); img.src = URL.createObjectURL(rep.blob);
+    $("repPrev").innerHTML = ""; $("repPrev").appendChild(img);
+    ["repPng", "repPdf", "repShare"].forEach(id => $(id).disabled = false);
+    const file = new File([rep.blob], repName("png"), { type: "image/png" });
+    $("repShare").hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
+  } catch (e) { $("repPrev").innerHTML = `<div class="state">${esc(t("repErr"))}</div>`; }
+}
+async function reportPdf() {
+  const btn = $("repPdf"); btn.disabled = true;
+  try {
+    if (!window.jspdf) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const pdf = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+    const cw = rep.canvas.width, ch = rep.canvas.height, k = Math.min(pw / cw, ph / ch);
+    pdf.addImage(rep.canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pw - cw * k) / 2, 0, cw * k, ch * k);
+    saveFile(pdf.output("blob"), repName("pdf"));
+  } catch (e) { toast(t("repPdfErr")); }
+  btn.disabled = false;
+}
+async function reportShare() {
+  try { await navigator.share({ files: [new File([rep.blob], repName("png"), { type: "image/png" })], title: t("rTitle") }); } catch (e) {}
+}
+function closeReport() { $("repModal").hidden = true; const img = $("repPrev").querySelector("img"); if (img) URL.revokeObjectURL(img.src); }
+
 /* ---------- Boot ---------- */
 applyStrings();
 $("login").addEventListener("submit", e => { e.preventDefault(); const pw = $("pw").value.trim(); if (pw) { state.pw = pw; start(true); } });
@@ -852,6 +1055,13 @@ $("refresh").onclick = () => { if (state.view === "import") { state.view = "main
 $("copyBtn").onclick = copySummary;
 $("importBtn").onclick = () => { if (state.meta) openImport(); };
 $("modalX").onclick = () => { $("modal").hidden = true; };
+$("reportBtn").onclick = openReport;
+$("repX").onclick = closeReport;
+$("repPng").onclick = () => { if (rep.blob) saveFile(rep.blob, repName("png")); };
+$("repPdf").onclick = reportPdf;
+$("repShare").onclick = reportShare;
+$("repModal").addEventListener("click", e => { if (e.target === $("repModal")) closeReport(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("repModal").hidden) closeReport(); });
 $("signout").onclick = () => { ls.clear(); state.meta = null; state.pw = ""; state.view = "main"; state.months.clear(); showLogin(""); };
 const savedPw = ls.get();
 if (savedPw) { state.pw = savedPw; start(false); } else showLogin("");
